@@ -3,6 +3,8 @@ import { BsList, BsX } from "react-icons/bs";
 import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { FaMobileAlt } from "react-icons/fa";
+
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +13,35 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const location = useLocation();
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+  
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+  
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('Usuário aceitou instalar o app');
+    } else {
+      console.log('Usuário recusou instalar o app');
+    }
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   
@@ -126,6 +157,7 @@ export default function Header() {
           : 'bg-white shadow-md'
       }`}>
         
+        
         {/* Barra superior com contato */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4">
           <div className="container mx-auto flex items-center justify-between text-sm">
@@ -159,6 +191,9 @@ export default function Header() {
             >
               <BsList size={24} className="text-gray-700" />
             </button>
+            
+            
+
 
             {/* Logo */}
             <div className="flex items-center">
@@ -178,6 +213,15 @@ export default function Header() {
                 </div>
               </NavLink>
             </div>
+            {isInstallable && (
+              <button
+                onClick={handleInstallClick}
+                className=" sm:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow hover:from-green-600 hover:to-green-700 transition-all duration-300"
+              >
+                📱 <span className="text-sm font-medium">Instalar App</span>
+              </button>
+            )}
+
 
             {/* Barra de busca desktop */}
             
@@ -225,6 +269,7 @@ export default function Header() {
                   0
                 </span>
               </button>
+              
 
               {/* Carrinho */}
               <Link to="/carrinho" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
@@ -235,6 +280,7 @@ export default function Header() {
                   </span>
                 )}
               </Link>
+              
 
               {/* Admin */}
               <NavLink
