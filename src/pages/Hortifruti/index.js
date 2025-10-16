@@ -6,7 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaLeaf } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 
@@ -22,18 +22,43 @@ export default function Hortifruti({ searchTerm = "" }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const q = query(
-          collection(db, "produtos"),
-          where("categoria", "==", "Hortifruti")
-        );
-        const querySnapshot = await getDocs(q);
-        const products = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAllProducts(products);
+        
+        // Buscar todos os produtos do Firestore
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        
+        // Filtrar localmente por categoria
+        const products = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter(product => {
+            const categoria = (product.categoria || "").toLowerCase().trim();
+            return categoria.includes("hortifruti") || 
+                   categoria.includes("hortifruit") ||
+                   categoria === "hortifruti";
+          });
+        
+        // Ordenar produtos por ordem alfabética (título)
+        const sortedProducts = products.sort((a, b) => {
+          const titleA = (a.titulo || a.nome || "").toLowerCase();
+          const titleB = (b.titulo || b.nome || "").toLowerCase();
+          return titleA.localeCompare(titleB);
+        });
+        
+        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Hortifruti (ordenados A-Z)`);
+        
+        // Debug: mostrar as categorias encontradas
+        if (sortedProducts.length === 0) {
+          console.warn("⚠️ Nenhum produto de Hortifruti encontrado. Verificando todas as categorias disponíveis:");
+          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
+          console.log("Categorias no banco:", [...new Set(allCategories)]);
+        }
+        
+        setAllProducts(sortedProducts);
       } catch (error) {
-        console.error("Erro ao buscar produtos de hortifruti:", error);
+        console.error("❌ Erro ao buscar produtos de hortifruti:", error);
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }
@@ -256,5 +281,3 @@ export default function Hortifruti({ searchTerm = "" }) {
     </section>
   );
 }
-
-

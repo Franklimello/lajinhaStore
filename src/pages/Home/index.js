@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CardProduto from "../../components/CardProduto";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
-import { FaTruck, FaShieldAlt, FaHeart, FaSearch } from "react-icons/fa";
+import { FaTruck, FaShieldAlt, FaHeart, FaSearch, FaArrowUp } from "react-icons/fa";
 import Hortifruti from "../../pages/Hortifruti";
 import Acougue from "../../pages/Acougue";
 import FriosLaticinios from "../../pages/FriosLaticinios";
@@ -21,8 +21,100 @@ import "swiper/css/pagination";
 
 export default function Home() {
   const [termo, setTermo] = useState("");
+  const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
   const { documents: produtos, loading } = useGetDocuments("produtos");
   const filteredByName = (produtos || []).filter(p => (p.titulo || "").toLowerCase().includes(termo.trim().toLowerCase()));
+
+  // Controla visibilidade do botão de voltar ao topo
+  useEffect(() => {
+    const toggleVisibility = () => {
+      if (window.pageYOffset > 300) {
+        setIsScrollTopVisible(true);
+      } else {
+        setIsScrollTopVisible(false);
+      }
+    };
+
+    window.addEventListener("scroll", toggleVisibility);
+    return () => window.removeEventListener("scroll", toggleVisibility);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+
+  const categories = [
+    { 
+      name: 'Mercearia', 
+      icon: '🛒',
+      color: 'from-blue-500 to-indigo-600'
+    },
+    { 
+      name: 'Limpeza', 
+      icon: '🧹',
+      color: 'from-teal-500 to-cyan-600'
+    },
+    { 
+      name: 'Frios e laticínios', 
+      icon: '🧀',
+      color: 'from-yellow-500 to-amber-600'
+    },
+    { 
+      name: 'Guloseimas e snacks', 
+      icon: '🍫',
+      color: 'from-pink-500 to-fuchsia-600'
+    },
+    { 
+      name: 'Bebidas', 
+      icon: '🥤',
+      color: 'from-cyan-500 to-blue-600'
+    },
+    { 
+      name: 'Higiene pessoal', 
+      icon: '🧴',
+      color: 'from-purple-500 to-violet-600'
+    },
+    { 
+      name: 'Farmácia', 
+      icon: '💊',
+      color: 'from-emerald-500 to-green-600'
+    },
+    { 
+      name: 'Utilidades domésticas', 
+      icon: '🏠',
+      color: 'from-orange-500 to-red-600'
+    },
+    { 
+      name: 'Pet shop', 
+      icon: '🐾',
+      color: 'from-amber-500 to-orange-600'
+    },
+    { 
+      name: 'Infantil', 
+      icon: '👶',
+      color: 'from-sky-500 to-blue-600'
+    },
+    { 
+      name: 'Hortifruti', 
+      icon: '🥬',
+      color: 'from-green-500 to-emerald-600'
+    },
+    { 
+      name: 'Açougue', 
+      icon: '🥩',
+      color: 'from-red-500 to-rose-600'
+    },
+  ];
+
+  const scrollToCategory = (categoryName) => {
+    const element = document.getElementById(`category-${categoryName}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
@@ -87,6 +179,39 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Grid de Categorias - Só aparece quando não há busca */}
+      {!termo.trim() && (
+        <div className="container mx-auto px-4 pb-8">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              Escolha uma categoria
+            </h2>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {categories.map((category, index) => (
+                <button
+                  key={index}
+                  onClick={() => scrollToCategory(category.name)}
+                  className={`group relative flex flex-col items-center p-3 md:p-4 bg-gradient-to-br ${category.color} rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95`}
+                >
+                  {/* Icon */}
+                  <div className="text-3xl md:text-4xl mb-2 group-hover:scale-110 transition-transform duration-300">
+                    {category.icon}
+                  </div>
+                  
+                  {/* Name */}
+                  <span className="text-xs md:text-sm font-bold text-white text-center leading-tight">
+                    {category.name}
+                  </span>
+
+                  {/* Hover shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none rounded-2xl"></div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {termo.trim() ? (
         <div className="container mx-auto px-4 pb-12">
           {loading ? (
@@ -132,19 +257,54 @@ export default function Home() {
         </div>
       ) : (
         <div className="container mx-auto  pb-4 space-y-10">
-          <Mercearia searchTerm={termo} />
-          <Limpeza searchTerm={termo} />
-          <FriosLaticinios searchTerm={termo} />
-          <GulosemasSnacks searchTerm={termo} />
-          <Bebidas searchTerm={termo} />
-          <HigienePessoal searchTerm={termo} />
-          <Farmacia searchTerm={termo} />
-          <UtilidadesDomesticas searchTerm={termo} />
-          <PetShop searchTerm={termo} />
-          <Infantil searchTerm={termo} />
-          <Hortifruti searchTerm={termo} />
-          <Acougue searchTerm={termo} />
+          <div id="category-Mercearia">
+            <Mercearia searchTerm={termo} />
+          </div>
+          <div id="category-Limpeza">
+            <Limpeza searchTerm={termo} />
+          </div>
+          <div id="category-Frios e laticínios">
+            <FriosLaticinios searchTerm={termo} />
+          </div>
+          <div id="category-Guloseimas e snacks">
+            <GulosemasSnacks searchTerm={termo} />
+          </div>
+          <div id="category-Bebidas">
+            <Bebidas searchTerm={termo} />
+          </div>
+          <div id="category-Higiene pessoal">
+            <HigienePessoal searchTerm={termo} />
+          </div>
+          <div id="category-Farmácia">
+            <Farmacia searchTerm={termo} />
+          </div>
+          <div id="category-Utilidades domésticas">
+            <UtilidadesDomesticas searchTerm={termo} />
+          </div>
+          <div id="category-Pet shop">
+            <PetShop searchTerm={termo} />
+          </div>
+          <div id="category-Infantil">
+            <Infantil searchTerm={termo} />
+          </div>
+          <div id="category-Hortifruti">
+            <Hortifruti searchTerm={termo} />
+          </div>
+          <div id="category-Açougue">
+            <Acougue searchTerm={termo} />
+          </div>
         </div>
+      )}
+      
+      {/* Botão Voltar ao Topo */}
+      {isScrollTopVisible && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-2xl hover:shadow-blue-500/50 hover:scale-110 transition-all duration-300 group"
+          aria-label="Voltar ao topo"
+        >
+          <FaArrowUp className="text-xl group-hover:translate-y-[-2px] transition-transform" />
+        </button>
       )}
     </div>
   );

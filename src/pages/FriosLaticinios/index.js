@@ -6,7 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaCheese } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 
@@ -22,18 +22,47 @@ export default function FriosLaticinios({ searchTerm = "" }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const q = query(
-          collection(db, "produtos"),
-          where("categoria", "==", "Frios e laticínios")
-        );
-        const querySnapshot = await getDocs(q);
-        const products = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAllProducts(products);
+        
+        // Buscar todos os produtos do Firestore
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        
+        // Filtrar localmente por categoria (aceita variações)
+        const products = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter(product => {
+            const categoria = (product.categoria || "").toLowerCase().trim();
+            // Remove acentos para comparação
+            const categoriaNormalized = categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return categoria.includes("frios") || 
+                   categoria.includes("laticínios") ||
+                   categoria.includes("laticinios") ||
+                   categoriaNormalized.includes("frios") ||
+                   categoriaNormalized.includes("laticinios");
+          });
+        
+        // Ordenar produtos por ordem alfabética (título)
+        const sortedProducts = products.sort((a, b) => {
+          const titleA = (a.titulo || a.nome || "").toLowerCase();
+          const titleB = (b.titulo || b.nome || "").toLowerCase();
+          return titleA.localeCompare(titleB);
+        });
+        
+        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Frios e Laticínios (ordenados A-Z)`);
+        
+        // Debug: mostrar as categorias encontradas
+        if (sortedProducts.length === 0) {
+          console.warn("⚠️ Nenhum produto de Frios e Laticínios encontrado. Verificando todas as categorias disponíveis:");
+          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
+          console.log("Categorias no banco:", [...new Set(allCategories)]);
+        }
+        
+        setAllProducts(sortedProducts);
       } catch (error) {
-        console.error("Erro ao buscar frios e laticínios:", error);
+        console.error("❌ Erro ao buscar frios e laticínios:", error);
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }
@@ -253,5 +282,4 @@ export default function FriosLaticinios({ searchTerm = "" }) {
     </section>
   );
 }
-
 

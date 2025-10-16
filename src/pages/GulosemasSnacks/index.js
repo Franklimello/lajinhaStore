@@ -19,47 +19,47 @@ export default function GulosemasSnacks({ searchTerm = "" }) {
   const [hoveredProduct, setHoveredProduct] = useState(null);
 
   useEffect(() => {
-      const fetchData = async () => {
-        try {
-          setLoading(true);
-          
-          // Buscar todos os produtos do Firestore
-          const querySnapshot = await getDocs(collection(db, "produtos"));
-          
-          // Filtrar localmente por categoria (mais flexível com variações de texto)
-          const products = querySnapshot.docs
-            .map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-            }))
-            .filter(product => {
-              const categoria = (product.categoria || "").toLowerCase().trim();
-              // Aceita "guloseimas snacks", "guloseimas", "snacks" ou variações
-              return categoria.includes("guloseimas") || 
-                    categoria.includes("snacks") ||
-                    categoria === "guloseimas snacks";
-            });
-          
-          console.log(`✅ Encontrados ${products.length} produtos de Guloseimas & Snacks`);
-          
-          // Debug: mostrar as categorias encontradas
-          if (products.length === 0) {
-            console.warn("⚠️ Nenhum produto encontrado. Verificando todas as categorias disponíveis:");
-            const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
-            console.log("Categorias no banco:", [...new Set(allCategories)]);
-          }
-          
-          setAllProducts(products);
-        } catch (error) {
-          console.error("❌ Erro ao buscar produtos de guloseimas e snacks:", error);
-          setAllProducts([]); // Define array vazio em caso de erro
-        } finally {
-          setLoading(false);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Buscar todos os produtos do Firestore
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        
+        // Filtrar localmente por categoria (mais flexível com variações de texto)
+        const products = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter(product => {
+            const categoria = (product.categoria || "").toLowerCase().trim();
+            // Aceita "guloseimas snacks", "guloseimas", "snacks" ou variações
+            return categoria.includes("guloseimas") || 
+                   categoria.includes("snacks") ||
+                   categoria === "guloseimas snacks";
+          });
+        
+        console.log(`✅ Encontrados ${products.length} produtos de Guloseimas & Snacks`);
+        
+        // Debug: mostrar as categorias encontradas
+        if (products.length === 0) {
+          console.warn("⚠️ Nenhum produto encontrado. Verificando todas as categorias disponíveis:");
+          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
+          console.log("Categorias no banco:", [...new Set(allCategories)]);
         }
-      };
+        
+        setAllProducts(products);
+      } catch (error) {
+        console.error("❌ Erro ao buscar produtos de guloseimas e snacks:", error);
+        setAllProducts([]); // Define array vazio em caso de erro
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchData();
-    }, []);
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const term = searchTerm.trim().toLowerCase();

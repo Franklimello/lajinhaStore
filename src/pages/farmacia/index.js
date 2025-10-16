@@ -6,7 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaPrescriptionBottleAlt } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 
@@ -23,32 +23,44 @@ export default function Farmacia({ searchTerm = "" }) {
       try {
         setLoading(true);
         
-        // Tentar buscar com diferentes variações do nome da categoria
-        const variations = ["Farmacia", "farmacia", "Farmácia", "farmácia"];
-        let allFetchedProducts = [];
+        // Buscar todos os produtos do Firestore
+        const querySnapshot = await getDocs(collection(db, "produtos"));
         
-        for (const categoryName of variations) {
-          const q = query(
-            collection(db, "produtos"),
-            where("categoria", "==", categoryName)
-          );
-          const querySnapshot = await getDocs(q);
-          const products = querySnapshot.docs.map(doc => ({
+        // Filtrar localmente por categoria (aceita com ou sem acento)
+        const products = querySnapshot.docs
+          .map(doc => ({
             id: doc.id,
             ...doc.data(),
-          }));
-          allFetchedProducts = [...allFetchedProducts, ...products];
+          }))
+          .filter(product => {
+            const categoria = (product.categoria || "").toLowerCase().trim();
+            // Remove acentos para comparação
+            const categoriaNormalized = categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return categoria.includes("farmacia") || 
+                   categoria.includes("farmácia") ||
+                   categoriaNormalized.includes("farmacia");
+          });
+        
+        // Ordenar produtos por ordem alfabética (título)
+        const sortedProducts = products.sort((a, b) => {
+          const titleA = (a.titulo || a.nome || "").toLowerCase();
+          const titleB = (b.titulo || b.nome || "").toLowerCase();
+          return titleA.localeCompare(titleB);
+        });
+        
+        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Farmácia (ordenados A-Z)`);
+        
+        // Debug: mostrar as categorias encontradas
+        if (sortedProducts.length === 0) {
+          console.warn("⚠️ Nenhum produto de Farmácia encontrado. Verificando todas as categorias disponíveis:");
+          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
+          console.log("Categorias no banco:", [...new Set(allCategories)]);
         }
         
-        // Remover duplicatas baseado no ID
-        const uniqueProducts = Array.from(
-          new Map(allFetchedProducts.map(item => [item.id, item])).values()
-        );
-        
-        console.log("Produtos farmacêuticos encontrados:", uniqueProducts.length);
-        setAllProducts(uniqueProducts);
+        setAllProducts(sortedProducts);
       } catch (error) {
-        console.error("Erro ao buscar produtos farmacêuticos:", error);
+        console.error("❌ Erro ao buscar produtos farmacêuticos:", error);
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }
@@ -87,31 +99,11 @@ export default function Farmacia({ searchTerm = "" }) {
   }
 
   if (!loading && allProducts.length === 0) {
-    return (
-      <section className="min-h-screen mt-10 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-20">
-            <FaPrescriptionBottleAlt className="text-green-400 text-6xl mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-700 mb-2">Nenhum produto encontrado</h2>
-            <p className="text-gray-600">Não há produtos farmacêuticos cadastrados no momento.</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   if (!loading && searchTerm && allProducts.length > 0 && carousels.length === 0) {
-    return (
-      <section className="min-h-screen mt-10 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-20">
-            <FaPrescriptionBottleAlt className="text-green-400 text-6xl mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-700 mb-2">Nenhum resultado encontrado</h2>
-            <p className="text-gray-600">Não encontramos produtos com o termo "{searchTerm}".</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   const hasSearch = searchTerm.trim().length > 0;
