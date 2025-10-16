@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "compreaqui-324df",
+    "prod": "compreaqui-324df"
+  },
+  "targets": {},
+  "etags": {}
+}

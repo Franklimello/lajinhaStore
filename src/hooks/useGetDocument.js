@@ -5,43 +5,38 @@ import { doc, getDoc } from "firebase/firestore";
 export const useFetchDocument = (docCollection, id) => {
   const [document, setDocument] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(null);
-  const [cancelled, setCancelled] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function loadDocument() {
-      if (cancelled) return;
-
+    const fetchDocument = async () => {
       setLoading(true);
 
       try {
-        const docRef = doc(db, docCollection, id); // sem await aqui
+        const docRef = await doc(db, docCollection, id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setDocument(docSnap.data());
+          // 🎉 Esta é a linha mais importante! 
+          // Ela combina os dados do documento com o ID do próprio documento.
+          setDocument({
+            id: docSnap.id,
+            ...docSnap.data(),
+          });
+          setError(null);
         } else {
+          setDocument(null);
           setError("Documento não encontrado.");
         }
-
-        setLoading(false);
       } catch (error) {
-        console.log(error);
+        console.error("Erro ao buscar documento:", error);
         setError(error.message);
+      } finally {
         setLoading(false);
       }
-    }
+    };
 
-    loadDocument();
-  }, [docCollection, id, cancelled]);
+    fetchDocument();
+  }, [docCollection, id]);
 
-  useEffect(() => {
-    return () => setCancelled(true);
-  }, []);
-
-  return {
-    document,
-    loading,
-    error,
-  };
+  return { document, loading, error };
 };
