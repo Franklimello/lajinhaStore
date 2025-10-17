@@ -111,10 +111,7 @@ export default function Cosmeticos() {
                   clickable: true,
                   dynamicBullets: true,
                 }}
-                autoplay={{
-                  delay: 4000,
-                  disableOnInteraction: false,
-                }}
+                autoplay={false}
                 spaceBetween={8}
                 slidesPerView={2}
                 breakpoints={{

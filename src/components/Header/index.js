@@ -1,6 +1,6 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
-import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { FaMobileAlt } from "react-icons/fa";
@@ -13,34 +13,91 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const location = useLocation();
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
+    // Detectar iOS
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIOSDevice);
+
     const handleBeforeInstallPrompt = (e) => {
+      // Previna que o prompt apareça automaticamente
       e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
+      // Armazenar deferredPrompt globalmente
+      window.deferredPrompt = e;
+      setShowInstallBtn(true);
     };
-  
+
+    const handleAppInstalled = () => {
+      setShowInstallBtn(false);
+      window.deferredPrompt = null;
+    };
+
+    // Verificar se já está instalado
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setShowInstallBtn(false);
+    }
+
+    // Para iOS, sempre mostrar botão (não tem beforeinstallprompt)
+    if (isIOSDevice && !window.navigator.standalone) {
+      setShowInstallBtn(true);
+    }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  
+    window.addEventListener('appinstalled', handleAppInstalled);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
-  
+
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('Usuário aceitou instalar o app');
-    } else {
-      console.log('Usuário recusou instalar o app');
+    if (isIOS) {
+      // Para iOS, mostrar instruções
+      setShowIOSInstructions(true);
+      return;
     }
-    setDeferredPrompt(null);
-    setIsInstallable(false);
+
+    if (window.deferredPrompt) {
+      setIsInstalling(true);
+      try {
+        // Mostra o prompt nativo de instalação
+        window.deferredPrompt.prompt();
+        const { outcome } = await window.deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          // Solicitar permissão para notificações
+          if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+          }
+          
+          // Mostrar notificação de sucesso
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Lajinha Instalado!', {
+              body: 'O app foi instalado com sucesso!',
+              icon: '/logo192.png',
+              badge: '/logo192.png'
+            });
+          }
+          
+          // Só esconde o botão se aceitou
+          setShowInstallBtn(false);
+        } else {
+          // Se recusou, mantém o botão visível para tentar novamente
+          console.log('Usuário recusou a instalação, botão permanece visível');
+        }
+      } catch (error) {
+        console.error('Erro durante instalação:', error);
+      } finally {
+        window.deferredPrompt = null;
+        setIsInstalling(false);
+      }
+    }
   };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -262,6 +319,31 @@ export default function Header() {
               </button>
               
 
+              {/* Botão de Instalação PWA - Mobile Only */}
+              {showInstallBtn && (
+                <button
+                  onClick={handleInstallClick}
+                  disabled={isInstalling}
+                  className="sm:hidden flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  title={isIOS ? "Como instalar no iPhone/iPad" : "Instalar App no seu celular"}
+                >
+                  {isInstalling ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span className="text-xs font-medium">Instalando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaDownload size={14} />
+                      <span className="text-xs font-medium">
+                        {isIOS ? "Instalar" : "Instalar App"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+
+
               {/* Carrinho */}
               <Link to="/carrinho" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
                 <FaShoppingCart size={22} className="text-gray-700 group-hover:text-blue-600" />
@@ -403,6 +485,68 @@ export default function Header() {
             </div>
           </nav>
         </>
+      )}
+
+
+      {/* Modal de Instruções para iOS */}
+      {showIOSInstructions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">
+                📱 Instalar no iPhone/iPad
+              </h3>
+              <button
+                onClick={() => setShowIOSInstructions(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <BsX size={24} />
+              </button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  Toque no botão <strong>Compartilhar</strong> (📤) na parte inferior da tela
+                </p>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  2
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>
+                </p>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  3
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  Toque em <strong>"Adicionar"</strong> no canto superior direito
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg mb-4">
+              <p className="text-blue-800 text-xs">
+                💡 <strong>Dica:</strong> O app aparecerá na sua tela inicial como um ícone normal!
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setShowIOSInstructions(false)}
+              className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Spacer para compensar header fixo */}
