@@ -1,6 +1,7 @@
 import { useState,useEffect,useReducer } from "react";
 import {db} from "../firebase/config"
 import { doc, deleteDoc } from "firebase/firestore"
+import { storage, buildKey } from "../utils/storage";
 
 const initialState = {
     loading: null,
@@ -40,6 +41,16 @@ export const useDeleteDocument = (docCollection) =>{
       await deleteDoc(docRef); 
 
       checkCancelBeforeDispatch({ type: "DELETE_DOC" });
+
+      // cache: remove doc and update collection array if present
+      const docKey = buildKey(["doc", docCollection, id]);
+      storage.remove(docKey, { namespace: "firestore" });
+      const colKey = buildKey(["col", docCollection]);
+      const col = storage.get(colKey, { namespace: "firestore" });
+      if (Array.isArray(col)) {
+        const next = col.filter((d) => d.id !== id);
+        storage.set(colKey, next, { namespace: "firestore" });
+      }
     } catch (error) {
       checkCancelBeforeDispatch({
         type: "ERROR",

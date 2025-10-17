@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { db } from "../firebase/config"
+import { storage, buildKey } from "../utils/storage";
 
 import { collection, query, onSnapshot } from "firebase/firestore";
 
-export const useGetDocuments = (docCollection) => {
+export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist = "session" } = {}) => {
   const [documents, setDocuments] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -13,6 +14,13 @@ export const useGetDocuments = (docCollection) => {
     if (cancelledRef.current) return;
 
     setLoading(true);
+
+    const cacheKey = buildKey(["col", docCollection]);
+    const cached = storage.get(cacheKey, { namespace: "firestore" });
+    if (cached) {
+      setDocuments(cached);
+      setLoading(false);
+    }
 
     const collectionRef = collection(db, docCollection);
     
@@ -25,10 +33,9 @@ export const useGetDocuments = (docCollection) => {
       q,
       (snapshot) => {
         if (!cancelledRef.current) {
-          setDocuments(snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })));
+          const fresh = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setDocuments(fresh);
+          storage.set(cacheKey, fresh, { ttlMs, persist, namespace: "firestore" });
           setLoading(false);
         }
       },
@@ -45,7 +52,7 @@ export const useGetDocuments = (docCollection) => {
       cancelledRef.current = true;
       unsubscribe();
     };
-  }, [docCollection]);
+  }, [docCollection, ttlMs, persist]);
 
   useEffect(() => {
     return () => {

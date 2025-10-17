@@ -2,6 +2,7 @@
 import { useReducer, useEffect, useState } from "react";
 import { db } from "../firebase/config";
 import { doc, updateDoc } from "firebase/firestore";
+import { storage, buildKey } from "../utils/storage";
 
 // Estado inicial
 const initialState = {
@@ -45,6 +46,19 @@ export const useUpdateDocument = (docCollection) => {
       checkCancelBeforeDispatch({
         type: "UPDATED_DOC",
       });
+
+      // cache: update document key and collection list if present
+      const docKey = buildKey(["doc", docCollection, id]);
+      const existingDoc = storage.get(docKey, { namespace: "firestore" });
+      const nextDoc = { ...(existingDoc || { id }), ...data };
+      storage.set(docKey, nextDoc, { namespace: "firestore" });
+
+      const colKey = buildKey(["col", docCollection]);
+      const col = storage.get(colKey, { namespace: "firestore" });
+      if (Array.isArray(col)) {
+        const updated = col.map((d) => (d.id === id ? { ...d, ...data } : d));
+        storage.set(colKey, updated, { namespace: "firestore" });
+      }
     } catch (error) {
       checkCancelBeforeDispatch({
         type: "ERROR",
