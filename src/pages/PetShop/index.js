@@ -153,7 +153,7 @@ export default function PetShop({ searchTerm = "" }) {
                   dynamicBullets: true,
                 }}
                 autoplay={{
-                  delay: 6000,
+                  delay: 9000,
                   disableOnInteraction: false,
                 }}
                 spaceBetween={8}

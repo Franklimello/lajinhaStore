@@ -150,7 +150,7 @@ export default function Limpeza({ searchTerm = "" }) {
                   dynamicBullets: true,
                 }}
                 autoplay={{
-                  delay: 6000,
+                  delay: 9000,
                   disableOnInteraction: false,
                 }}
                 spaceBetween={8}

@@ -148,7 +148,7 @@ export default function GulosemasSnacks({ searchTerm = "" }) {
                   dynamicBullets: true,
                 }}
                 autoplay={{
-                  delay: 4000,
+                  delay: 9000,
                   disableOnInteraction: false,
                 }}
                 spaceBetween={8}
