@@ -192,9 +192,6 @@ export default function Header() {
               <BsList size={24} className="text-gray-700" />
             </button>
             
-            
-
-
             {/* Logo */}
             <div className="flex items-center">
               <NavLink to="/" className="flex items-center gap-3 group">
@@ -212,15 +209,9 @@ export default function Header() {
                   <p className="text-xs text-gray-500">Qualidade e confiança</p>
                 </div>
               </NavLink>
+              
             </div>
-            {isInstallable && (
-              <button
-                onClick={handleInstallClick}
-                className=" sm:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow hover:from-green-600 hover:to-green-700 transition-all duration-300"
-              >
-                📱 <span className="text-sm font-medium">Instalar App</span>
-              </button>
-            )}
+            
 
 
             {/* Barra de busca desktop */}

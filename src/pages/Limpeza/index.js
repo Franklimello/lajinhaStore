@@ -6,7 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaBroom } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 
@@ -22,18 +22,41 @@ export default function Limpeza({ searchTerm = "" }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const q = query(
-          collection(db, "produtos"),
-          where("categoria", "==", "Limpeza")
-        );
-        const querySnapshot = await getDocs(q);
-        const products = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAllProducts(products);
+        
+        // Buscar todos os produtos do Firestore
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        
+        // Filtrar localmente por categoria
+        const products = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter(product => {
+            const categoria = (product.categoria || "").toLowerCase().trim();
+            return categoria.includes("limpeza");
+          });
+        
+        // Ordenar produtos por ordem alfabética (título)
+        const sortedProducts = products.sort((a, b) => {
+          const titleA = (a.titulo || a.nome || "").toLowerCase();
+          const titleB = (b.titulo || b.nome || "").toLowerCase();
+          return titleA.localeCompare(titleB, 'pt-BR');
+        });
+        
+        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Limpeza (ordenados A-Z)`);
+        
+        // Debug: mostrar as categorias encontradas
+        if (sortedProducts.length === 0) {
+          console.warn("⚠️ Nenhum produto de Limpeza encontrado. Verificando todas as categorias disponíveis:");
+          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
+          console.log("Categorias no banco:", [...new Set(allCategories)]);
+        }
+        
+        setAllProducts(sortedProducts);
       } catch (error) {
-        console.error("Erro ao buscar produtos de limpeza:", error);
+        console.error("❌ Erro ao buscar produtos de limpeza:", error);
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }
@@ -115,11 +138,9 @@ export default function Limpeza({ searchTerm = "" }) {
 
         {carousels.map((group, index) => (
           <div key={index} className="mb-10 -mx-4 sm:mx-0">
-            
-
             <div className="relative -mx-4 sm:mx-0">
               <Swiper
-                modules={[Navigation, Pagination,Autoplay]}
+                modules={[Navigation, Pagination, Autoplay]}
                 navigation={{
                   prevEl: `.swiper-button-prev-${index}`,
                   nextEl: `.swiper-button-next-${index}`,
@@ -145,7 +166,7 @@ export default function Limpeza({ searchTerm = "" }) {
                 {group.map(product => (
                   <SwiperSlide key={product.id}>
                     <div
-                      className="group relative bg-white  shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform "
+                      className="group relative bg-white shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:scale-105"
                       onMouseEnter={() => setHoveredProduct(product.id)}
                       onMouseLeave={() => setHoveredProduct(null)}
                     >
@@ -177,7 +198,7 @@ export default function Limpeza({ searchTerm = "" }) {
                         <img
                           src={product.fotosUrl?.[0] || product.imagem || '/placeholder.jpg'}
                           alt={product.titulo || product.nome}
-                          className="w-full h-full "
+                          className="w-full h-full"
                         />
 
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -240,18 +261,10 @@ export default function Limpeza({ searchTerm = "" }) {
                   </SwiperSlide>
                 ))}
               </Swiper>
-
-              
-
-              
             </div>
           </div>
         ))}
-
-        
       </div>
     </section>
   );
 }
-
-

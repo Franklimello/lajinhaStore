@@ -26,7 +26,7 @@ export default function PetShop({ searchTerm = "" }) {
         // Buscar todos os produtos do Firestore
         const querySnapshot = await getDocs(collection(db, "produtos"));
         
-        // Filtrar localmente por categoria (mais flexível com variações de texto)
+        // Filtrar localmente por categoria
         const products = querySnapshot.docs
           .map(doc => ({
             id: doc.id,
@@ -40,19 +40,26 @@ export default function PetShop({ searchTerm = "" }) {
                    categoria === "petshop";
           });
         
-        console.log(`✅ Encontrados ${products.length} produtos de Pet Shop`);
+        // Ordenar produtos por ordem alfabética (título)
+        const sortedProducts = products.sort((a, b) => {
+          const titleA = (a.titulo || a.nome || "").toLowerCase();
+          const titleB = (b.titulo || b.nome || "").toLowerCase();
+          return titleA.localeCompare(titleB, 'pt-BR');
+        });
+        
+        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Pet Shop (ordenados A-Z)`);
         
         // Debug: mostrar as categorias encontradas
-        if (products.length === 0) {
-          console.warn("⚠️ Nenhum produto Pet Shop encontrado. Verificando todas as categorias disponíveis:");
+        if (sortedProducts.length === 0) {
+          console.warn("⚠️ Nenhum produto de Pet Shop encontrado. Verificando todas as categorias disponíveis:");
           const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
           console.log("Categorias no banco:", [...new Set(allCategories)]);
         }
         
-        setAllProducts(products);
+        setAllProducts(sortedProducts);
       } catch (error) {
         console.error("❌ Erro ao buscar produtos pet shop:", error);
-        setAllProducts([]); // Define array vazio em caso de erro
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }
@@ -79,7 +86,7 @@ export default function PetShop({ searchTerm = "" }) {
 
   if (loading) {
     return (
-      <section className="min-h-screen mt-10 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 md:p-8">
+      <section className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-amber-500"></div>
@@ -98,7 +105,7 @@ export default function PetShop({ searchTerm = "" }) {
   const resultsCount = carousels.reduce((acc, g) => acc + g.length, 0);
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 md:p-8">
+    <section className="min-h-screen w-full mt-10 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg mb-6">
@@ -133,10 +140,8 @@ export default function PetShop({ searchTerm = "" }) {
         </div>
 
         {carousels.map((group, index) => (
-          <div key={index} className="mb-10">
-            
-
-            <div className="relative -mx-2 sm:mx-0">
+          <div key={index} className="mb-10 -mx-4 sm:mx-0">
+            <div className="relative -mx-4 sm:mx-0">
               <Swiper
                 modules={[Navigation, Pagination, Autoplay]}
                 navigation={{
@@ -148,7 +153,7 @@ export default function PetShop({ searchTerm = "" }) {
                   dynamicBullets: true,
                 }}
                 autoplay={{
-                  delay: 4000,
+                  delay: 6000,
                   disableOnInteraction: false,
                 }}
                 spaceBetween={8}
@@ -164,7 +169,7 @@ export default function PetShop({ searchTerm = "" }) {
                 {group.map(product => (
                   <SwiperSlide key={product.id}>
                     <div
-                      className="group relative bg-white  shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:scale-105"
+                      className="group relative bg-white shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:scale-105"
                       onMouseEnter={() => setHoveredProduct(product.id)}
                       onMouseLeave={() => setHoveredProduct(null)}
                     >
@@ -196,7 +201,7 @@ export default function PetShop({ searchTerm = "" }) {
                         <img
                           src={product.fotosUrl?.[0] || product.imagem || '/placeholder.jpg'}
                           alt={product.titulo || product.nome}
-                          className="w-full h-full "
+                          className="w-full h-full"
                         />
 
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -259,15 +264,9 @@ export default function PetShop({ searchTerm = "" }) {
                   </SwiperSlide>
                 ))}
               </Swiper>
-
-              
-
-              
             </div>
           </div>
         ))}
-
-        
       </div>
     </section>
   );

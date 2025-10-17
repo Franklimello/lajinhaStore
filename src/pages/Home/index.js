@@ -25,6 +25,11 @@ export default function Home() {
   const { documents: produtos, loading } = useGetDocuments("produtos");
   const filteredByName = (produtos || []).filter(p => (p.titulo || "").toLowerCase().includes(termo.trim().toLowerCase()));
 
+  // Função para limpar o input de busca
+  const handleClearSearch = () => {
+    setTermo("");
+  };
+
   // Controla visibilidade do botão de voltar ao topo
   useEffect(() => {
     const toggleVisibility = () => {
@@ -117,9 +122,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen  bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
+      <div className="hidden md:block relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative container mx-auto px-4 py-16 text-center">
           <div className="mb-8">
@@ -160,24 +165,51 @@ export default function Home() {
           </svg>
         </div>
       </div>
+      <div className=" bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 p-4 rounded-2xl shadow-xl text-center md:hidden">
+        <h1 className="text-4xl mt-10 md:text-6xl font-bold text-white mb-4 leading-tight">
+          <span className="inline-block animate-bounce mr-3">🚚</span>
+          <span className="bg-gradient-to-r from-yellow-300 via-orange-300 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(251,191,36,0.5)] hover:drop-shadow-[0_4px_12px_rgba(251,191,36,0.7)] transition-all duration-300 font-extrabold">
+            Entregamos
+          </span>
+          <span className="relative ml-2 text-white font-bold">
+            na sua casa
+            <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-yellow-300 to-orange-400 rounded-full shadow-md"></span>
+          </span>
+        </h1>
+        
+        <div className="text-white text-sm md:text-base space-y-1 mt-4">
+          <p className="font-medium">
+            Seg a Sáb: 8h às 19h
+          </p>
+          <p className="font-medium">
+            Domingo: 8h às 11h
+          </p>
+        </div>
+      </div>
 
       {/* Busca */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-          <div className="flex items-center">
-            <div className="flex-1 relative">
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
-              <input
-                type="text"
-                placeholder="Pesquisar produtos..."
-                value={termo}
-                onChange={(e) => setTermo(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all duration-200 bg-gray-50 hover:bg-white"
-              />
+      <div className="container mx-auto px-4 py-16">
+        <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-3xl shadow-2xl p-1 border border-blue-300">
+          <div className="bg-white rounded-3xl p-8 shadow-inner">
+            <div className="flex items-center justify-center">
+              <div className="flex-1 max-w-2xl relative">
+                <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-500 text-xl" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar produtos..."
+                  value={termo}
+                  onChange={(e) => setTermo(e.target.value)}
+                  className="w-full pl-14 pr-4 py-5 border border-gray-200 rounded-2xl 
+                            focus:outline-none focus:ring-4 focus:ring-blue-400 
+                            focus:border-transparent text-lg transition-all duration-300 
+                            bg-gray-50 hover:bg-white shadow-sm hover:shadow-lg"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Grid de Categorias - Só aparece quando não há busca */}
       {!termo.trim() && (
@@ -238,7 +270,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 lg:gap-6">
                   {filteredByName.map((produto, index) => (
                     <div key={produto.id} className="produto-card opacity-100 translate-y-0 transition-all duration-500" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardProduto
@@ -247,6 +279,7 @@ export default function Home() {
                         descricao={produto.descricao}
                         preco={produto.preco}
                         id={produto.id}
+                        onAddToCart={handleClearSearch}
                       />
                     </div>
                   ))}
