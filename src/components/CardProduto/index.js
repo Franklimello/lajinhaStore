@@ -7,6 +7,7 @@ import "swiper/css/pagination";
 import { Link } from "react-router-dom";
 import { useContext } from "react";
 import { ShopContext } from "../../context/ShopContext";
+import { buildFormatSources, defaultSizes } from "../../utils/imageSources";
 
 export default function CardProduto({ fotosUrl = [], titulo, descricao, preco, id, onAddToCart }) {
   const { addToCart } = useContext(ShopContext);
@@ -61,12 +62,23 @@ export default function CardProduto({ fotosUrl = [], titulo, descricao, preco, i
           {fotosUrl.slice(0, 5).map((url, index) => (
             <SwiperSlide key={index}>
               <div className="relative w-full h-full bg-gradient-to-br from-gray-50 to-gray-100">
-                <img
-                  src={url}
-                  alt={`${titulo} - imagem ${index + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out"
-                  loading="lazy"
-                />
+                {(() => {
+                  const { avif, webp, fallback } = buildFormatSources(url);
+                  return (
+                    <picture>
+                      {avif && <source srcSet={avif} type="image/avif" />}
+                      {webp && <source srcSet={webp} type="image/webp" />}
+                      <img
+                        src={fallback}
+                        alt={`${titulo} - imagem ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out"
+                        loading="lazy"
+                        decoding="async"
+                        sizes={defaultSizes}
+                      />
+                    </picture>
+                  );
+                })()}
               </div>
             </SwiperSlide>
           ))}

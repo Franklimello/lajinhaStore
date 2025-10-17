@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import CardProduto from "../../components/CardProduto";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { FaTruck, FaShieldAlt, FaHeart, FaSearch, FaArrowUp } from "react-icons/fa";
 import Hortifruti from "../../pages/Hortifruti";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import Acougue from "../../pages/Acougue";
 import FriosLaticinios from "../../pages/FriosLaticinios";
 import Mercearia from "../../pages/Mercearia";
@@ -21,9 +22,14 @@ import "swiper/css/pagination";
 
 export default function Home() {
   const [termo, setTermo] = useState("");
+  const debouncedTerm = useDebouncedValue(termo, 350);
+  const deferredTerm = useDeferredValue(debouncedTerm);
   const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
-  const { documents: produtos, loading } = useGetDocuments("produtos");
-  const filteredByName = (produtos || []).filter(p => (p.titulo || "").toLowerCase().includes(termo.trim().toLowerCase()));
+  const { documents: produtos, loading } = useGetDocuments("produtos", { realTime: false, ttlMs: 2 * 60 * 1000 });
+  const filteredByName = useMemo(() => {
+    const t = deferredTerm.trim().toLowerCase();
+    return (produtos || []).filter(p => (p.titulo || "").toLowerCase().includes(t));
+  }, [produtos, deferredTerm]);
 
   // Função para limpar o input de busca
   const handleClearSearch = () => {
@@ -271,7 +277,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 lg:gap-6">
-                  {filteredByName.map((produto, index) => (
+                  {filteredByName.slice(0, 48).map((produto, index) => (
                     <div key={produto.id} className="produto-card opacity-100 translate-y-0 transition-all duration-500" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardProduto
                         fotosUrl={produto.fotosUrl}

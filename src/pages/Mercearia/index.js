@@ -6,7 +6,8 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { buildFormatSources, defaultSizes } from "../../utils/imageSources";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaShoppingBasket } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 
@@ -23,19 +24,22 @@ export default function Mercearia({ searchTerm = "" }) {
       try {
         setLoading(true);
         
-        // Buscar todos os produtos do Firestore
-        const querySnapshot = await getDocs(collection(db, "produtos"));
-        
-        // Filtrar localmente por categoria
-        const products = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter(product => {
-            const categoria = (product.categoria || "").toLowerCase().trim();
-            return categoria.includes("mercearia");
-          });
+        // Tenta buscar por categoria diretamente no Firestore
+        const catOptions = ["Mercearia", "mercearia"];
+        let products = [];
+        try {
+          const q = query(collection(db, "produtos"), where("categoria", "in", catOptions));
+          const qs = await getDocs(q);
+          products = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (_) {
+          const querySnapshot = await getDocs(collection(db, "produtos"));
+          products = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(product => {
+              const categoria = (product.categoria || "").toLowerCase().trim();
+              return categoria.includes("mercearia");
+            });
+        }
         
         // Ordenar produtos por ordem alfabética (título)
         const sortedProducts = products.sort((a, b) => {
@@ -46,11 +50,8 @@ export default function Mercearia({ searchTerm = "" }) {
         
         console.log(`✅ Encontrados ${sortedProducts.length} produtos de Mercearia (ordenados A-Z)`);
         
-        // Debug: mostrar as categorias encontradas
         if (sortedProducts.length === 0) {
-          console.warn("⚠️ Nenhum produto de Mercearia encontrado. Verificando todas as categorias disponíveis:");
-          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
-          console.log("Categorias no banco:", [...new Set(allCategories)]);
+          console.warn("⚠️ Nenhum produto de Mercearia encontrado.");
         }
         
         setAllProducts(sortedProducts);
@@ -197,11 +198,24 @@ export default function Mercearia({ searchTerm = "" }) {
                       </div>
 
                       <div className="relative overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 aspect-square">
-                        <img
-                          src={product.fotosUrl?.[0] || product.imagem || '/placeholder.jpg'}
-                          alt={product.titulo || product.nome}
-                          className="w-full h-full"
-                        />
+                        {(() => {
+                          const src = product.fotosUrl?.[0] || product.imagem || '/placeholder.jpg';
+                          const { avif, webp, fallback } = buildFormatSources(src);
+                          return (
+                            <picture>
+                              {avif && <source srcSet={avif} type="image/avif" />}
+                              {webp && <source srcSet={webp} type="image/webp" />}
+                              <img
+                                src={fallback}
+                                alt={product.titulo || product.nome}
+                                className="w-full h-full"
+                                loading="lazy"
+                                decoding="async"
+                                sizes={defaultSizes}
+                              />
+                            </picture>
+                          );
+                        })()}
 
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 

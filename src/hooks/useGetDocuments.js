@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { db } from "../firebase/config"
 import { storage, buildKey } from "../utils/storage";
 
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, getDocs } from "firebase/firestore";
 
-export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist = "session" } = {}) => {
+export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist = "session", realTime = false } = {}) => {
   const [documents, setDocuments] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -29,30 +29,54 @@ export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist 
     const q = query(collectionRef);
 
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        if (!cancelledRef.current) {
-          const fresh = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setDocuments(fresh);
-          storage.set(cacheKey, fresh, { ttlMs, persist, namespace: "firestore" });
-          setLoading(false);
+    if (realTime) {
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!cancelledRef.current) {
+            const fresh = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setDocuments(fresh);
+            storage.set(cacheKey, fresh, { ttlMs, persist, namespace: "firestore" });
+            setLoading(false);
+          }
+        },
+        (error) => {
+          if (!cancelledRef.current) {
+            console.error(error);
+            setError(error.message);
+            setLoading(false);
+          }
         }
-      },
-      (error) => {
-        if (!cancelledRef.current) {
-          console.error(error);
-          setError(error.message);
-          setLoading(false);
-        }
-      }
-    );
+      );
 
-    return () => {
-      cancelledRef.current = true;
-      unsubscribe();
-    };
-  }, [docCollection, ttlMs, persist]);
+      return () => {
+        cancelledRef.current = true;
+        unsubscribe();
+      };
+    } else {
+      (async () => {
+        try {
+          const snap = await getDocs(q);
+          if (!cancelledRef.current) {
+            const fresh = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setDocuments(fresh);
+            storage.set(cacheKey, fresh, { ttlMs, persist, namespace: "firestore" });
+          }
+        } catch (err) {
+          if (!cancelledRef.current) {
+            console.error(err);
+            setError(err.message);
+          }
+        } finally {
+          if (!cancelledRef.current) setLoading(false);
+        }
+      })();
+
+      return () => {
+        cancelledRef.current = true;
+      };
+    }
+  }, [docCollection, ttlMs, persist, realTime]);
 
   useEffect(() => {
     return () => {
