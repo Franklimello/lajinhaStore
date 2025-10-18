@@ -14,6 +14,7 @@ import HigienePessoal from "./pages/HigienePessoal"
 import UtilidadesDomesticas from "./pages/UtilidadesDomesticas"
 import PetShop from "./pages/PetShop"
 import Infantil from "./pages/Infantil"
+import Ofertas from "./pages/Ofertas"
 import Favoritos from "./pages/Favoritos";
 import Cart from "./pages/Cart"
 import Login from "./pages/Login";
@@ -78,6 +79,7 @@ function AppContent() {
         <Route path="/utilidades-domesticas" element={<UtilidadesDomesticas />} />
         <Route path="/pet-shop" element={<PetShop />} />
         <Route path="/infantil" element={<Infantil />} />
+        <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/favoritos" element={<Favoritos />} />
         
         <Route path="/detalhes/:id" element={<Detalhes />} />

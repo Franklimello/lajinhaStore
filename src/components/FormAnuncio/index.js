@@ -16,6 +16,7 @@ export default function FormAnuncio() {
   const [isUploading, setIsUploading] = useState(false);
 
   const categorias = [
+    "Oferta",
     "Hortifruti",
     "Açougue",
     "Frios e laticínios",
@@ -61,6 +62,11 @@ export default function FormAnuncio() {
 
     setFotos(files);
     setMensagem("");
+  };
+
+  const removePhoto = (index) => {
+    const newFotos = fotos.filter((_, i) => i !== index);
+    setFotos(newFotos);
   };
 
   const formatPrice = (value) => {
@@ -184,9 +190,9 @@ export default function FormAnuncio() {
       setFotos([]);
       setUploadProgress(0);
       
-      // Limpar input de arquivo
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
+      // Limpar inputs de arquivo
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      fileInputs.forEach(input => input.value = '');
 
     } catch (err) {
       console.error("Erro ao criar anúncio:", err);
@@ -281,23 +287,81 @@ export default function FormAnuncio() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Fotos * (máximo 3)
           </label>
+          
+          {/* Input file oculto */}
           <input
             type="file"
+            id="fileInput"
             accept="image/*"
-            capture="environment"
             multiple
-            className="w-full border border-gray-300 p-3 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={loading}
+          />
+          
+          {/* Input file para galeria */}
+          <input
+            type="file"
+            id="galleryInput"
+            accept="image/*"
+            multiple
+            className="hidden"
             onChange={handleFileChange}
             disabled={loading}
           />
 
+          {/* Botões de seleção */}
+          <div className="flex gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => document.getElementById('fileInput').click()}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📷 Câmera
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => document.getElementById('galleryInput').click()}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              🖼️ Galeria
+            </button>
+          </div>
+
           <p className="text-xs text-gray-500 mt-1">
             Formatos: JPEG, PNG, WEBP, GIF. Máximo 5MB por imagem.
           </p>
+          
+          {/* Prévia das imagens selecionadas */}
           {fotos.length > 0 && (
-            <p className="text-sm text-green-600 mt-2">
-              ✓ {fotos.length} imagem(ns) selecionada(s)
-            </p>
+            <div className="mt-3">
+              <p className="text-sm text-green-600 mb-2">
+                ✓ {fotos.length} imagem(ns) selecionada(s)
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {fotos.map((foto, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={URL.createObjectURL(foto)}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      disabled={loading}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

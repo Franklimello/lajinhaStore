@@ -280,16 +280,39 @@ export default function Header() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className={({ isActive }) => `
-                    flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
-                    ${isActive 
-                      ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'
+                  className={({ isActive }) => {
+                    const baseClasses = "flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200";
+                    
+                    if (item.path === "/ofertas") {
+                      // Efeito especial para ofertas
+                      return `${baseClasses} ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg transform scale-105 relative overflow-hidden' 
+                          : 'bg-gradient-to-r from-red-400 to-orange-400 text-white hover:from-red-500 hover:to-orange-500 hover:shadow-lg relative overflow-hidden'
+                      }`;
                     }
-                  `}
+                    
+                    return `${baseClasses} ${
+                      isActive 
+                        ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'
+                    }`;
+                  }}
                 >
-                  <span>{item.icon}</span>
-                  <span className="text-sm">{item.label}</span>
+                  {item.path === "/ofertas" && (
+                    <>
+                      {/* Efeito de fogo para ofertas */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-red-500 to-orange-500 opacity-50 animate-pulse"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-ping"></div>
+                      
+                      {/* Partículas de fogo */}
+                      <div className="absolute -top-1 -left-1 w-1 h-1 bg-yellow-400 rounded-full animate-ping"></div>
+                      <div className="absolute -top-1 -right-1 w-1 h-1 bg-orange-400 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                      <div className="absolute -bottom-1 -left-1 w-1 h-1 bg-red-400 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                    </>
+                  )}
+                  <span className="relative z-10">{item.path === "/ofertas" ? "🔥" : item.icon}</span>
+                  <span className="text-sm relative z-10">{item.path === "/ofertas" ? "🔥 Ofertas 🔥" : item.label}</span>
                 </NavLink>
               ))}
             </nav>
@@ -428,16 +451,39 @@ export default function Header() {
                     <NavLink
                       to={item.path}
                       onClick={handleNavClick}
-                      className={({ isActive }) => `
-                        flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
-                        ${isActive 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-105' 
-                          : 'text-gray-700 hover:bg-gray-100'
+                      className={({ isActive }) => {
+                        const baseClasses = "flex items-center gap-4 p-4 rounded-2xl transition-all duration-200";
+                        
+                        if (item.path === "/ofertas") {
+                          // Efeito especial para ofertas
+                          return `${baseClasses} ${
+                            isActive 
+                              ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg transform scale-105 relative overflow-hidden' 
+                              : 'bg-gradient-to-r from-red-400 to-orange-400 text-white hover:from-red-500 hover:to-orange-500 hover:shadow-lg relative overflow-hidden'
+                          }`;
                         }
-                      `}
+                        
+                        return `${baseClasses} ${
+                          isActive 
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-105' 
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`;
+                      }}
                     >
-                      <span className="text-2xl">{item.icon}</span>
-                      <span className="font-medium">{item.label}</span>
+                      {item.path === "/ofertas" && (
+                        <>
+                          {/* Efeito de fogo para ofertas */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-red-500 to-orange-500 opacity-50 animate-pulse"></div>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-ping"></div>
+                          
+                          {/* Partículas de fogo */}
+                          <div className="absolute -top-1 -left-1 w-1 h-1 bg-yellow-400 rounded-full animate-ping"></div>
+                          <div className="absolute -top-1 -right-1 w-1 h-1 bg-orange-400 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                          <div className="absolute -bottom-1 -left-1 w-1 h-1 bg-red-400 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                        </>
+                      )}
+                      <span className="text-2xl relative z-10">{item.path === "/ofertas" ? "🔥" : item.icon}</span>
+                      <span className="font-medium relative z-10">{item.path === "/ofertas" ? "🔥 Ofertas 🔥" : item.label}</span>
                     </NavLink>
                   </li>
                 ))}
