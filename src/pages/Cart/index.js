@@ -2,13 +2,12 @@ import React, { useContext, useState } from "react";
 import { ShopContext } from "../../context/ShopContext";
 import { FaTrash, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
 import { useNavigate, Link } from "react-router-dom";
+import CheckoutGuard from "../../components/CheckoutGuard";
 
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity } = useContext(ShopContext);
   const navigate = useNavigate();
   
-  const [formaPagamento, setFormaPagamento] = useState("pix");
-  const [trocoPara, setTrocoPara] = useState("");
   const [endereco, setEndereco] = useState({
     rua: "",
     numero: "",
@@ -34,53 +33,11 @@ export default function Cart() {
     }
   };
 
-  // Função para montar a mensagem para o WhatsApp
-  const gerarMensagemWhats = () => {
-    if (cart.length === 0) return "";
-
-    let mensagem = "Olá, quero fazer um pedido:\n\n";
-
-    cart.forEach((item, index) => {
-      const nome = item.titulo || "Produto";
-      const qtd = item.qty || 1;
-      mensagem += `${index + 1}. ${nome} - Quantidade: ${qtd}\n`;
-    });
-
-    mensagem += `\n📦 Total: R$ ${totalComEntrega.toFixed(2)} (incluindo R$ ${entrega.toFixed(2)} de entrega)\n`;
-    
-    // Adiciona endereço de entrega
-    if (endereco.rua || endereco.numero || endereco.bairro) {
-      mensagem += `\n📍 Endereço de Entrega:\n`;
-      if (endereco.rua) mensagem += `Rua: ${endereco.rua}\n`;
-      if (endereco.numero) mensagem += `Número: ${endereco.numero}\n`;
-      if (endereco.bairro) mensagem += `Bairro: ${endereco.bairro}\n`;
-      if (endereco.referencia) mensagem += `Referência: ${endereco.referencia}\n`;
-    }
-    
-    // Adiciona forma de pagamento
-    mensagem += `\n💳 Forma de pagamento: ${formaPagamento === "pix" ? "PIX" : "Dinheiro"}`;
-    
-    // Se for dinheiro e tiver valor de troco
-    if (formaPagamento === "dinheiro" && trocoPara) {
-      const valorTroco = parseFloat(trocoPara);
-      if (valorTroco > totalComEntrega) {
-        const troco = valorTroco - totalComEntrega;
-        mensagem += `\n💵 Troco para: R$ ${valorTroco.toFixed(2)} (Troco: R$ ${troco.toFixed(2)})`;
-      } else {
-        mensagem += `\n💵 Troco para: R$ ${valorTroco.toFixed(2)}`;
-      }
-    }
-
-    return encodeURIComponent(mensagem);
-  };
-
-  const whatsappNumber = "5519997050303";
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${gerarMensagemWhats()}`;
 
   return (
     <div className="min-h-screen mt-16 bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header com navegação */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="bg-white shadow-sm border-b sticky top-0 ">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
@@ -230,138 +187,26 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* Endereço de entrega */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                <h4 className="font-bold text-gray-800 mb-3">Endereço de Entrega</h4>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Rua
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Nome da rua"
-                      value={endereco.rua}
-                      onChange={(e) => setEndereco({...endereco, rua: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Número
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Nº"
-                        value={endereco.numero}
-                        onChange={(e) => setEndereco({...endereco, numero: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bairro
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Bairro"
-                        value={endereco.bairro}
-                        onChange={(e) => setEndereco({...endereco, bairro: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Referência (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Próximo ao mercado"
-                      value={endereco.referencia}
-                      onChange={(e) => setEndereco({...endereco, referencia: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Forma de pagamento */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                <h4 className="font-bold text-gray-800 mb-3">Forma de Pagamento</h4>
-                
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="pagamento"
-                      value="pix"
-                      checked={formaPagamento === "pix"}
-                      onChange={(e) => setFormaPagamento(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="text-gray-700 font-medium">PIX</span>
-                  </label>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="pagamento"
-                      value="dinheiro"
-                      checked={formaPagamento === "dinheiro"}
-                      onChange={(e) => setFormaPagamento(e.target.value)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="text-gray-700 font-medium">Dinheiro</span>
-                  </label>
-                  
-                  {formaPagamento === "dinheiro" && (
-                    <div className="mt-3 pl-7">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Troco para quanto?
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Ex: 50.00"
-                        value={trocoPara}
-                        onChange={(e) => setTrocoPara(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {trocoPara && parseFloat(trocoPara) > totalComEntrega && (
-                        <p className="mt-2 text-sm text-green-600">
-                          Troco: R$ {(parseFloat(trocoPara) - totalComEntrega).toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
+              {/* Informações de pagamento */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-xl">
+                <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                  💳 Pagamento PIX
+                </h4>
+                <p className="text-blue-700 text-sm">
+                  Todos os pedidos são processados via PIX. Após finalizar, você receberá um QR code para pagamento.
+                </p>
               </div>
               
-              {/* Botões de ação */}
+              {/* Botão de ação */}
               <div className="space-y-3">
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center"
-                >
-                  Finalizar Compra via WhatsApp
-                </a>
-                
-                {formaPagamento === "pix" && (
+                <CheckoutGuard>
                   <Link
                     to="/pagamento-pix"
                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center"
                   >
-                    💳 Pagar com Pix
+                    💳 Finalizar Compra com PIX
                   </Link>
-                )}
+                </CheckoutGuard>
                 
                 <Link
                   to="/"

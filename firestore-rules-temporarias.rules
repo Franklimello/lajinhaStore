@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // REGRAS TEMPORÁRIAS - APENAS PARA DESENVOLVIMENTO
+    // ⚠️ ATENÇÃO: Estas regras são muito permissivas e devem ser alteradas em produção
+    
+    // Permitir leitura e escrita para usuários autenticados
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

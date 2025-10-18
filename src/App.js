@@ -19,15 +19,22 @@ import Ofertas from "./pages/Ofertas"
 import Favoritos from "./pages/Favoritos";
 import Cart from "./pages/Cart"
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Detalhes from "./pages/Detalhes";
 import Farmacia from "./pages/farmacia";
 import Home from "./pages/Home";
 import PagamentoPix from "./pages/PagamentoPix";
-import PainelPedidos from "./pages/PainelPedidos";
 import StatusPedido from "./pages/StatusPedido";
 import ConsultaPedidos from "./pages/ConsultaPedidos";
 import DashboardPage from "./pages/Dashboard";
+import MeusPedidos from "./pages/MeusPedidos";
+import PedidoDetalhes from "./pages/PedidoDetalhes";
+import AdminOrders from "./pages/AdminOrders";
+import FirestoreTest from "./components/FirestoreTest";
+import FirestoreDiagnostic from "./components/FirestoreDiagnostic";
+import FirestoreRulesValidator from "./components/FirestoreRulesValidator";
 import ProtectedRoute from "./components/protectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -42,8 +49,8 @@ import { useContext } from "react";
 // Componente Layout que lida com a navegação e o layout principal
 function Layout({ children }) {
   const location = useLocation();
-  // esconde Header e Footer na página de login
-  const hideChrome = location.pathname === "/login"; 
+  // esconde Header e Footer nas páginas de login e cadastro
+  const hideChrome = location.pathname === "/login" || location.pathname === "/register"; 
 
   return (
     <section className="flex flex-col min-h-screen">
@@ -74,6 +81,7 @@ function AppContent() {
       <Layout>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/categorias" element={<Categorias />} />
           <Route path="/hortifruti" element={<Hortifruti />} />
           <Route path="/acougue" element={<Acougue />} />
@@ -94,9 +102,9 @@ function AppContent() {
           <Route
             path="/painel"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Painel />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route path="/" element={<Home />} />
@@ -106,18 +114,58 @@ function AppContent() {
           <Route path="/consulta-pedidos" element={<ConsultaPedidos />} />
           <Route path="/status-pedido/:orderId" element={<StatusPedido />} />
           <Route
-            path="/dashboard"
+            path="/meus-pedidos"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <MeusPedidos />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/painel-pedidos"
+            path="/pedido/:id"
             element={
               <ProtectedRoute>
-                <PainelPedidos />
+                <PedidoDetalhes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <AdminRoute>
+                <DashboardPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin-pedidos"
+            element={
+              <AdminRoute>
+                <AdminOrders />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/test-firestore"
+            element={
+              <ProtectedRoute>
+                <FirestoreTest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/diagnostic-firestore"
+            element={
+              <ProtectedRoute>
+                <FirestoreDiagnostic />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/validate-firestore-rules"
+            element={
+              <ProtectedRoute>
+                <FirestoreRulesValidator />
               </ProtectedRoute>
             }
           />

@@ -1,13 +1,17 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
-import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload, FaChartBar } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { FaMobileAlt } from "react-icons/fa";
 import ThemeToggle from "../ThemeToggle";
+import { useAuth } from "../../context/AuthContext";
+import { useAdmin } from "../../hooks/useAdmin";
 
 
 export default function Header() {
+  const { user, logout } = useAuth();
+  const { isAdmin } = useAdmin();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -199,11 +203,20 @@ export default function Header() {
     };
   }, [updateCounts]);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
   const navItems = [
     { path: "/", label: "Início", icon: "🏠" },
     { path: "/categorias", label: "Categorias", icon: "📂" },
     { path: "/ofertas", label: "Ofertas", icon: "🏷️" },
-    { path: "/consulta-pedidos", label: "Meus Pedidos", icon: "📋" },
+    ...(user ? [{ path: "/meus-pedidos", label: "Meus Pedidos", icon: "📋" }] : []),
     { path: "/contato", label: "Contato", icon: "📞" },
   ];
 
@@ -383,50 +396,77 @@ export default function Header() {
               </Link>
               
 
-              {/* Admin */}
-              <NavLink
-                to="/painel"
-                className={({ isActive }) => `
-                  hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
-                  ${isActive 
-                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-                    : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600 hover:from-orange-200 hover:to-red-200'
-                  }
-                `}
-              >
-                <FaUser size={16} />
-                <span className="text-sm">Admin</span>
-              </NavLink>
+              {/* Login/Logout */}
+              {user ? (
+                <div className="hidden lg:flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Olá, {user.email?.split('@')[0]}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-red-100 text-red-600 hover:bg-red-200"
+                  >
+                    <FaSignOutAlt size={16} />
+                    <span className="text-sm">Sair</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                >
+                  <FaSignInAlt size={16} />
+                  <span className="text-sm">Entrar</span>
+                </Link>
+              )}
 
-              {/* Pedidos Pix */}
-              <NavLink
-                to="/painel-pedidos"
-                className={({ isActive }) => `
-                  hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
-                  ${isActive 
-                    ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
-                    : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600 hover:from-green-200 hover:to-blue-200'
-                  }
-                `}
-              >
-                <FaShoppingCart size={16} />
-                <span className="text-sm">Pedidos</span>
-              </NavLink>
 
-              {/* Dashboard */}
-              <NavLink
-                to="/dashboard"
-                className={({ isActive }) => `
-                  hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
-                  ${isActive 
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                    : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600 hover:from-purple-200 hover:to-pink-200'
-                  }
-                `}
-              >
-                <FaChartBar size={16} />
-                <span className="text-sm">Dashboard</span>
-              </NavLink>
+              {/* Admin - apenas para administradores */}
+              {isAdmin && (
+                <>
+                  <NavLink
+                    to="/painel"
+                    className={({ isActive }) => `
+                      hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600 hover:from-orange-200 hover:to-red-200'
+                      }
+                    `}
+                  >
+                    <FaUser size={16} />
+                    <span className="text-sm">Admin</span>
+                  </NavLink>
+
+                  {/* Admin Pedidos */}
+                  <NavLink
+                    to="/admin-pedidos"
+                    className={({ isActive }) => `
+                      hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600 hover:from-green-200 hover:to-blue-200'
+                      }
+                    `}
+                  >
+                    <FaShoppingCart size={16} />
+                    <span className="text-sm">Pedidos</span>
+                  </NavLink>
+
+                  {/* Dashboard */}
+                  <NavLink
+                    to="/dashboard"
+                    className={({ isActive }) => `
+                      hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600 hover:from-purple-200 hover:to-pink-200'
+                      }
+                    `}
+                  >
+                    <FaChartBar size={16} />
+                    <span className="text-sm">Dashboard</span>
+                  </NavLink>
+                </>
+              )}
             </div>
           </div>
 
@@ -457,8 +497,8 @@ export default function Header() {
           />
           
           {/* Menu lateral */}
-          <nav className="fixed top-0 left-0 w-80 h-full bg-white z-50 lg:hidden transform transition-transform duration-300 shadow-2xl">
-            <div className="p-6">
+          <nav className="fixed top-0 left-0 w-80 h-full bg-white z-50 lg:hidden transform transition-transform duration-300 shadow-2xl overflow-y-auto">
+            <div className="p-6 pb-20">
               
               {/* Header do menu */}
               <div className="flex items-center justify-between mb-8">
@@ -480,7 +520,7 @@ export default function Header() {
               </div>
 
               {/* Links de navegação */}
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {navItems.map((item) => (
                   <li key={item.path}>
                     <NavLink
@@ -523,80 +563,132 @@ export default function Header() {
                   </li>
                 ))}
                 
-                <li className="pt-4 border-t border-gray-200 mt-6">
-                  <NavLink
-                    to="/painel"
-                    onClick={handleNavClick}
-                    className={({ isActive }) => `
-                      flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-                        : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600'
-                      }
-                    `}
-                  >
-                    <FaUser className="text-xl" />
-                    <span className="font-medium">Painel Admin</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/painel-pedidos"
-                    onClick={handleNavClick}
-                    className={({ isActive }) => `
-                      flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
-                        : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600'
-                      }
-                    `}
-                  >
-                    <FaShoppingCart className="text-xl" />
-                    <span className="font-medium">Pedidos Pix</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/dashboard"
-                    onClick={handleNavClick}
-                    className={({ isActive }) => `
-                      flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                        : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600'
-                      }
-                    `}
-                  >
-                    <FaChartBar className="text-xl" />
-                    <span className="font-medium">Dashboard</span>
-                  </NavLink>
-                </li>
+                {/* Seção de autenticação */}
+                {user ? (
+                  <>
+                    <li className="pt-4 border-t border-gray-200 mt-6">
+                      <div className="flex items-center gap-4 p-4 bg-green-50 rounded-2xl">
+                        <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                          <FaUser className="text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">Olá, {user.email?.split('@')[0]}</p>
+                          <p className="text-sm text-gray-600">Bem-vindo de volta!</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      <Link
+                        to="/meus-pedidos"
+                        onClick={handleNavClick}
+                        className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                      >
+                        <FaBox className="text-xl" />
+                        <span className="font-medium">Meus Pedidos</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-red-100 text-red-600 hover:bg-red-200"
+                      >
+                        <FaSignOutAlt className="text-xl" />
+                        <span className="font-medium">Sair</span>
+                      </button>
+                    </li>
+                  </>
+                ) : (
+                  <li className="pt-4 border-t border-gray-200 mt-6">
+                    <Link
+                      to="/login"
+                      onClick={handleNavClick}
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                    >
+                      <FaSignInAlt className="text-xl" />
+                      <span className="font-medium">Entrar</span>
+                    </Link>
+                  </li>
+                )}
+
+                {/* Seção administrativa - apenas para administradores */}
+                {isAdmin && (
+                  <>
+                    <li className="pt-3 border-t border-gray-200 mt-4">
+                      <NavLink
+                        to="/painel"
+                        onClick={handleNavClick}
+                        className={({ isActive }) => `
+                          flex items-center gap-4 p-3 rounded-2xl transition-all duration-200
+                          ${isActive 
+                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
+                            : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600'
+                          }
+                        `}
+                      >
+                        <FaUser className="text-lg" />
+                        <span className="font-medium text-sm">Painel Admin</span>
+                      </NavLink>
+                    </li>
+                    <li>
+                      <NavLink
+                        to="/admin-pedidos"
+                        onClick={handleNavClick}
+                        className={({ isActive }) => `
+                          flex items-center gap-4 p-3 rounded-2xl transition-all duration-200
+                          ${isActive 
+                            ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
+                            : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600'
+                          }
+                        `}
+                      >
+                        <FaShoppingCart className="text-lg" />
+                        <span className="font-medium text-sm">Pedidos</span>
+                      </NavLink>
+                    </li>
+                    <li>
+                      <NavLink
+                        to="/dashboard"
+                        onClick={handleNavClick}
+                        className={({ isActive }) => `
+                          flex items-center gap-4 p-3 rounded-2xl transition-all duration-200
+                          ${isActive 
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                            : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600'
+                          }
+                        `}
+                      >
+                        <FaChartBar className="text-lg" />
+                        <span className="font-medium text-sm">Dashboard</span>
+                      </NavLink>
+                    </li>
+                  </>
+                )}
               </ul>
 
               {/* Theme Toggle Mobile */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">Tema</h3>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Tema</h3>
                   <ThemeToggle />
                 </div>
               </div>
 
               {/* Seção de contato no menu mobile */}
-              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Fale Conosco</h3>
-                <div className="space-y-3">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Fale Conosco</h3>
+                <div className="space-y-2">
                   <a 
                     href="https://wa.me/5519997050303"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors"
+                    className="flex items-center gap-3 p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors"
                   >
                     <FaWhatsapp />
                     <span className="text-sm font-medium">WhatsApp</span>
                   </a>
                   <a 
                     href="tel:19997050303"
-                    className="flex items-center gap-3 p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-3 p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                   >
                     📞
                     <span className="text-sm font-medium">(19) 99705-0303</span>

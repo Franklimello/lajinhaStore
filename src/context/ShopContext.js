@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { saveOrder } from "../utils/orderService";
 
 export const ShopContext = createContext();
 
@@ -157,6 +158,25 @@ export function ShopProvider({ children }) {
     showToast('Carrinho limpo com sucesso!', 'success');
   };
 
+  // Salva um pedido no Firestore
+  const saveOrderToFirestore = async (orderData) => {
+    try {
+      const result = await saveOrder(orderData);
+      
+      if (result.success) {
+        showToast('Pedido realizado com sucesso!', 'success');
+        clearCart(); // Limpa o carrinho após salvar o pedido
+        return { success: true, orderId: result.orderId };
+      } else {
+        showToast('Erro ao salvar pedido: ' + result.error, 'error');
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      showToast('Erro ao salvar pedido', 'error');
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     favorites,
     cart,
@@ -165,6 +185,7 @@ export function ShopProvider({ children }) {
     removeFromCart,
     updateQuantity,
     clearCart,
+    saveOrderToFirestore,
     isLoading,
     toast,
     showToast,

@@ -2,68 +2,81 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 
-export default function Login({ onLoginSuccess }) {
+export default function Register({ onRegisterSuccess }) {
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setErro("");
+    setError("");
+
+    // Validações
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await login(email, senha);
+      const result = await register(email, password);
       
       if (result.success) {
-        if (onLoginSuccess) {
-          onLoginSuccess();
+        if (onRegisterSuccess) {
+          onRegisterSuccess();
         } else {
-          navigate("/"); // Redireciona para a home após login
+          navigate("/"); // Redireciona para a home após cadastro
         }
       } else {
-        setErro("Email ou senha incorretos.");
+        setError(result.error);
       }
     } catch (err) {
-      setErro("Erro ao fazer login. Tente novamente.");
+      setError("Erro ao criar conta. Tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setErro("");
+    setError("");
     setLoading(true);
 
     try {
       const result = await loginWithGoogle();
       
       if (result.success) {
-        if (onLoginSuccess) {
-          onLoginSuccess();
+        if (onRegisterSuccess) {
+          onRegisterSuccess();
         } else {
           navigate("/"); // Redireciona para a home após login
         }
       } else {
-        setErro("Erro ao fazer login com Google: " + result.error);
+        setError("Erro ao fazer login com Google: " + result.error);
       }
     } catch (err) {
-      setErro("Erro ao fazer login com Google. Tente novamente.");
+      setError("Erro ao fazer login com Google. Tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card Principal */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header com Logo */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12 text-center">
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-12 text-center">
             <div className="flex justify-center mb-4">
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
                 <img 
@@ -73,13 +86,13 @@ export default function Login({ onLoginSuccess }) {
                 />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo de volta!</h1>
-            <p className="text-blue-100">Faça login para continuar suas compras</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
+            <p className="text-purple-100">Junte-se a nós e comece suas compras</p>
           </div>
 
           {/* Formulário */}
           <div className="px-8 py-8">
-            {erro && (
+            {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -88,13 +101,13 @@ export default function Login({ onLoginSuccess }) {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{erro}</p>
+                    <p className="text-sm text-red-700">{error}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleRegister} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
                   E-mail
@@ -109,7 +122,7 @@ export default function Login({ onLoginSuccess }) {
                     id="email"
                     type="email"
                     placeholder="seu@email.com"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -118,7 +131,7 @@ export default function Login({ onLoginSuccess }) {
               </div>
 
               <div>
-                <label htmlFor="senha" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Senha
                 </label>
                 <div className="relative">
@@ -128,12 +141,35 @@ export default function Login({ onLoginSuccess }) {
                     </svg>
                   </div>
                   <input
-                    id="senha"
+                    id="password"
                     type="password"
-                    placeholder="Sua senha"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Use pelo menos 6 caracteres</p>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirmar Senha
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Digite a senha novamente"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -142,7 +178,7 @@ export default function Login({ onLoginSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
@@ -150,10 +186,10 @@ export default function Login({ onLoginSuccess }) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Entrando...
+                    Criando conta...
                   </div>
                 ) : (
-                  "Entrar"
+                  "Criar Conta"
                 )}
               </button>
             </form>
@@ -187,9 +223,9 @@ export default function Login({ onLoginSuccess }) {
 
             <div className="mt-8 text-center">
               <p className="text-gray-600">
-                Não tem uma conta?{" "}
-                <Link to="/register" className="text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                  Cadastre-se aqui
+                Já tem uma conta?{" "}
+                <Link to="/login" className="text-purple-600 hover:text-purple-800 font-semibold transition-colors">
+                  Faça login aqui
                 </Link>
               </p>
             </div>

@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // REGRAS PARA PEDIDOS (Coleção principal)
+    // ========================================
+    match /pedidos/{pedidoId} {
+      // Usuários autenticados podem criar pedidos apenas para si mesmos
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Usuários podem ler apenas seus próprios pedidos
+      allow read: if request.auth != null && 
+                     (resource.data.userId == request.auth.uid || 
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
+      
+      // Usuários podem atualizar apenas seus próprios pedidos
+      // Administrador pode atualizar qualquer pedido
+      allow update: if request.auth != null && 
+                       (resource.data.userId == request.auth.uid || 
+                        request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
+      
+      // Apenas administrador pode deletar pedidos
+      allow delete: if request.auth != null && 
+                       request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA PRODUTOS (Coleção de produtos)
+    // ========================================
+    match /produtos/{produtoId} {
+      // Todos os usuários autenticados podem ler produtos
+      allow read: if request.auth != null;
+      
+      // Apenas administrador pode criar, atualizar ou deletar produtos
+      allow write: if request.auth != null && 
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA CATEGORIAS (Coleção de categorias)
+    // ========================================
+    match /categorias/{categoriaId} {
+      // Todos os usuários autenticados podem ler categorias
+      allow read: if request.auth != null;
+      
+      // Apenas administrador pode criar, atualizar ou deletar categorias
+      allow write: if request.auth != null && 
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA USUÁRIOS (Perfis de usuário)
+    // ========================================
+    match /usuarios/{userId} {
+      // Usuários podem ler e atualizar apenas seu próprio perfil
+      allow read, update: if request.auth != null && 
+                             request.auth.uid == userId;
+      
+      // Usuários podem criar seu próprio perfil
+      allow create: if request.auth != null && 
+                       request.auth.uid == userId;
+      
+      // Administrador pode ler qualquer perfil
+      allow read: if request.auth != null && 
+                     request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA NOTIFICAÇÕES
+    // ========================================
+    match /notificacoes/{notificacaoId} {
+      // Usuários podem ler apenas suas notificações
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Usuários podem atualizar suas notificações (marcar como lida)
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      
+      // Sistema pode criar notificações para usuários
+      allow create: if request.auth != null;
+      
+      // Apenas administrador pode deletar notificações
+      allow delete: if request.auth != null && 
+                       request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA CONFIGURAÇÕES DO SISTEMA
+    // ========================================
+    match /configuracoes/{configId} {
+      // Todos os usuários autenticados podem ler configurações
+      allow read: if request.auth != null;
+      
+      // Apenas administrador pode modificar configurações
+      allow write: if request.auth != null && 
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA RELATÓRIOS E ANALYTICS
+    // ========================================
+    match /relatorios/{relatorioId} {
+      // Apenas administrador pode acessar relatórios
+      allow read, write: if request.auth != null && 
+                           request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PARA LOGS DO SISTEMA
+    // ========================================
+    match /logs/{logId} {
+      // Apenas administrador pode acessar logs
+      allow read, write: if request.auth != null && 
+                           request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+    
+    // ========================================
+    // REGRAS PADRÃO PARA OUTRAS COLEÇÕES
+    // ========================================
+    match /{document=**} {
+      // Por padrão, usuários autenticados podem ler
+      allow read: if request.auth != null;
+      
+      // Por padrão, apenas administrador pode escrever
+      allow write: if request.auth != null && 
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+    }
+  }
+}
