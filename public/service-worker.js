@@ -33,7 +33,7 @@ if (typeof workbox !== 'undefined') {
       cacheName: 'assets-images',
       plugins: [
         new workbox.expiration.ExpirationPlugin({ 
-          maxEntries: 300, 
+          maxEntries: 500, 
           maxAgeSeconds: 30 * 24 * 60 * 60 // 30 dias
         }),
       ],
@@ -81,6 +81,39 @@ if (typeof workbox !== 'undefined') {
       ],
     })
   );
+
+  // Cache QR Code API calls
+  workbox.routing.registerRoute(
+    ({ url }) => url.hostname.includes('qrserver.com'),
+    new workbox.strategies.CacheFirst({
+      cacheName: 'qr-codes',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 200,
+          maxAgeSeconds: 7 * 24 * 60 * 60 // 7 dias
+        }),
+      ],
+    })
+  );
+
+  // Cache fonts
+  workbox.routing.registerRoute(
+    ({ request }) => request.destination === 'font',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'fonts',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 20,
+          maxAgeSeconds: 365 * 24 * 60 * 60 // 1 ano
+        }),
+      ],
+    })
+  );
+
+  // Background sync for offline actions
+  workbox.backgroundSync.register('offline-orders', {
+    maxRetentionTime: 24 * 60 // 24 horas
+  });
 }
 
 

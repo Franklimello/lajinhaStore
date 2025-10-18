@@ -151,6 +151,12 @@ export function ShopProvider({ children }) {
     }
   };
 
+  // Limpa o carrinho completamente
+  const clearCart = () => {
+    setCart([]);
+    showToast('Carrinho limpo com sucesso!', 'success');
+  };
+
   const value = {
     favorites,
     cart,
@@ -158,6 +164,7 @@ export function ShopProvider({ children }) {
     addToCart,
     removeFromCart,
     updateQuantity,
+    clearCart,
     isLoading,
     toast,
     showToast,

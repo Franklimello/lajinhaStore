@@ -22,8 +22,14 @@ import Login from "./pages/Login";
 import Detalhes from "./pages/Detalhes";
 import Farmacia from "./pages/farmacia";
 import Home from "./pages/Home";
+import PagamentoPix from "./pages/PagamentoPix";
+import PainelPedidos from "./pages/PainelPedidos";
+import StatusPedido from "./pages/StatusPedido";
+import ConsultaPedidos from "./pages/ConsultaPedidos";
+import DashboardPage from "./pages/Dashboard";
 import ProtectedRoute from "./components/protectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Contexto de carrinho/favorito
 import { ShopProvider, ShopContext } from "./context/ShopContext";
@@ -96,6 +102,25 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/produtos" element={<ProductList />} />
           <Route path="/carrinho" element={<Cart />} />
+          <Route path="/pagamento-pix" element={<PagamentoPix />} />
+          <Route path="/consulta-pedidos" element={<ConsultaPedidos />} />
+          <Route path="/status-pedido/:orderId" element={<StatusPedido />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/painel-pedidos"
+            element={
+              <ProtectedRoute>
+                <PainelPedidos />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Layout>
       
@@ -114,11 +139,13 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ShopProvider>
-          <AppContent />
-        </ShopProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ShopProvider>
+            <AppContent />
+          </ShopProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

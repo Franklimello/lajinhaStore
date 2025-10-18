@@ -1,9 +1,10 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
-import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload, FaChartBar } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { FaMobileAlt } from "react-icons/fa";
+import ThemeToggle from "../ThemeToggle";
 
 
 export default function Header() {
@@ -202,6 +203,7 @@ export default function Header() {
     { path: "/", label: "Início", icon: "🏠" },
     { path: "/categorias", label: "Categorias", icon: "📂" },
     { path: "/ofertas", label: "Ofertas", icon: "🏷️" },
+    { path: "/consulta-pedidos", label: "Meus Pedidos", icon: "📋" },
     { path: "/contato", label: "Contato", icon: "📞" },
   ];
 
@@ -334,12 +336,15 @@ export default function Header() {
               </Link>
 
               {/* Notificações */}
-              <button className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative">
-                <FaBell size={20} className="text-gray-700 hover:text-yellow-500" />
+              <button className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 relative">
+                <FaBell size={20} className="text-gray-700 dark:text-gray-300 hover:text-yellow-500" />
                 <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   0
                 </span>
               </button>
+
+              {/* Theme Toggle */}
+              <ThemeToggle className="hidden sm:flex" />
               
 
               {/* Botão de Instalação PWA - Mobile Only */}
@@ -391,6 +396,36 @@ export default function Header() {
               >
                 <FaUser size={16} />
                 <span className="text-sm">Admin</span>
+              </NavLink>
+
+              {/* Pedidos Pix */}
+              <NavLink
+                to="/painel-pedidos"
+                className={({ isActive }) => `
+                  hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
+                  ${isActive 
+                    ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
+                    : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600 hover:from-green-200 hover:to-blue-200'
+                  }
+                `}
+              >
+                <FaShoppingCart size={16} />
+                <span className="text-sm">Pedidos</span>
+              </NavLink>
+
+              {/* Dashboard */}
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => `
+                  hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200
+                  ${isActive 
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                    : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600 hover:from-purple-200 hover:to-pink-200'
+                  }
+                `}
+              >
+                <FaChartBar size={16} />
+                <span className="text-sm">Dashboard</span>
               </NavLink>
             </div>
           </div>
@@ -504,11 +539,51 @@ export default function Header() {
                     <span className="font-medium">Painel Admin</span>
                   </NavLink>
                 </li>
+                <li>
+                  <NavLink
+                    to="/painel-pedidos"
+                    onClick={handleNavClick}
+                    className={({ isActive }) => `
+                      flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-green-100 to-blue-100 text-green-600'
+                      }
+                    `}
+                  >
+                    <FaShoppingCart className="text-xl" />
+                    <span className="font-medium">Pedidos Pix</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/dashboard"
+                    onClick={handleNavClick}
+                    className={({ isActive }) => `
+                      flex items-center gap-4 p-4 rounded-2xl transition-all duration-200
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                        : 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-600'
+                      }
+                    `}
+                  >
+                    <FaChartBar className="text-xl" />
+                    <span className="font-medium">Dashboard</span>
+                  </NavLink>
+                </li>
               </ul>
 
+              {/* Theme Toggle Mobile */}
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">Tema</h3>
+                  <ThemeToggle />
+                </div>
+              </div>
+
               {/* Seção de contato no menu mobile */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h3 className="font-semibold text-gray-800 mb-4">Fale Conosco</h3>
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Fale Conosco</h3>
                 <div className="space-y-3">
                   <a 
                     href="https://wa.me/5519997050303"

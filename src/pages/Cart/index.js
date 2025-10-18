@@ -354,6 +354,15 @@ export default function Cart() {
                   Finalizar Compra via WhatsApp
                 </a>
                 
+                {formaPagamento === "pix" && (
+                  <Link
+                    to="/pagamento-pix"
+                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center"
+                  >
+                    💳 Pagar com Pix
+                  </Link>
+                )}
+                
                 <Link
                   to="/"
                   className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold text-center block hover:bg-gray-200 transition-colors duration-200"
