@@ -8,12 +8,7 @@ export default function Cart() {
   const { cart, removeFromCart, updateQuantity } = useContext(ShopContext);
   const navigate = useNavigate();
   
-  const [endereco, setEndereco] = useState({
-    rua: "",
-    numero: "",
-    bairro: "",
-    referencia: ""
-  });
+  const [paymentMethod, setPaymentMethod] = useState('pix'); // 'pix' ou 'dinheiro'
 
   // Calcula o valor total do carrinho
   const total = cart.reduce((acc, item) => {
@@ -188,23 +183,84 @@ export default function Cart() {
               </div>
 
               {/* Informações de pagamento */}
-              <div className="mb-6 p-4 bg-blue-50 rounded-xl">
-                <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                  💳 Pagamento PIX
+              <div className={`mb-6 p-4 rounded-xl ${
+                paymentMethod === 'pix' 
+                  ? 'bg-blue-50 border border-blue-200' 
+                  : 'bg-green-50 border border-green-200'
+              }`}>
+                <h4 className={`font-bold mb-3 flex items-center gap-2 ${
+                  paymentMethod === 'pix' ? 'text-blue-800' : 'text-green-800'
+                }`}>
+                  {paymentMethod === 'pix' ? '💳 Pagamento PIX' : '💵 Pagamento em Dinheiro'}
                 </h4>
-                <p className="text-blue-700 text-sm">
-                  Todos os pedidos são processados via PIX. Após finalizar, você receberá um QR code para pagamento.
+                <p className={`text-sm ${
+                  paymentMethod === 'pix' ? 'text-blue-700' : 'text-green-700'
+                }`}>
+                  {paymentMethod === 'pix' 
+                    ? 'Pagamento instantâneo via QR Code. Após finalizar, você receberá um QR code para pagamento.'
+                    : 'Pagamento será feito em dinheiro na entrega. Tenha o valor exato para facilitar o processo.'
+                  }
                 </p>
               </div>
               
+              {/* Seleção do Método de Pagamento */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">💳 Método de Pagamento</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:bg-blue-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="pix"
+                      checked={paymentMethod === 'pix'}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="mr-3 text-blue-600"
+                    />
+                    <div className="flex items-center">
+                      <span className="text-2xl mr-3">📱</span>
+                      <div>
+                        <div className="font-semibold text-gray-800">PIX</div>
+                        <div className="text-sm text-gray-600">Pagamento instantâneo via QR Code</div>
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:bg-green-50">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="dinheiro"
+                      checked={paymentMethod === 'dinheiro'}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="mr-3 text-green-600"
+                    />
+                    <div className="flex items-center">
+                      <span className="text-2xl mr-3">💵</span>
+                      <div>
+                        <div className="font-semibold text-gray-800">Dinheiro</div>
+                        <div className="text-sm text-gray-600">Pagamento na entrega</div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Botão de ação */}
               <div className="space-y-3">
                 <CheckoutGuard>
                   <Link
                     to="/pagamento-pix"
-                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center"
+                    onClick={() => {
+                      // Salvar método de pagamento no localStorage
+                      localStorage.setItem('selectedPaymentMethod', paymentMethod);
+                    }}
+                    className={`w-full py-4 text-white rounded-xl font-bold text-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center ${
+                      paymentMethod === 'pix' 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                        : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                    }`}
                   >
-                    💳 Finalizar Compra com PIX
+                    {paymentMethod === 'pix' ? '💳 Finalizar Compra com PIX' : '💵 Finalizar Compra (Dinheiro)'}
                   </Link>
                 </CheckoutGuard>
                 

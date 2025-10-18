@@ -2,22 +2,37 @@ import React, { useState, useContext, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { ShopContext } from '../../context/ShopContext';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createOrder } from '../../firebase/orders';
 
 const PixPayment = () => {
-  const { cart, showToast, saveOrderToFirestore } = useContext(ShopContext);
+  const { cart, showToast } = useContext(ShopContext);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientAddress, setClientAddress] = useState('');
   const [nameError, setNameError] = useState('');
+  const [valorPago, setValorPago] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [pixCopyPaste, setPixCopyPaste] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  
+  // Obter método de pagamento do localStorage ou URL params
+  const paymentMethod = (() => {
+    // Primeiro tenta obter da URL
+    const urlParams = new URLSearchParams(location.search);
+    const methodFromUrl = urlParams.get('method');
+    
+    // Depois tenta obter do localStorage
+    const methodFromStorage = localStorage.getItem('selectedPaymentMethod');
+    
+    // Retorna o método encontrado ou 'pix' como padrão
+    return methodFromUrl || methodFromStorage || 'pix';
+  })();
 
   const PIX_KEY = '12819359647';
   const MERCHANT_NAME = 'Sua Loja';
@@ -33,6 +48,14 @@ const PixPayment = () => {
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  // Calcular troco
+  const calcularTroco = () => {
+    if (!valorPago || valorPago <= 0) return 0;
+    const valorPagoNum = parseFloat(valorPago);
+    const total = calculateCartTotal();
+    return Math.max(0, valorPagoNum - total);
+  };
 
   const generateOrderId = () => `PIX${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
@@ -83,6 +106,19 @@ const PixPayment = () => {
       setNameError('Nome deve ter pelo menos 2 caracteres');
       return;
     }
+    
+    // Validação específica para pagamento em dinheiro
+    if (paymentMethod === 'dinheiro') {
+      if (!valorPago || parseFloat(valorPago) <= 0) {
+        setNameError('Valor pago é obrigatório para pagamento em dinheiro');
+        return;
+      }
+      if (parseFloat(valorPago) < calculateCartTotal()) {
+        setNameError('Valor pago deve ser maior ou igual ao total do pedido');
+        return;
+      }
+    }
+    
     setNameError('');
     setIsLoading(true);
 
@@ -91,50 +127,56 @@ const PixPayment = () => {
     setOrderId(newOrderId);
 
     try {
-      // Formata o valor com 2 casas decimais
-      const amount = total.toFixed(2);
+      let payload = null;
       
-      // Cria o TxID (máximo 25 caracteres)
-      const txid = newOrderId.substring(0, 25);
+      // Se for pagamento PIX, gera o QR Code
+      if (paymentMethod === 'pix') {
+        // Formata o valor com 2 casas decimais
+        const amount = total.toFixed(2);
       
-      // Monta o Merchant Account Information (ID 26) com sub-campos
-      const gui = addEMVTag('00', 'BR.GOV.BCB.PIX'); // GUI
-      const key = addEMVTag('01', PIX_KEY); // Chave PIX
-      const merchantAccount = addEMVTag('26', gui + key);
-      
-      // Monta o Additional Data Field (ID 62) com sub-campos
-      const txidField = addEMVTag('05', txid); // TxID
-      const additionalData = addEMVTag('62', txidField);
-      
-      // Monta o payload sem o CRC
-      let payload = '';
-      payload += addEMVTag('00', '01'); // Payload Format Indicator
-      payload += merchantAccount; // Merchant Account Information
-      payload += addEMVTag('52', '0000'); // Merchant Category Code
-      payload += addEMVTag('53', '986'); // Transaction Currency (986 = BRL)
-      payload += addEMVTag('54', amount); // Transaction Amount
-      payload += addEMVTag('58', 'BR'); // Country Code
-      payload += addEMVTag('59', MERCHANT_NAME); // Merchant Name
-      payload += addEMVTag('60', CITY); // Merchant City
-      payload += additionalData; // Additional Data Field
-      payload += '6304'; // CRC16 placeholder
-      
-      // Calcula e adiciona o CRC16
-      const crc = crc16CCITTFalse(payload);
-      payload += crc;
+        // Cria o TxID (máximo 25 caracteres)
+        const txid = newOrderId.substring(0, 25);
+        
+        // Monta o Merchant Account Information (ID 26) com sub-campos
+        const gui = addEMVTag('00', 'BR.GOV.BCB.PIX'); // GUI
+        const key = addEMVTag('01', PIX_KEY); // Chave PIX
+        const merchantAccount = addEMVTag('26', gui + key);
+        
+        // Monta o Additional Data Field (ID 62) com sub-campos
+        const txidField = addEMVTag('05', txid); // TxID
+        const additionalData = addEMVTag('62', txidField);
+        
+        // Monta o payload sem o CRC
+        let pixPayload = '';
+        pixPayload += addEMVTag('00', '01'); // Payload Format Indicator
+        pixPayload += merchantAccount; // Merchant Account Information
+        pixPayload += addEMVTag('52', '0000'); // Merchant Category Code
+        pixPayload += addEMVTag('53', '986'); // Transaction Currency (986 = BRL)
+        pixPayload += addEMVTag('54', amount); // Transaction Amount
+        pixPayload += addEMVTag('58', 'BR'); // Country Code
+        pixPayload += addEMVTag('59', MERCHANT_NAME); // Merchant Name
+        pixPayload += addEMVTag('60', CITY); // Merchant City
+        pixPayload += additionalData; // Additional Data Field
+        pixPayload += '6304'; // CRC16 placeholder
+        
+        // Calcula e adiciona o CRC16
+        const crc = crc16CCITTFalse(pixPayload);
+        pixPayload += crc;
 
-      console.log('Payload PIX gerado:', payload);
-      console.log('Tamanho do payload:', payload.length);
+        console.log('Payload PIX gerado:', pixPayload);
+        console.log('Tamanho do payload:', pixPayload.length);
 
-      // Gera QR Code em base64
-      const url = await QRCode.toDataURL(payload, {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        width: 300
-      });
-      
-      setQrCodeUrl(url);
-      setPixCopyPaste(payload);
+        // Gera QR Code em base64
+        const url = await QRCode.toDataURL(pixPayload, {
+          errorCorrectionLevel: 'M',
+          margin: 1,
+          width: 300
+        });
+        
+        setQrCodeUrl(url);
+        setPixCopyPaste(pixPayload);
+        payload = pixPayload;
+      }
 
       // Salva pedido no Firestore usando o novo sistema
       const orderData = {
@@ -154,8 +196,15 @@ const PixPayment = () => {
           rua: clientAddress.trim(),
           telefone: clientPhone.trim()
         },
+        paymentMethod: paymentMethod,
         paymentReference: newOrderId,
-        qrData: payload,
+        qrData: paymentMethod === 'pix' ? payload : null,
+        // Informações específicas para pagamento em dinheiro
+        ...(paymentMethod === 'dinheiro' && {
+          valorPago: parseFloat(valorPago),
+          troco: calcularTroco(),
+          valorTotal: total
+        }),
         metadata: {
           pixKey: PIX_KEY,
           merchantName: MERCHANT_NAME,
@@ -169,8 +218,12 @@ const PixPayment = () => {
       const orderResult = await createOrder(orderData);
       
       if (orderResult.success) {
-        showToast('✅ Pedido criado! QR Code gerado com sucesso!', 'success');
-        // Não redireciona, mantém na tela para o usuário ver o QR Code
+        if (paymentMethod === 'pix') {
+          showToast('✅ Pedido criado! QR Code gerado com sucesso!', 'success');
+        } else {
+          showToast('✅ Pedido criado! Pagamento será feito na entrega em dinheiro.', 'success');
+        }
+        // Não redireciona, mantém na tela para o usuário ver o QR Code ou informações
       } else {
         showToast('⚠️ Erro ao criar pedido: ' + orderResult.error, 'error');
       }
@@ -207,8 +260,8 @@ const PixPayment = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-5">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">💳 Pagamento Pix</h1>
-        <p className="text-gray-600 mb-6">Gere seu QR Code para pagamento instantâneo</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">💳 Finalizar Pedido</h1>
+        <p className="text-gray-600 mb-6">Escolha seu método de pagamento e finalize seu pedido</p>
 
         {/* Resumo do Pedido */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">
@@ -233,6 +286,34 @@ const PixPayment = () => {
             <div className="flex justify-between font-bold text-lg text-green-800">
               <span>Total:</span>
               <span>{formatCurrency(cartTotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Método de Pagamento Selecionado */}
+        <div className={`mb-6 p-4 rounded-xl ${
+          paymentMethod === 'pix' 
+            ? 'bg-blue-50 border border-blue-200' 
+            : 'bg-green-50 border border-green-200'
+        }`}>
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">
+              {paymentMethod === 'pix' ? '📱' : '💵'}
+            </span>
+            <div>
+              <h3 className={`font-semibold ${
+                paymentMethod === 'pix' ? 'text-blue-800' : 'text-green-800'
+              }`}>
+                {paymentMethod === 'pix' ? 'Pagamento via PIX' : 'Pagamento em Dinheiro'}
+              </h3>
+              <p className={`text-sm ${
+                paymentMethod === 'pix' ? 'text-blue-600' : 'text-green-600'
+              }`}>
+                {paymentMethod === 'pix' 
+                  ? 'Você receberá um QR Code para pagamento instantâneo'
+                  : 'O pagamento será feito em dinheiro na entrega'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -276,6 +357,54 @@ const PixPayment = () => {
           )}
         </div>
 
+        {/* Campo de Valor Pago - Apenas para Dinheiro */}
+        {paymentMethod === 'dinheiro' && (
+          <div className="border rounded-lg p-4 mb-6 bg-green-50 border-green-200">
+            <h3 className="font-semibold mb-3 text-green-800">💰 Valor do Pagamento</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Troco para quanto?
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Ex: 30.00"
+                  value={valorPago}
+                  onChange={(e) => setValorPago(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-300"
+                />
+              </div>
+              
+              {valorPago && parseFloat(valorPago) > 0 && (
+                <div className="bg-white rounded-lg p-4 border border-green-300">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Total do pedido:</span>
+                      <span className="font-medium">{formatCurrency(calculateCartTotal())}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Valor pago:</span>
+                      <span className="font-medium">{formatCurrency(parseFloat(valorPago) || 0)}</span>
+                    </div>
+                    <div className="border-t pt-2">
+                      <div className="flex justify-between font-bold text-lg">
+                        <span className={calcularTroco() > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {calcularTroco() > 0 ? 'Troco:' : 'Valor insuficiente:'}
+                        </span>
+                        <span className={calcularTroco() > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {formatCurrency(Math.abs(calcularTroco()))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Botão Gerar QR Code */}
         {!qrCodeUrl && (
           <button
@@ -289,16 +418,16 @@ const PixPayment = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                 </svg>
-                Gerando QR Code...
+                {paymentMethod === 'pix' ? 'Gerando QR Code...' : 'Finalizando Pedido...'}
               </span>
             ) : (
-              '📱 Gerar QR Code Pix'
+              paymentMethod === 'pix' ? '📱 Gerar QR Code Pix' : '💵 Finalizar Pedido (Dinheiro)'
             )}
           </button>
         )}
 
-        {/* QR Code e Ações */}
-        {qrCodeUrl && (
+        {/* QR Code e Ações - Apenas para PIX */}
+        {qrCodeUrl && paymentMethod === 'pix' && (
           <div className="mt-6 space-y-4">
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-xl border-2 border-blue-200">
               <p className="text-sm text-gray-700 mb-3 font-medium">
@@ -351,6 +480,65 @@ const PixPayment = () => {
                 <li>Confirme o pagamento</li>
                 <li>Envie o comprovante via WhatsApp</li>
               </ol>
+            </div>
+          </div>
+        )}
+
+        {/* Informações do Pedido - Pagamento em Dinheiro */}
+        {orderId && paymentMethod === 'dinheiro' && (
+          <div className="mt-6 space-y-4">
+            <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6 rounded-xl border-2 border-green-200">
+              <div className="text-center">
+                <div className="text-4xl mb-3">💵</div>
+                <h3 className="text-xl font-bold text-green-800 mb-2">
+                  Pedido Confirmado!
+                </h3>
+                <p className="text-green-700 mb-4">
+                  Seu pedido foi criado com sucesso. O pagamento será feito em dinheiro na entrega.
+                </p>
+                
+                <div className="bg-white rounded-lg p-4 mb-4">
+                  <div className="text-sm text-gray-600 mb-2">Número do Pedido:</div>
+                  <div className="text-lg font-bold text-gray-800">#{orderId}</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 mb-4">
+                  <div className="text-sm text-gray-600 mb-2">Valor Total:</div>
+                  <div className="text-2xl font-bold text-green-600">{formatCurrency(cartTotal)}</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 mb-4">
+                  <div className="text-sm text-gray-600 mb-2">Valor Pago:</div>
+                  <div className="text-xl font-bold text-blue-600">{formatCurrency(parseFloat(valorPago) || 0)}</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4">
+                  <div className="text-sm text-gray-600 mb-2">Troco:</div>
+                  <div className={`text-2xl font-bold ${calcularTroco() > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(calcularTroco())}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <span className="text-yellow-600 mr-2">⚠️</span>
+                <div className="text-sm text-yellow-800">
+                  <strong>Importante:</strong> 
+                  {calcularTroco() > 0 ? (
+                    <>
+                      O entregador terá troco de {formatCurrency(calcularTroco())} disponível. 
+                      Confirme o valor pago de {formatCurrency(parseFloat(valorPago) || 0)}.
+                    </>
+                  ) : (
+                    <>
+                      Tenha o valor exato em dinheiro para facilitar a entrega. 
+                      O entregador não terá troco disponível.
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
