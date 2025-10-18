@@ -181,16 +181,37 @@ export default function AdminOrders() {
                   {/* Itens do pedido */}
                   {pedido.items && pedido.items.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="font-medium text-gray-700 mb-2">Itens do Pedido:</h5>
-                      <div className="space-y-1">
-                        {pedido.items.map((item, index) => (
-                          <div key={index} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                            <span>{item.nome} x{item.quantidade}</span>
-                            <span className="font-medium">R$ {item.subtotal?.toFixed(2) || "0,00"}</span>
+                    <h5 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-base">
+                      🛒 Itens do Pedido
+                    </h5>
+                    <div className="space-y-2 bg-white rounded-lg border border-gray-200 p-3">
+                      {pedido.items.map((item, index) => (
+                        <div 
+                          key={index} 
+                          className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0"
+                        >
+                          <div className="flex-1 min-w-0 pr-3">
+                            <p className="text-gray-800 font-semibold text-sm leading-tight">
+                              {item.nome}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Qtd: {item.quantidade}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                R$ {(item.subtotal / item.quantidade).toFixed(2)} un.
+                              </span>
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-base font-bold text-green-600">
+                              R$ {item.subtotal?.toFixed(2) || "0,00"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  </div>
                   )}
 
                   {/* Controles de Status */}
