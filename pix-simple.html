@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador PIX - Simples</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .payload {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .copy-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Gerador PIX</h1>
+        
+        <div class="form-group">
+            <label>Valor (R$):</label>
+            <input type="number" id="valor" step="0.01" value="29.99" placeholder="Ex: 29.99">
+        </div>
+        
+        <button onclick="gerarPix()">Gerar QR Code PIX</button>
+        
+        <div class="qr-container" id="qrContainer">
+            <!-- QR Code será gerado aqui -->
+        </div>
+        
+        <div class="payload" id="payloadContainer" style="display: none;">
+            <strong>Payload PIX:</strong><br>
+            <span id="payloadText"></span><br>
+            <button class="copy-btn" onclick="copiarPayload()">Copiar</button>
+        </div>
+        
+        <div id="error"></div>
+    </div>
+
+    <!-- Biblioteca QR Code -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <script>
+        // Configurações
+        const CHAVE_PIX = "12819359647";
+        const NOME_LOJA = "SUA LOJA";
+        const CIDADE = "LAJINHA";
+
+        // CRC16 CCITT para PIX
+        function crc16(data) {
+            let crc = 0xFFFF;
+            for (let i = 0; i < data.length; i++) {
+                crc ^= data.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+                }
+            }
+            return crc.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        // Gerar TxID único
+        function gerarTxId() {
+            return `PIX-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        }
+
+        // Montar payload PIX
+        function montarPayload(valor) {
+            const valorCentavos = Math.round(parseFloat(valor) * 100).toString().padStart(2, '0');
+            const txid = gerarTxId();
+            
+            let payload = "000201"; // Payload Format Indicator
+            payload += "0102"; // Point of Initiation Method
+            payload += "26580014BR.GOV.BCB.PIX"; // Merchant Account Information
+            payload += `0114${CHAVE_PIX}`; // PIX Key
+            payload += "52040000"; // Merchant Category Code
+            payload += "5303986"; // Transaction Currency (BRL)
+            payload += `54${valorCentavos}`; // Transaction Amount
+            payload += "5802BR"; // Country Code
+            payload += `59${NOME_LOJA.length.toString().padStart(2, '0')}${NOME_LOJA}`; // Merchant Name
+            payload += `60${CIDADE.length.toString().padStart(2, '0')}${CIDADE}`; // Merchant City
+            payload += "62070503"; // Additional Data Field Template
+            payload += `${txid.length.toString().padStart(2, '0')}${txid}`; // TxID
+            payload += "6304"; // CRC16
+            
+            // Adiciona CRC16
+            const crc = crc16(payload);
+            payload += crc;
+            
+            return payload;
+        }
+
+        // Gerar PIX
+        async function gerarPix() {
+            try {
+                const valor = document.getElementById('valor').value;
+                
+                if (!valor || parseFloat(valor) <= 0) {
+                    throw new Error('Digite um valor válido');
+                }
+                
+                const payload = montarPayload(valor);
+                
+                // Exibe payload
+                document.getElementById('payloadText').textContent = payload;
+                document.getElementById('payloadContainer').style.display = 'block';
+                
+                // Gera QR Code
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, payload, {
+                    width: 250,
+                    margin: 2
+                });
+                
+                // Exibe QR Code
+                const container = document.getElementById('qrContainer');
+                container.innerHTML = '';
+                container.appendChild(canvas);
+                
+                // Limpa erros
+                document.getElementById('error').innerHTML = '';
+                
+            } catch (error) {
+                document.getElementById('error').innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            }
+        }
+
+        // Copiar payload
+        function copiarPayload() {
+            const payload = document.getElementById('payloadText').textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(payload).then(() => {
+                    alert('Copiado!');
+                });
+            } else {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = payload;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Copiado!');
+            }
+        }
+
+        // Gera PIX inicial
+        window.onload = () => gerarPix();
+    </script>
+</body>
+</html>

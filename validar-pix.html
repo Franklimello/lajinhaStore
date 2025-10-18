@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador PIX - Teste de Payload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .payload {
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Validador PIX - Teste de Payload</h1>
+        
+        <div class="info">
+            <h3>📋 Como usar:</h3>
+            <p>1. Digite um valor para testar</p>
+            <p>2. Clique em "Gerar e Validar PIX"</p>
+            <p>3. Copie o payload gerado</p>
+            <p>4. Teste no seu app bancário</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>💰 Teste de Valores</h3>
+            <input type="number" id="valor" value="1.00" step="0.01" placeholder="Valor em R$">
+            <button onclick="testarPix()">Gerar e Validar PIX</button>
+            
+            <div id="resultado"></div>
+            <div id="payloadContainer" style="display: none;">
+                <h4>📋 Payload PIX Gerado:</h4>
+                <div class="payload" id="payloadText"></div>
+                <button onclick="copiarPayload()">📋 Copiar Payload</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Testes Automáticos</h3>
+            <button onclick="executarTestes()">Executar Todos os Testes</button>
+            <div id="testesResultado"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configurações PIX
+        const PIX_CONFIG = {
+            chave: "12819359647",
+            nomeLoja: "SUA LOJA",
+            cidade: "LAJINHA"
+        };
+
+        // CRC16 CCITT (0x1021) - Algoritmo correto para PIX
+        function crc16(data) {
+            let crc = 0xFFFF;
+            for (let i = 0; i < data.length; i++) {
+                crc ^= data.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x8000) {
+                        crc = (crc << 1) ^ 0x1021;
+                    } else {
+                        crc = crc << 1;
+                    }
+                    crc = crc & 0xFFFF; // Mantém apenas 16 bits
+                }
+            }
+            return crc.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        // Gerar TxID único
+        function gerarTxId() {
+            return `PIX-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        }
+
+        // Montar payload PIX seguindo exatamente o padrão EMV
+        function montarPayloadPix(valor, txid) {
+            const valorCentavos = Math.round(parseFloat(valor) * 100).toString().padStart(2, '0');
+            const merchantNameFormatted = PIX_CONFIG.nomeLoja.substring(0, 25).toUpperCase();
+            const city = PIX_CONFIG.cidade;
+            const txidFormatted = txid.substring(0, 25); // TxID limitado a 25 caracteres
+            
+            let payload = "";
+            
+            // 00 - Payload Format Indicator
+            payload += "000201";
+            
+            // 01 - Point of Initiation Method (Static QR Code)
+            payload += "0102";
+            
+            // 26 - Merchant Account Information
+            payload += "26580014BR.GOV.BCB.PIX";
+            payload += `0114${PIX_CONFIG.chave}`;
+            
+            // 52 - Merchant Category Code
+            payload += "52040000";
+            
+            // 53 - Transaction Currency (BRL = 986)
+            payload += "5303986";
+            
+            // 54 - Transaction Amount (em centavos)
+            payload += `54${valorCentavos}`;
+            
+            // 58 - Country Code (BR)
+            payload += "5802BR";
+            
+            // 59 - Merchant Name
+            payload += `59${merchantNameFormatted.length.toString().padStart(2, '0')}${merchantNameFormatted}`;
+            
+            // 60 - Merchant City
+            payload += `60${city.length.toString().padStart(2, '0')}${city}`;
+            
+            // 62 - Additional Data Field Template
+            payload += "62070503";
+            payload += `${txidFormatted.length.toString().padStart(2, '0')}${txidFormatted}`;
+            
+            // 63 - CRC16 (será calculado)
+            payload += "6304";
+            
+            // Calcula CRC16 CCITT correto
+            const crc = crc16(payload);
+            payload += crc;
+            
+            return payload;
+        }
+
+        // Validar payload PIX
+        function validarPayload(payload) {
+            const validacoes = [];
+            
+            // Verifica se começa com 000201
+            if (payload.startsWith('000201')) {
+                validacoes.push('✅ Payload Format Indicator correto');
+            } else {
+                validacoes.push('❌ Payload Format Indicator incorreto');
+            }
+            
+            // Verifica se contém BR.GOV.BCB.PIX
+            if (payload.includes('BR.GOV.BCB.PIX')) {
+                validacoes.push('✅ Merchant Account Information correto');
+            } else {
+                validacoes.push('❌ Merchant Account Information incorreto');
+            }
+            
+            // Verifica se contém a chave PIX
+            if (payload.includes(PIX_CONFIG.chave)) {
+                validacoes.push('✅ Chave PIX incluída');
+            } else {
+                validacoes.push('❌ Chave PIX não encontrada');
+            }
+            
+            // Verifica se contém 5303986 (BRL)
+            if (payload.includes('5303986')) {
+                validacoes.push('✅ Moeda BRL correta');
+            } else {
+                validacoes.push('❌ Moeda incorreta');
+            }
+            
+            // Verifica se contém 5802BR
+            if (payload.includes('5802BR')) {
+                validacoes.push('✅ País BR correto');
+            } else {
+                validacoes.push('❌ País incorreto');
+            }
+            
+            // Verifica se termina com CRC16
+            if (payload.length > 4) {
+                const crc = payload.slice(-4);
+                const payloadSemCrc = payload.slice(0, -4);
+                const crcCalculado = crc16(payloadSemCrc);
+                
+                if (crc === crcCalculado) {
+                    validacoes.push('✅ CRC16 correto');
+                } else {
+                    validacoes.push(`❌ CRC16 incorreto (esperado: ${crcCalculado}, encontrado: ${crc})`);
+                }
+            } else {
+                validacoes.push('❌ Payload muito curto');
+            }
+            
+            return validacoes;
+        }
+
+        // Testar PIX
+        function testarPix() {
+            const valor = document.getElementById('valor').value;
+            
+            if (!valor || parseFloat(valor) <= 0) {
+                document.getElementById('resultado').innerHTML = '<div class="error">❌ Digite um valor válido</div>';
+                return;
+            }
+            
+            const txid = gerarTxId();
+            const payload = montarPayloadPix(valor, txid);
+            const validacoes = validarPayload(payload);
+            
+            // Exibe resultado
+            let resultadoHtml = `<h4>📊 Resultado da Validação:</h4>`;
+            validacoes.forEach(validacao => {
+                resultadoHtml += `<p>${validacao}</p>`;
+            });
+            
+            resultadoHtml += `
+                <h4>📋 Informações do PIX:</h4>
+                <p><strong>Valor:</strong> R$ ${parseFloat(valor).toFixed(2)}</p>
+                <p><strong>TxID:</strong> ${txid}</p>
+                <p><strong>Tamanho do Payload:</strong> ${payload.length} caracteres</p>
+            `;
+            
+            document.getElementById('resultado').innerHTML = resultadoHtml;
+            
+            // Exibe payload
+            document.getElementById('payloadText').textContent = payload;
+            document.getElementById('payloadContainer').style.display = 'block';
+        }
+
+        // Executar testes automáticos
+        function executarTestes() {
+            const valoresTeste = [1.00, 29.99, 100.50, 999.99];
+            let resultados = '<h4>🧪 Resultados dos Testes:</h4>';
+            
+            valoresTeste.forEach(valor => {
+                const txid = gerarTxId();
+                const payload = montarPayloadPix(valor, txid);
+                const validacoes = validarPayload(payload);
+                
+                resultados += `<div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">`;
+                resultados += `<h5>💰 Teste com R$ ${valor.toFixed(2)}</h5>`;
+                validacoes.forEach(validacao => {
+                    resultados += `<p style="margin: 2px 0;">${validacao}</p>`;
+                });
+                resultados += `<p><strong>Payload:</strong> ${payload.substring(0, 50)}...</p>`;
+                resultados += `</div>`;
+            });
+            
+            document.getElementById('testesResultado').innerHTML = resultados;
+        }
+
+        // Copiar payload
+        function copiarPayload() {
+            const payload = document.getElementById('payloadText').textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(payload).then(() => {
+                    alert('✅ Payload copiado!');
+                });
+            } else {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = payload;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ Payload copiado!');
+            }
+        }
+
+        // Executa teste inicial
+        window.onload = () => {
+            testarPix();
+        };
+    </script>
+</body>
+</html>

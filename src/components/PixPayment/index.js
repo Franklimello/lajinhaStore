@@ -1,396 +1,248 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { ShopContext } from '../../context/ShopContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const PixPayment = () => {
   const { cart, showToast } = useContext(ShopContext);
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [orderId, setOrderId] = useState(null);
+
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [nameError, setNameError] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [pixCopyPaste, setPixCopyPaste] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [orderId, setOrderId] = useState(null);
 
   const PIX_KEY = '12819359647';
   const MERCHANT_NAME = 'Sua Loja';
+  const CITY = 'LAJINHA';
 
-  // Calcula o total do carrinho
   const calculateCartTotal = () => {
-    return cart.reduce((total, item) => {
-      const price = parseFloat(item.preco || item.price || 0);
-      const quantity = parseInt(item.qty || 1);
-      return total + (price * quantity);
-    }, 0);
+    const subtotal = cart.reduce(
+      (acc, item) => acc + (parseFloat(item.preco || 0) * (item.qty || 1)),
+      0
+    );
+    return subtotal + 5; // taxa de entrega
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-  const generateOrderId = () => {
-    return 'PIX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
-  };
+  const generateOrderId = () => `PIX${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-  const generatePixPayload = (amount, pixKey, merchantName, orderId) => {
-    // Formato simplificado do payload Pix com ID do pedido
-    return `pix:${pixKey}:${amount}:${merchantName}:${orderId}`;
-  };
-
-  const saveOrderToLocalStorage = (orderData) => {
-    try {
-      const existingOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
-      existingOrders.push(orderData);
-      localStorage.setItem('pendingOrders', JSON.stringify(existingOrders));
-      
-      // Notifica o administrador (simulado)
-      showNotificationToAdmin(orderData);
-      
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      return false;
-    }
-  };
-
-  const showNotificationToAdmin = (orderData) => {
-    // Simula notificação para o administrador
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('💰 Novo Pedido Pix!', {
-        body: `Pedido ${orderData.id} - ${formatCurrency(orderData.total)}`,
-        icon: '/favicon.ico'
-      });
+  // Função para calcular CRC16 CCITT
+  const crc16CCITTFalse = (str) => {
+    let crc = 0xFFFF;
+    const strlen = str.length;
+    
+    for (let c = 0; c < strlen; c++) {
+      crc ^= str.charCodeAt(c) << 8;
+      for (let i = 0; i < 8; i++) {
+        if (crc & 0x8000) {
+          crc = (crc << 1) ^ 0x1021;
+        } else {
+          crc = crc << 1;
+        }
+      }
     }
     
-    // Log no console para desenvolvimento
-    console.log('🔔 NOVO PEDIDO PIX:', orderData);
+    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
   };
 
-  const handleGenerateQRCode = () => {
-    const cartTotal = calculateCartTotal();
-    
-    if (cartTotal <= 0) {
-      alert('Carrinho vazio! Adicione produtos antes de gerar o pagamento.');
-      return;
-    }
-
-    if (cart.length === 0) {
-      alert('Carrinho vazio! Adicione produtos antes de gerar o pagamento.');
-      return;
-    }
-
-    // Validação do nome do cliente
+  const generatePixPayload = async () => {
     if (!clientName.trim()) {
       setNameError('Nome é obrigatório para continuar');
       return;
     }
-
     if (clientName.trim().length < 2) {
       setNameError('Nome deve ter pelo menos 2 caracteres');
       return;
     }
-
-    // Limpa erro se tudo estiver ok
     setNameError('');
-
     setIsLoading(true);
-    setShowQRCode(false);
 
-    // Gera ID único do pedido
+    const total = calculateCartTotal();
     const newOrderId = generateOrderId();
     setOrderId(newOrderId);
 
-    // Salva dados do pedido
-    const orderData = {
-      id: newOrderId,
-      total: cartTotal,
-      clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      items: cart.map(item => ({
-        id: item.id,
-        titulo: item.titulo,
-        preco: item.preco,
-        qty: item.qty,
-        fotosUrl: item.fotosUrl
-      })),
-      pixKey: PIX_KEY,
-      merchantName: MERCHANT_NAME,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      paymentMethod: 'pix'
-    };
+    try {
+      // Formata o valor com 2 casas decimais
+      const amount = total.toFixed(2);
+      
+      // Garante que a chave PIX tenha o tamanho correto no payload
+      const pixKeyLength = PIX_KEY.length.toString().padStart(2, '0');
+      const merchantNameLength = MERCHANT_NAME.length.toString().padStart(2, '0');
+      const cityLength = CITY.length.toString().padStart(2, '0');
+      
+      // Cria o TxID (máximo 25 caracteres)
+      const txid = newOrderId.substring(0, 25);
+      const txidLength = txid.length.toString().padStart(2, '0');
+      
+      // Monta o Merchant Account Information (ID 26)
+      const merchantAccountInfo = `0014BR.GOV.BCB.PIX01${pixKeyLength}${PIX_KEY}`;
+      const merchantAccountLength = merchantAccountInfo.length.toString().padStart(2, '0');
+      
+      // Monta o Additional Data Field (ID 62)
+      const additionalData = `05${txidLength}${txid}`;
+      const additionalDataLength = additionalData.length.toString().padStart(2, '0');
+      
+      // Monta o payload sem o CRC
+      let payload = '';
+      payload += '00020126'; // Payload Format Indicator
+      payload += `${merchantAccountLength}${merchantAccountInfo}`; // Merchant Account Information
+      payload += '52040000'; // Merchant Category Code
+      payload += '5303986'; // Transaction Currency (986 = BRL)
+      payload += `54${amount.length.toString().padStart(2, '0')}${amount}`; // Transaction Amount
+      payload += '5802BR'; // Country Code
+      payload += `59${merchantNameLength}${MERCHANT_NAME}`; // Merchant Name
+      payload += `60${cityLength}${CITY}`; // Merchant City
+      payload += `62${additionalDataLength}${additionalData}`; // Additional Data Field
+      payload += '6304'; // CRC16 placeholder
+      
+      // Calcula e adiciona o CRC16
+      const crc = crc16CCITTFalse(payload);
+      payload += crc;
 
-    // Salva no localStorage
-    const saved = saveOrderToLocalStorage(orderData);
+      // Gera QR Code em base64
+      const url = await QRCode.toDataURL(payload, {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 300
+      });
+      
+      setQrCodeUrl(url);
+      setPixCopyPaste(payload);
 
-    if (!saved) {
-      alert('Erro ao processar pedido. Tente novamente.');
+      // Salva pedido no localStorage
+      const orderData = {
+        id: newOrderId,
+        total,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        items: cart.map((item) => ({
+          id: item.id,
+          titulo: item.titulo,
+          preco: item.preco,
+          qty: item.qty,
+          fotosUrl: item.fotosUrl,
+        })),
+        pixKey: PIX_KEY,
+        merchantName: MERCHANT_NAME,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        paymentMethod: 'pix',
+        pixPayload: payload
+      };
+      
+      const existingOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
+      existingOrders.push(orderData);
+      localStorage.setItem('pendingOrders', JSON.stringify(existingOrders));
+
+      showToast('QR Code gerado com sucesso! Copie ou escaneie para pagar.', 'success');
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error);
+      showToast('Erro ao gerar QR Code. Tente novamente.', 'error');
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Simula um pequeno delay para mostrar o loading
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowQRCode(true);
-      showToast('Pedido gerado com sucesso! Aguarde confirmação do pagamento.', 'success');
-    }, 1000);
   };
 
-  const handleCopyPixKey = () => {
-    navigator.clipboard.writeText(PIX_KEY).then(() => {
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 3000);
-    }).catch(() => {
-      // Fallback para navegadores mais antigos
-      const textArea = document.createElement('textarea');
-      textArea.value = PIX_KEY;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 3000);
+  const handleCopyPix = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Copiado para área de transferência!', 'success');
     });
   };
 
-  const handleNameChange = (e) => {
-    setClientName(e.target.value);
-    // Limpa erro quando usuário começa a digitar
-    if (nameError) {
-      setNameError('');
-    }
-  };
-
-  const cartTotal = calculateCartTotal();
-  const pixPayload = showQRCode && orderId ? generatePixPayload(cartTotal, PIX_KEY, MERCHANT_NAME, orderId) : '';
-  const qrCodeUrl = showQRCode ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixPayload)}` : '';
-
-  // Solicita permissão para notificações
-  React.useEffect(() => {
+  useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
+
+  const cartTotal = calculateCartTotal();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-5">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">💳 Pagamento Pix</h1>
         <p className="text-gray-600 mb-6">Gere seu QR Code para pagamento instantâneo</p>
-        
-        {/* Valor do carrinho */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <h3 className="text-green-800 font-semibold mb-2">🛒 Valor do Pedido</h3>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(cartTotal)}</p>
-          <p className="text-sm text-green-600 mt-1">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
+
+        {/* Resumo do Pedido */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">
+          <h3 className="text-green-800 font-semibold mb-3">🛒 Resumo do Pedido</h3>
+          {cart.map((item) => (
+            <div key={item.id} className="flex justify-between text-sm mb-1">
+              <span className="truncate">{item.titulo} x{item.qty}</span>
+              <span>{formatCurrency(parseFloat(item.preco || 0) * (item.qty || 1))}</span>
+            </div>
+          ))}
+          <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
+            <span>Total:</span>
+            <span>{formatCurrency(cartTotal)}</span>
+          </div>
         </div>
 
         {/* Dados do Cliente */}
-        <div className={`border rounded-lg p-4 mb-6 ${
-          nameError 
-            ? 'bg-red-50 border-red-200' 
-            : 'bg-blue-50 border-blue-200'
-        }`}>
-          <h3 className={`font-semibold mb-3 ${
-            nameError ? 'text-red-800' : 'text-blue-800'
-          }`}>
-            👤 Dados do Cliente
-          </h3>
-          
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome Completo *
-              </label>
-              <input
-                type="text"
-                value={clientName}
-                onChange={handleNameChange}
-                placeholder="Digite seu nome completo"
-                className={`w-full p-3 border-2 rounded-lg text-lg focus:outline-none transition-colors ${
-                  nameError 
-                    ? 'border-red-500 focus:border-red-500 bg-red-50' 
-                    : 'border-gray-200 focus:border-blue-500'
-                }`}
-                required
-              />
-              {nameError && (
-                <div className="mt-2 p-3 bg-red-100 border border-red-300 rounded-lg">
-                  <div className="flex items-center">
-                    <span className="text-red-600 text-sm font-medium mr-2">⚠️</span>
-                    <span className="text-red-700 text-sm">{nameError}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telefone/WhatsApp (opcional)
-              </label>
-              <input
-                type="tel"
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                placeholder="(19) 99999-9999"
-                className="w-full p-3 border-2 border-gray-200 rounded-lg text-lg focus:border-blue-500 focus:outline-none transition-colors"
-              />
-            </div>
-          </div>
-          
-          <div className="mt-3 p-2 bg-blue-100 rounded-lg">
-            <p className="text-blue-800 text-sm">
-              <strong>ℹ️ Importante:</strong> Seus dados serão usados apenas para identificação do pedido e entrega.
-            </p>
-          </div>
-        </div>
-
-        {/* Lista resumida dos itens */}
-        {cart.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-            <h4 className="font-semibold text-gray-800 mb-2">📦 Itens do Pedido:</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {cart.map((item, index) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600 truncate flex-1 mr-2">
-                    {item.titulo} (x{item.qty || 1})
-                  </span>
-                  <span className="text-gray-800 font-medium">
-                    {formatCurrency((parseFloat(item.preco || 0) * (item.qty || 1)))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Chave Pix */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-6 font-mono text-sm text-gray-600">
-          <strong>Chave Pix:</strong> {PIX_KEY}
+        <div className={`border rounded-lg p-4 mb-6 ${nameError ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+          <h3 className={`font-semibold mb-3 ${nameError ? 'text-red-800' : 'text-blue-800'}`}>👤 Dados do Cliente</h3>
+          <input
+            type="text"
+            placeholder="Nome completo"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            className={`w-full p-3 rounded-lg mb-3 border-2 ${nameError ? 'border-red-500' : 'border-gray-200'}`}
+          />
+          <input
+            type="tel"
+            placeholder="Telefone/WhatsApp (opcional)"
+            value={clientPhone}
+            onChange={(e) => setClientPhone(e.target.value)}
+            className="w-full p-3 rounded-lg border-2 border-gray-200"
+          />
+          {nameError && <p className="text-red-600 text-sm mt-2">{nameError}</p>}
         </div>
 
         {/* Botões */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={handleGenerateQRCode}
-            disabled={cartTotal <= 0 || nameError}
-            className={`flex-1 py-4 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
-              nameError 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
-            }`}
-          >
-            {nameError ? '⚠️ Nome Obrigatório' : '📱 Gerar QR Code Pix'}
-          </button>
-          <button
-            onClick={handleCopyPixKey}
-            className="flex-1 bg-gray-600 text-white py-4 rounded-lg font-semibold hover:bg-gray-700 transition-all duration-300 transform hover:-translate-y-1"
-          >
-            📋 Copiar Chave Pix
-          </button>
-        </div>
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="mb-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <p className="text-gray-600">Processando pedido...</p>
-          </div>
-        )}
-
-        {/* Sucesso ao copiar */}
-        {copySuccess && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            ✅ Chave Pix copiada para a área de transferência!
-          </div>
-        )}
+        <button
+          onClick={generatePixPayload}
+          disabled={isLoading || cart.length === 0}
+          className="w-full py-4 mb-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50"
+        >
+          {isLoading ? 'Gerando QR Code...' : '📱 Gerar QR Code Pix'}
+        </button>
 
         {/* QR Code */}
-        {showQRCode && (
-          <div className="bg-gray-50 p-6 rounded-xl animate-fadeIn">
-            <div className="bg-white p-5 rounded-lg mb-5 border-l-4 border-green-500">
-              <h3 className="text-green-600 font-semibold mb-3 text-lg">💰 Informações do Pagamento</h3>
-              <p className="mb-2"><strong>Pedido:</strong> <span className="text-lg font-bold text-gray-800">{orderId}</span></p>
-              <p className="mb-2"><strong>Cliente:</strong> <span className="text-lg font-bold text-gray-800">{clientName}</span></p>
-              <p className="mb-2"><strong>Valor:</strong> <span className="text-2xl font-bold text-gray-800">{formatCurrency(cartTotal)}</span></p>
-              <p className="mb-2"><strong>Chave Pix:</strong> {PIX_KEY}</p>
-              <p className="mb-2"><strong>Beneficiário:</strong> {MERCHANT_NAME}</p>
-              {clientPhone && <p className="mb-2"><strong>Telefone:</strong> {clientPhone}</p>}
-            </div>
-            
-            <img
-              src={qrCodeUrl}
-              alt="QR Code Pix"
-              className="max-w-xs mx-auto rounded-lg shadow-lg mb-4"
-            />
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-blue-800 text-sm font-medium">
-                📱 Escaneie o QR Code com o app do seu banco para pagar
-              </p>
-            </div>
-            
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-yellow-800 text-sm">
-                ⏳ Após o pagamento, aguarde a confirmação. Você receberá uma notificação quando o pedido for confirmado.
-              </p>
-            </div>
-
-            {/* Botão WhatsApp */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-green-800 mb-2">📱 Enviar Comprovante</h4>
-              <p className="text-green-700 text-sm mb-3">
-                Após realizar o pagamento, envie o comprovante via WhatsApp para acelerar a confirmação:
-              </p>
-              <a
-                href={`https://wa.me/5519997050303?text=${encodeURIComponent(`Olá! Realizei o pagamento do pedido ${orderId} no valor de ${formatCurrency(cartTotal)}. Segue o comprovante do Pix.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-3 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-              >
-                <span className="text-xl">📱</span>
-                Enviar Comprovante via WhatsApp
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Botão consultar status */}
-        {showQRCode && orderId && (
-          <div className="mt-4">
+        {qrCodeUrl && (
+          <div className="mt-6">
+            <img src={qrCodeUrl} alt="QR Code Pix" className="mx-auto mb-4 rounded-lg shadow-lg" />
             <button
-              onClick={() => navigate(`/status-pedido/${orderId}`)}
-              className="w-full py-3 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-colors duration-200"
+              onClick={() => handleCopyPix(pixCopyPaste)}
+              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 mb-4"
             >
-              🔍 Consultar Status do Pedido
+              📋 Copiar Chave Pix "Copia e Cola"
             </button>
+            <a
+              href={`https://wa.me/5519997050303?text=${encodeURIComponent(
+                `Olá! Realizei o pagamento do pedido ${orderId} no valor de ${formatCurrency(cartTotal)}.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600"
+            >
+              📱 Enviar Comprovante via WhatsApp
+            </a>
           </div>
         )}
 
-        {/* Botão voltar */}
         <button
           onClick={() => navigate('/carrinho')}
-          className="mt-6 w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-200"
+          className="mt-6 w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200"
         >
           ← Voltar ao Carrinho
         </button>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease;
-        }
-      `}</style>
     </div>
   );
 };
