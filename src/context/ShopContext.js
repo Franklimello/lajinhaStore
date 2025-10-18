@@ -7,6 +7,7 @@ export function ShopProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
   const [cart, setCart] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState({ isVisible: false, message: "", type: "success" });
 
   // Carrega dados salvos no localStorage
   useEffect(() => {
@@ -106,14 +107,32 @@ export function ShopProvider({ children }) {
           item.id === productId ? { ...item, qty: (item.qty || 1) + 1 } : item
         );
         console.log('Produto já existe, incrementando quantidade:', newCart);
+        
+        // Mostra notificação de quantidade atualizada
+        showToast(`Quantidade de "${product.titulo || product.nome || 'Produto'}" atualizada no carrinho!`, "success");
+        
         return newCart;
       }
 
       // Se não existe, adiciona como novo
       const newCart = [...prev, { ...product, id: productId, qty: 1 }];
       console.log('Adicionando novo produto ao carrinho:', newCart);
+      
+      // Mostra notificação de produto adicionado
+      showToast(`"${product.titulo || product.nome || 'Produto'}" adicionado ao carrinho!`, "success");
+      
       return newCart;
     });
+  };
+
+  // Função para mostrar toast
+  const showToast = (message, type = "success") => {
+    setToast({ isVisible: true, message, type });
+  };
+
+  // Função para esconder toast
+  const hideToast = () => {
+    setToast({ isVisible: false, message: "", type: "success" });
   };
 
   // Remove produto do carrinho
@@ -140,6 +159,9 @@ export function ShopProvider({ children }) {
     removeFromCart,
     updateQuantity,
     isLoading,
+    toast,
+    showToast,
+    hideToast,
   };
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
