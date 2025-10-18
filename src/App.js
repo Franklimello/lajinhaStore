@@ -30,6 +30,9 @@ import DashboardPage from "./pages/Dashboard";
 import MeusPedidos from "./pages/MeusPedidos";
 import PedidoDetalhes from "./pages/PedidoDetalhes";
 import AdminOrders from "./pages/AdminOrders";
+import Notificacoes from "./pages/Notificacoes";
+import NotificationDiagnostic from "./components/NotificationDiagnostic";
+import NotificationTest from "./components/NotificationTest";
 import FirestoreTest from "./components/FirestoreTest";
 import FirestoreDiagnostic from "./components/FirestoreDiagnostic";
 import FirestoreRulesValidator from "./components/FirestoreRulesValidator";
@@ -142,6 +145,30 @@ function AppContent() {
             element={
               <AdminRoute>
                 <AdminOrders />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/notificacoes"
+            element={
+              <AdminRoute>
+                <Notificacoes />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/diagnostic-notifications"
+            element={
+              <AdminRoute>
+                <NotificationDiagnostic />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/test-notifications"
+            element={
+              <AdminRoute>
+                <NotificationTest />
               </AdminRoute>
             }
           />

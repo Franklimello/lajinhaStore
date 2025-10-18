@@ -4,9 +4,11 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut,
+  setPersistence,
+  browserLocalPersistence
 } from "firebase/auth";
 
 const AuthContext = createContext({ 
@@ -23,12 +25,39 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("🔐 AuthContext: Inicializando listener de autenticação...");
     const auth = getAuth();
+    
+    // Configurar persistência local
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.warn("⚠️ Erro ao configurar persistência:", error);
+    });
+    
+    // Verificar se já existe um usuário logado
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      console.log("🔐 AuthContext: Usuário já logado encontrado:", currentUser.uid);
+      setUser(currentUser);
+      setLoading(false);
+    }
+    
     const unsub = onAuthStateChanged(auth, (u) => {
+      console.log("🔐 AuthContext: Estado de autenticação mudou:", u ? "Usuário logado" : "Usuário deslogado");
+      if (u) {
+        console.log("👤 Usuário logado:", {
+          uid: u.uid,
+          email: u.email,
+          displayName: u.displayName,
+          emailVerified: u.emailVerified
+        });
+      }
       setUser(u);
       setLoading(false);
     });
-    return () => unsub();
+    return () => {
+      console.log("🔐 AuthContext: Removendo listener de autenticação");
+      unsub();
+    };
   }, []);
 
   // Função de login
