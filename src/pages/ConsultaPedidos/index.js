@@ -138,6 +138,7 @@ const ConsultaPedidos = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span>👤 {order.clientName || 'Nome não informado'}</span>
                         <span>💰 {formatCurrency(order.total)}</span>
                         <span>📅 {formatDate(order.createdAt)}</span>
                         <span>📦 {order.items.length} itens</span>

@@ -151,7 +151,15 @@ const StatusPedido = () => {
           
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">{order.id}</h2>
+            <p className="text-gray-600 mb-1">
+              <strong>Cliente:</strong> {order.clientName || 'Nome não informado'}
+            </p>
             <p className="text-gray-600">Criado em: {formatDate(order.createdAt)}</p>
+            {order.clientPhone && (
+              <p className="text-gray-600">
+                <strong>Telefone:</strong> {order.clientPhone}
+              </p>
+            )}
           </div>
         </div>
 

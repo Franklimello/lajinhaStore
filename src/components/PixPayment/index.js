@@ -9,6 +9,9 @@ const PixPayment = () => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [nameError, setNameError] = useState('');
 
   const PIX_KEY = '12819359647';
   const MERCHANT_NAME = 'Sua Loja';
@@ -80,6 +83,20 @@ const PixPayment = () => {
       return;
     }
 
+    // Validação do nome do cliente
+    if (!clientName.trim()) {
+      setNameError('Nome é obrigatório para continuar');
+      return;
+    }
+
+    if (clientName.trim().length < 2) {
+      setNameError('Nome deve ter pelo menos 2 caracteres');
+      return;
+    }
+
+    // Limpa erro se tudo estiver ok
+    setNameError('');
+
     setIsLoading(true);
     setShowQRCode(false);
 
@@ -91,6 +108,8 @@ const PixPayment = () => {
     const orderData = {
       id: newOrderId,
       total: cartTotal,
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim(),
       items: cart.map(item => ({
         id: item.id,
         titulo: item.titulo,
@@ -140,6 +159,14 @@ const PixPayment = () => {
     });
   };
 
+  const handleNameChange = (e) => {
+    setClientName(e.target.value);
+    // Limpa erro quando usuário começa a digitar
+    if (nameError) {
+      setNameError('');
+    }
+  };
+
   const cartTotal = calculateCartTotal();
   const pixPayload = showQRCode && orderId ? generatePixPayload(cartTotal, PIX_KEY, MERCHANT_NAME, orderId) : '';
   const qrCodeUrl = showQRCode ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixPayload)}` : '';
@@ -162,6 +189,66 @@ const PixPayment = () => {
           <h3 className="text-green-800 font-semibold mb-2">🛒 Valor do Pedido</h3>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(cartTotal)}</p>
           <p className="text-sm text-green-600 mt-1">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
+        </div>
+
+        {/* Dados do Cliente */}
+        <div className={`border rounded-lg p-4 mb-6 ${
+          nameError 
+            ? 'bg-red-50 border-red-200' 
+            : 'bg-blue-50 border-blue-200'
+        }`}>
+          <h3 className={`font-semibold mb-3 ${
+            nameError ? 'text-red-800' : 'text-blue-800'
+          }`}>
+            👤 Dados do Cliente
+          </h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                value={clientName}
+                onChange={handleNameChange}
+                placeholder="Digite seu nome completo"
+                className={`w-full p-3 border-2 rounded-lg text-lg focus:outline-none transition-colors ${
+                  nameError 
+                    ? 'border-red-500 focus:border-red-500 bg-red-50' 
+                    : 'border-gray-200 focus:border-blue-500'
+                }`}
+                required
+              />
+              {nameError && (
+                <div className="mt-2 p-3 bg-red-100 border border-red-300 rounded-lg">
+                  <div className="flex items-center">
+                    <span className="text-red-600 text-sm font-medium mr-2">⚠️</span>
+                    <span className="text-red-700 text-sm">{nameError}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone/WhatsApp (opcional)
+              </label>
+              <input
+                type="tel"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="(19) 99999-9999"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg text-lg focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-3 p-2 bg-blue-100 rounded-lg">
+            <p className="text-blue-800 text-sm">
+              <strong>ℹ️ Importante:</strong> Seus dados serão usados apenas para identificação do pedido e entrega.
+            </p>
+          </div>
         </div>
 
         {/* Lista resumida dos itens */}
@@ -192,10 +279,14 @@ const PixPayment = () => {
         <div className="flex gap-4 mb-6">
           <button
             onClick={handleGenerateQRCode}
-            disabled={cartTotal <= 0}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            disabled={cartTotal <= 0 || nameError}
+            className={`flex-1 py-4 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+              nameError 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
+            }`}
           >
-            📱 Gerar QR Code Pix
+            {nameError ? '⚠️ Nome Obrigatório' : '📱 Gerar QR Code Pix'}
           </button>
           <button
             onClick={handleCopyPixKey}
@@ -226,9 +317,11 @@ const PixPayment = () => {
             <div className="bg-white p-5 rounded-lg mb-5 border-l-4 border-green-500">
               <h3 className="text-green-600 font-semibold mb-3 text-lg">💰 Informações do Pagamento</h3>
               <p className="mb-2"><strong>Pedido:</strong> <span className="text-lg font-bold text-gray-800">{orderId}</span></p>
+              <p className="mb-2"><strong>Cliente:</strong> <span className="text-lg font-bold text-gray-800">{clientName}</span></p>
               <p className="mb-2"><strong>Valor:</strong> <span className="text-2xl font-bold text-gray-800">{formatCurrency(cartTotal)}</span></p>
               <p className="mb-2"><strong>Chave Pix:</strong> {PIX_KEY}</p>
               <p className="mb-2"><strong>Beneficiário:</strong> {MERCHANT_NAME}</p>
+              {clientPhone && <p className="mb-2"><strong>Telefone:</strong> {clientPhone}</p>}
             </div>
             
             <img

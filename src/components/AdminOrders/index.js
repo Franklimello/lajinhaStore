@@ -229,7 +229,15 @@ const AdminOrders = () => {
                   <div className="flex items-center gap-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">{order.id}</h3>
+                      <p className="text-sm text-gray-500">
+                        <strong>Cliente:</strong> {order.clientName || 'Nome não informado'}
+                      </p>
                       <p className="text-sm text-gray-500">Criado em: {formatDate(order.createdAt)}</p>
+                      {order.clientPhone && (
+                        <p className="text-sm text-gray-500">
+                          <strong>Telefone:</strong> {order.clientPhone}
+                        </p>
+                      )}
                     </div>
                     <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(order.status)}`}>
                       {getStatusText(order.status)}
@@ -339,6 +347,14 @@ const AdminOrders = () => {
                       <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedOrder.status)}`}>
                         {getStatusText(selectedOrder.status)}
                       </span>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Cliente</label>
+                      <p className="text-lg font-semibold">{selectedOrder.clientName || 'Nome não informado'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Telefone</label>
+                      <p className="text-sm">{selectedOrder.clientPhone || 'Não informado'}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-500">Valor Total</label>
