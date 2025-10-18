@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import CardProduto from "../../components/CardProduto";
 import SEO from "../../components/SEO";
+import { useWebViewOptimization } from "../../hooks/useWebViewOptimization";
+import WebViewFallback from "../../components/WebViewFallback";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { FaTruck, FaShieldAlt, FaHeart, FaSearch, FaArrowUp } from "react-icons/fa";
 import Hortifruti from "../../pages/Hortifruti";
@@ -23,6 +25,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 
 export default function Home() {
+  useWebViewOptimization();
   const [termo, setTermo] = useState("");
   const debouncedTerm = useDebouncedValue(termo, 350);
   const deferredTerm = useDeferredValue(debouncedTerm);
@@ -193,7 +196,8 @@ export default function Home() {
         url="/"
         structuredData={structuredData}
       />
-      <div className="min-h-screen  bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+      <WebViewFallback>
+        <div className="min-h-screen  bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
       {/* Hero Section */}
       <div className="hidden md:block relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -456,7 +460,8 @@ export default function Home() {
           <FaArrowUp className="text-xl group-hover:translate-y-[-2px] transition-transform" />
         </button>
       )}
-      </div>
+        </div>
+      </WebViewFallback>
     </>
   );
 }

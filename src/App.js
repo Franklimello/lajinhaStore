@@ -3,6 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Toast from "./components/Toast";
+import WebViewBanner from "./components/WebViewBanner";
 import Painel from "./pages/Painel";
 import Categorias from "./pages/Categorias"
 import Hortifruti from "./pages/Hortifruti"
@@ -38,6 +39,7 @@ import NotificationTest from "./components/NotificationTest";
 import FirestoreTest from "./components/FirestoreTest";
 import FirestoreDiagnostic from "./components/FirestoreDiagnostic";
 import FirestoreRulesValidator from "./components/FirestoreRulesValidator";
+import FirestorePermissionsTest from "./components/FirestorePermissionsTest";
 import ProtectedRoute from "./components/protectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -59,6 +61,7 @@ function Layout({ children }) {
 
   return (
     <section className="flex flex-col min-h-screen">
+      <WebViewBanner />
       {!hideChrome && <Header />}
       <main className="flex-1 overflow-auto p-4 bg-gray-50">{children}</main>
       {!hideChrome && <Footer />}
@@ -151,14 +154,18 @@ function AppContent() {
               </AdminRoute>
             }
           />
-          <Route
-            path="/notificacoes"
-            element={
-              <AdminRoute>
-                <Notificacoes />
-              </AdminRoute>
-            }
-          />
+                      <Route
+                        path="/notificacoes"
+                        element={
+                          <AdminRoute>
+                            <Notificacoes />
+                          </AdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/test-permissions"
+                        element={<FirestorePermissionsTest />}
+                      />
           <Route
             path="/diagnostic-notifications"
             element={
