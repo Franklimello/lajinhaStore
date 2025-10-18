@@ -13,8 +13,14 @@ const PixPayment = () => {
 
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
-  const [clientAddress, setClientAddress] = useState('');
+  const [clientRua, setClientRua] = useState('');
+  const [clientNumero, setClientNumero] = useState('');
+  const [clientBairro, setClientBairro] = useState('');
+  const [clientCidade, setClientCidade] = useState('');
+  const [clientReferencia, setClientReferencia] = useState('');
   const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [valorPago, setValorPago] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [pixCopyPaste, setPixCopyPaste] = useState('');
@@ -107,6 +113,36 @@ const PixPayment = () => {
       return;
     }
     
+    // Validação do telefone
+    if (!clientPhone.trim()) {
+      setPhoneError('Telefone é obrigatório para entrega');
+      return;
+    }
+    if (clientPhone.trim().length < 10) {
+      setPhoneError('Telefone deve ter pelo menos 10 dígitos');
+      return;
+    }
+    setPhoneError('');
+    
+    // Validação dos campos de endereço
+    if (!clientRua.trim()) {
+      setAddressError('Rua é obrigatória para entrega');
+      return;
+    }
+    if (!clientNumero.trim()) {
+      setAddressError('Número é obrigatório para entrega');
+      return;
+    }
+    if (!clientBairro.trim()) {
+      setAddressError('Bairro é obrigatório para entrega');
+      return;
+    }
+    if (!clientCidade.trim()) {
+      setAddressError('Cidade é obrigatória para entrega');
+      return;
+    }
+    setAddressError('');
+    
     // Validação específica para pagamento em dinheiro
     if (paymentMethod === 'dinheiro') {
       if (!valorPago || parseFloat(valorPago) <= 0) {
@@ -193,8 +229,12 @@ const PixPayment = () => {
         })),
         endereco: {
           nome: clientName.trim(),
-          rua: clientAddress.trim(),
-          telefone: clientPhone.trim()
+          telefone: clientPhone.trim(),
+          rua: clientRua.trim(),
+          numero: clientNumero.trim(),
+          bairro: clientBairro.trim(),
+          cidade: clientCidade.trim(),
+          referencia: clientReferencia.trim()
         },
         paymentMethod: paymentMethod,
         paymentReference: newOrderId,
@@ -319,8 +359,10 @@ const PixPayment = () => {
         </div>
 
         {/* Dados do Cliente */}
-        <div className={`border rounded-lg p-4 mb-6 ${nameError ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
-          <h3 className={`font-semibold mb-3 ${nameError ? 'text-red-800' : 'text-blue-800'}`}>👤 Dados do Cliente</h3>
+        <div className={`border rounded-lg p-4 mb-6 ${(nameError || phoneError || addressError) ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+          <h3 className={`font-semibold mb-3 ${(nameError || phoneError || addressError) ? 'text-red-800' : 'text-blue-800'}`}>👤 Dados do Cliente</h3>
+          
+          {/* Nome */}
           <input
             type="text"
             placeholder="Nome completo *"
@@ -335,24 +377,113 @@ const PixPayment = () => {
                 : 'border-gray-200 focus:ring-blue-300'
             }`}
           />
+          
+          {/* Telefone */}
           <input
             type="tel"
-            placeholder="Telefone/WhatsApp (opcional)"
+            placeholder="Telefone/WhatsApp *"
             value={clientPhone}
-            onChange={(e) => setClientPhone(e.target.value)}
-            className="w-full p-3 rounded-lg mb-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            onChange={(e) => {
+              setClientPhone(e.target.value);
+              if (phoneError) setPhoneError('');
+            }}
+            className={`w-full p-3 rounded-lg mb-3 border-2 focus:outline-none focus:ring-2 ${
+              phoneError 
+                ? 'border-red-500 focus:ring-red-300' 
+                : 'border-gray-200 focus:ring-blue-300'
+            }`}
           />
-          <textarea
-            placeholder="Endereço completo (Rua, número, bairro, cidade)"
-            value={clientAddress}
-            onChange={(e) => setClientAddress(e.target.value)}
-            className="w-full p-3 rounded-lg border-2 border-gray-200 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
-            rows="3"
+          
+          {/* Endereço - Rua e Número */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <input
+              type="text"
+              placeholder="Rua *"
+              value={clientRua}
+              onChange={(e) => {
+                setClientRua(e.target.value);
+                if (addressError) setAddressError('');
+              }}
+              className={`p-3 rounded-lg border-2 focus:outline-none focus:ring-2 ${
+                addressError 
+                  ? 'border-red-500 focus:ring-red-300' 
+                  : 'border-gray-200 focus:ring-blue-300'
+              }`}
+            />
+            <input
+              type="text"
+              placeholder="Número *"
+              value={clientNumero}
+              onChange={(e) => {
+                setClientNumero(e.target.value);
+                if (addressError) setAddressError('');
+              }}
+              className={`p-3 rounded-lg border-2 focus:outline-none focus:ring-2 ${
+                addressError 
+                  ? 'border-red-500 focus:ring-red-300' 
+                  : 'border-gray-200 focus:ring-blue-300'
+              }`}
+            />
+          </div>
+          
+          {/* Bairro e Cidade */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <input
+              type="text"
+              placeholder="Bairro *"
+              value={clientBairro}
+              onChange={(e) => {
+                setClientBairro(e.target.value);
+                if (addressError) setAddressError('');
+              }}
+              className={`p-3 rounded-lg border-2 focus:outline-none focus:ring-2 ${
+                addressError 
+                  ? 'border-red-500 focus:ring-red-300' 
+                  : 'border-gray-200 focus:ring-blue-300'
+              }`}
+            />
+            <input
+              type="text"
+              placeholder="Cidade *"
+              value={clientCidade}
+              onChange={(e) => {
+                setClientCidade(e.target.value);
+                if (addressError) setAddressError('');
+              }}
+              className={`p-3 rounded-lg border-2 focus:outline-none focus:ring-2 ${
+                addressError 
+                  ? 'border-red-500 focus:ring-red-300' 
+                  : 'border-gray-200 focus:ring-blue-300'
+              }`}
+            />
+          </div>
+          
+          {/* Referência */}
+          <input
+            type="text"
+            placeholder="Ponto de referência (opcional)"
+            value={clientReferencia}
+            onChange={(e) => setClientReferencia(e.target.value)}
+            className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
+          
+          {/* Mensagens de erro */}
           {nameError && (
             <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm flex items-center gap-2">
               <span>⚠️</span>
               <span>{nameError}</span>
+            </div>
+          )}
+          {phoneError && (
+            <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{phoneError}</span>
+            </div>
+          )}
+          {addressError && (
+            <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{addressError}</span>
             </div>
           )}
         </div>

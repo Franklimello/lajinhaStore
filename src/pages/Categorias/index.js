@@ -41,6 +41,12 @@ export default function Categorias() {
             description: 'Bebidas, sucos e refrigerantes'
         },
         { 
+            name: 'Bebidas Geladas', 
+            path: '/bebidas-geladas',
+            icon: '🧊',
+            description: 'Bebidas geladas e refrescantes'
+        },
+        { 
             name: 'Limpeza', 
             path: '/limpeza',
             icon: '🧹',

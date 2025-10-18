@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import CardProduto from "../../components/CardProduto";
+import SEO from "../../components/SEO";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { FaTruck, FaShieldAlt, FaHeart, FaSearch, FaArrowUp } from "react-icons/fa";
 import Hortifruti from "../../pages/Hortifruti";
@@ -9,6 +10,7 @@ import FriosLaticinios from "../../pages/FriosLaticinios";
 import Mercearia from "../../pages/Mercearia";
 import GulosemasSnacks from "../../pages/GulosemasSnacks";
 import Bebidas from "../../pages/Bebidas";
+import BebidasGeladas from "../../pages/BebidasGeladas";
 import Limpeza from "../../pages/Limpeza";
 import HigienePessoal from "../../pages/HigienePessoal";
 import UtilidadesDomesticas from "../../pages/UtilidadesDomesticas";
@@ -84,6 +86,11 @@ export default function Home() {
       color: 'from-cyan-500 to-blue-600'
     },
     { 
+      name: 'Bebidas Geladas', 
+      icon: '🧊',
+      color: 'from-blue-500 to-indigo-600'
+    },
+    { 
       name: 'Higiene pessoal', 
       icon: '🧴',
       color: 'from-purple-500 to-violet-600'
@@ -121,14 +128,72 @@ export default function Home() {
   ];
 
   const scrollToCategory = (categoryName) => {
+    // Fazer scroll para a seção da categoria na Home
     const element = document.getElementById(`category-${categoryName}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "Supermercado Online Lajinha",
+    "alternateName": "CompreAqui",
+    "description": "Supermercado online completo em Lajinha-MG com produtos frescos, bebidas geladas, limpeza, higiene pessoal e muito mais. Entrega rápida e preços competitivos.",
+    "url": "https://compreaqui.com.br",
+    "logo": "https://compreaqui.com.br/logo512.png",
+    "image": "https://compreaqui.com.br/logo512.png",
+    "telephone": "+55-19-99705-0303",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Lajinha",
+      "addressRegion": "MG",
+      "addressCountry": "BR"
+    },
+    "openingHours": "Mo-Su 08:00-18:00",
+    "paymentAccepted": "PIX, Dinheiro",
+    "currenciesAccepted": "BRL",
+    "priceRange": "$$",
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Produtos Supermercado Online Lajinha",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product",
+            "name": "Produtos Frescos"
+          }
+        },
+        {
+          "@type": "Offer", 
+          "itemOffered": {
+            "@type": "Product",
+            "name": "Bebidas"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product", 
+            "name": "Produtos de Limpeza"
+          }
+        }
+      ]
+    }
+  };
+
   return (
-    <div className="min-h-screen  bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+    <>
+      <SEO
+        title="Supermercado Online Lajinha - Sua Loja Completa"
+        description="Supermercado Online Lajinha é sua loja completa com produtos frescos, bebidas geladas, limpeza, higiene pessoal e muito mais. Entrega rápida em Lajinha-MG e preços competitivos. Faça suas compras online com segurança!"
+        keywords="supermercado online Lajinha, loja online Lajinha, produtos frescos Lajinha, bebidas geladas Lajinha, limpeza Lajinha, higiene pessoal Lajinha, entrega rápida Lajinha MG, compras online Lajinha, PIX Lajinha, pagamento seguro Lajinha"
+        url="/"
+        structuredData={structuredData}
+      />
+      <div className="min-h-screen  bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
       {/* Hero Section */}
       <div className="hidden md:block relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -354,6 +419,9 @@ export default function Home() {
           <div id="category-Bebidas">
             <Bebidas searchTerm={termo} />
           </div>
+          <div id="category-Bebidas Geladas">
+            <BebidasGeladas searchTerm={termo} />
+          </div>
           <div id="category-Higiene pessoal">
             <HigienePessoal searchTerm={termo} />
           </div>
@@ -388,6 +456,7 @@ export default function Home() {
           <FaArrowUp className="text-xl group-hover:translate-y-[-2px] transition-transform" />
         </button>
       )}
-    </div>
+      </div>
+    </>
   );
 }

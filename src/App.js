@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Toast from "./components/Toast";
@@ -10,6 +11,7 @@ import FriosLaticinios from "./pages/FriosLaticinios"
 import Mercearia from "./pages/Mercearia"
 import GulosemasSnacks from "./pages/GulosemasSnacks"
 import Bebidas from "./pages/Bebidas"
+import BebidasGeladas from "./pages/BebidasGeladas"
 import Limpeza from "./pages/Limpeza"
 import HigienePessoal from "./pages/HigienePessoal"
 import UtilidadesDomesticas from "./pages/UtilidadesDomesticas"
@@ -93,6 +95,7 @@ function AppContent() {
           <Route path="/mercearia" element={<Mercearia />} />
           <Route path="/guloseimas-snacks" element={<GulosemasSnacks />} />
           <Route path="/bebidas" element={<Bebidas />} />
+          <Route path="/bebidas-geladas" element={<BebidasGeladas />} />
           <Route path="/limpeza" element={<Limpeza />} />
           <Route path="/higiene-pessoal" element={<HigienePessoal />} />
           <Route path="/utilidades-domesticas" element={<UtilidadesDomesticas />} />
@@ -213,15 +216,17 @@ function AppContent() {
 // Componente principal do App
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <ShopProvider>
-            <AppContent />
-          </ShopProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <ShopProvider>
+              <AppContent />
+            </ShopProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

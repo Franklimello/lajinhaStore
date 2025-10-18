@@ -173,6 +173,33 @@ export default function AdminOrders() {
                       <span className="ml-2">{pedido.endereco?.nome || "N/A"}</span>
                     </div>
                     <div>
+                      <span className="font-medium text-gray-700">Telefone:</span>
+                      <span className="ml-2">{pedido.endereco?.telefone || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Endereço:</span>
+                      <div className="ml-2 text-sm">
+                        {pedido.endereco?.rua && (
+                          <div>Rua: {pedido.endereco.rua}</div>
+                        )}
+                        {pedido.endereco?.numero && (
+                          <div>Número: {pedido.endereco.numero}</div>
+                        )}
+                        {pedido.endereco?.bairro && (
+                          <div>Bairro: {pedido.endereco.bairro}</div>
+                        )}
+                        {pedido.endereco?.cidade && (
+                          <div>Cidade: {pedido.endereco.cidade}</div>
+                        )}
+                        {pedido.endereco?.referencia && (
+                          <div>Referência: {pedido.endereco.referencia}</div>
+                        )}
+                        {!pedido.endereco?.rua && !pedido.endereco?.numero && !pedido.endereco?.bairro && !pedido.endereco?.cidade && (
+                          <div>N/A</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <span className="font-medium text-gray-700">Pagamento:</span>
                       <span className="ml-2 text-blue-600">{pedido.paymentMethod || "PIX"}</span>
                     </div>

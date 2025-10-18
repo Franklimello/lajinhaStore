@@ -1,3 +1,39 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Sitemap
+Sitemap: https://compreaqui.com.br/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin-pedidos
+Disallow: /painel
+Disallow: /dashboard
+Disallow: /notificacoes
+Disallow: /meus-pedidos
+Disallow: /consulta-pedidos
+Disallow: /status-pedido
+Disallow: /pagamento-pix
+
+# Allow important pages
+Allow: /
+Allow: /categorias
+Allow: /bebidas
+Allow: /bebidas-geladas
+Allow: /mercearia
+Allow: /limpeza
+Allow: /frios-laticinios
+Allow: /guloseimas-snacks
+Allow: /higiene-pessoal
+Allow: /farmacia
+Allow: /utilidades-domesticas
+Allow: /pet-shop
+Allow: /infantil
+Allow: /hortifruti
+Allow: /acougue
+Allow: /ofertas
+Allow: /carrinho
+Allow: /login
+Allow: /register
+
+# Crawl delay
+Crawl-delay: 1
