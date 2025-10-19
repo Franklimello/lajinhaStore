@@ -33,6 +33,7 @@ import DashboardPage from "./pages/Dashboard";
 import MeusPedidos from "./pages/MeusPedidos";
 import PedidoDetalhes from "./pages/PedidoDetalhes";
 import AdminOrders from "./pages/AdminOrders";
+import Contato from "./pages/Contato";
 import Notificacoes from "./pages/Notificacoes";
 import NotificationDiagnostic from "./components/NotificationDiagnostic";
 import NotificationTest from "./components/NotificationTest";
@@ -110,6 +111,7 @@ function AppContent() {
           <Route path="/infantil" element={<Infantil />} />
           <Route path="/ofertas" element={<Ofertas />} />
           <Route path="/favoritos" element={<Favoritos />} />
+          <Route path="/contato" element={<Contato />} />
           
           <Route path="/detalhes/:id" element={<Detalhes />} />
           <Route

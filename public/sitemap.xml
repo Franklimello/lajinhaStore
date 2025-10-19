@@ -1,116 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://compreaqui.com.br/</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://compreaqui-324df.web.app/logo512.png</image:loc>
+      <image:title>Supermercado Online Lajinha</image:title>
+      <image:caption>Logo do Supermercado Online Lajinha</image:caption>
+    </image:image>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/categorias</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/categorias</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/bebidas</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/bebidas</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/bebidas-geladas</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/bebidas-geladas</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/mercearia</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/mercearia</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/limpeza</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/limpeza</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/frios-laticinios</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/frios-laticinios</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/guloseimas-snacks</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/guloseimas-snacks</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/higiene-pessoal</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/higiene-pessoal</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/farmacia</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/farmacia</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/utilidades-domesticas</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/utilidades-domesticas</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/pet-shop</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/pet-shop</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/infantil</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/infantil</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/hortifruti</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/hortifruti</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/acougue</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/acougue</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/ofertas</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/ofertas</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/carrinho</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/carrinho</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/login</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/login</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://compreaqui.com.br/register</loc>
-    <lastmod>2024-10-18</lastmod>
+    <loc>https://compreaqui-324df.web.app/register</loc>
+    <lastmod>2024-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

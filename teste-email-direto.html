@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Direto de E-mail</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>📧 Teste Direto de E-mail</h1>
+    <p>Este teste envia um e-mail diretamente para verificar se a função está funcionando.</p>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="nome">Seu Nome:</label>
+            <input type="text" id="nome" name="nome" value="Frank Melo" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Seu E-mail:</label>
+            <input type="email" id="email" name="email" value="frank.melo.wal@gmail.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="mensagem">Mensagem:</label>
+            <textarea id="mensagem" name="mensagem" rows="5" required>Teste de envio de e-mail direto para verificar se a função está funcionando corretamente.</textarea>
+        </div>
+        
+        <button type="submit" id="btnEnviar">📧 Enviar E-mail de Teste</button>
+        <button type="button" onclick="testarFuncaoTest()">🔧 Testar Função /test</button>
+    </form>
+    
+    <div id="resultado"></div>
+
+    <script>
+        const FIREBASE_FUNCTION_URL = 'https://us-central1-compreaqui-324df.cloudfunctions.net/enviarEmail';
+        const TEST_FUNCTION_URL = 'https://us-central1-compreaqui-324df.cloudfunctions.net/test';
+        
+        // Testar função /test
+        function testarFuncaoTest() {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = `
+                <div class="result info">
+                    <h3>🔧 Testando Função /test</h3>
+                    <p>Verificando se a API está respondendo...</p>
+                </div>
+            `;
+
+            fetch(TEST_FUNCTION_URL)
+                .then(response => response.json())
+                .then(data => {
+                    resultado.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Função /test Funcionando!</h3>
+                            <p><strong>Mensagem:</strong> ${data.message}</p>
+                            <p><strong>Versão:</strong> ${data.version}</p>
+                            <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    resultado.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Erro na Função /test</h3>
+                            <p><strong>Erro:</strong> ${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Formulário principal
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnEnviar = document.getElementById('btnEnviar');
+            const resultado = document.getElementById('resultado');
+            
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = 'Enviando...';
+            resultado.innerHTML = '';
+            
+            const formData = new FormData(e.target);
+            const dados = {
+                nome: formData.get('nome'),
+                email: formData.get('email'),
+                mensagem: formData.get('mensagem')
+            };
+            
+            try {
+                console.log('Enviando dados:', dados);
+                
+                const response = await fetch(FIREBASE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dados)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultado.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ E-mail Enviado com Sucesso!</h3>
+                            <p><strong>Mensagem:</strong> ${result.message}</p>
+                            <p><strong>ID:</strong> ${result.data?.id || 'N/A'}</p>
+                            <p><strong>Destinatário:</strong> ${result.data?.destinatario}</p>
+                            <p><strong>Timestamp:</strong> ${result.data?.timestamp}</p>
+                            <hr>
+                            <p><strong>📧 Verifique seu e-mail:</strong> frank.melo.wal@gmail.com</p>
+                            <p><strong>📁 Não esqueça de verificar:</strong></p>
+                            <ul>
+                                <li>Pasta de entrada (Inbox)</li>
+                                <li>Pasta de spam/lixo</li>
+                                <li>Filtros do Gmail</li>
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    resultado.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Erro ao Enviar E-mail</h3>
+                            <p><strong>Erro:</strong> ${result.error}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultado.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Erro de Conexão</h3>
+                        <p><strong>Erro:</strong> ${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = '📧 Enviar E-mail de Teste';
+            }
+        });
+    </script>
+</body>
+</html>

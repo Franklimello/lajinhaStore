@@ -391,20 +391,61 @@ Status: ${getStatusText(order.status)}
                   </div>
                 </div>
 
-                {/* Informações do Pagamento PIX */}
-                <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg mb-4">
-                  <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                    💳 Dados do Pagamento PIX
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                    <p className="text-blue-700">
-                      <strong>Chave PIX:</strong> {order.pixKey}
-                    </p>
-                    <p className="text-blue-700">
-                      <strong>Beneficiário:</strong> {order.merchantName}
-                    </p>
+                {/* Informações do Pagamento */}
+                {order.paymentMethod === 'dinheiro' ? (
+                  <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg mb-4">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                      💵 Pagamento em Dinheiro
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="bg-white p-3 rounded-lg">
+                        <p className="text-green-700 font-medium">
+                          <strong>Valor Total:</strong>
+                        </p>
+                        <p className="text-lg font-bold text-green-800">
+                          {formatCurrency(order.valorTotal || order.total)}
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <p className="text-green-700 font-medium">
+                          <strong>Valor Pago:</strong>
+                        </p>
+                        <p className="text-lg font-bold text-blue-800">
+                          {formatCurrency(order.valorPago || 0)}
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <p className="text-green-700 font-medium">
+                          <strong>Troco:</strong>
+                        </p>
+                        <p className={`text-lg font-bold ${(order.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(order.troco || 0)}
+                        </p>
+                      </div>
+                    </div>
+                    {(order.troco || 0) > 0 && (
+                      <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-yellow-800 text-sm">
+                          ⚠️ <strong>Importante:</strong> O entregador deve levar troco de {formatCurrency(order.troco)} para este pedido.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg mb-4">
+                    <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                      💳 Dados do Pagamento PIX
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <p className="text-blue-700">
+                        <strong>Chave PIX:</strong> {order.pixKey}
+                      </p>
+                      <p className="text-blue-700">
+                        <strong>Beneficiário:</strong> {order.merchantName}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Ações */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -556,17 +597,52 @@ Status: ${getStatusText(order.status)}
                   </div>
                 </div>
                 
-                {/* Informações PIX */}
-                <div className="bg-blue-50 border-2 border-blue-300 p-5 rounded-lg">
-                  <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2 text-lg">
-                    💳 Informações do Pagamento PIX
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-blue-800"><strong>Chave PIX:</strong> {selectedOrder.pixKey}</p>
-                    <p className="text-blue-800"><strong>Beneficiário:</strong> {selectedOrder.merchantName}</p>
-                    <p className="text-blue-800"><strong>Método:</strong> {selectedOrder.paymentMethod?.toUpperCase()}</p>
+                {/* Informações de Pagamento */}
+                {selectedOrder.paymentMethod === 'dinheiro' ? (
+                  <div className="bg-green-50 border-2 border-green-300 p-5 rounded-lg">
+                    <h3 className="font-bold text-green-900 mb-3 flex items-center gap-2 text-lg">
+                      💵 Pagamento em Dinheiro
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white p-4 rounded-lg border border-green-200">
+                        <label className="block text-sm font-semibold text-green-600 mb-1">Valor Total</label>
+                        <p className="text-2xl font-bold text-green-800">
+                          {formatCurrency(selectedOrder.valorTotal || selectedOrder.total)}
+                        </p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg border border-green-200">
+                        <label className="block text-sm font-semibold text-green-600 mb-1">Valor Pago</label>
+                        <p className="text-2xl font-bold text-blue-800">
+                          {formatCurrency(selectedOrder.valorPago || 0)}
+                        </p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg border border-green-200">
+                        <label className="block text-sm font-semibold text-green-600 mb-1">Troco</label>
+                        <p className={`text-2xl font-bold ${(selectedOrder.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(selectedOrder.troco || 0)}
+                        </p>
+                      </div>
+                    </div>
+                    {(selectedOrder.troco || 0) > 0 && (
+                      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                        <p className="text-yellow-800 font-medium">
+                          ⚠️ <strong>ATENÇÃO:</strong> O entregador deve levar troco de {formatCurrency(selectedOrder.troco)} para este pedido.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-blue-50 border-2 border-blue-300 p-5 rounded-lg">
+                    <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2 text-lg">
+                      💳 Informações do Pagamento PIX
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-blue-800"><strong>Chave PIX:</strong> {selectedOrder.pixKey}</p>
+                      <p className="text-blue-800"><strong>Beneficiário:</strong> {selectedOrder.merchantName}</p>
+                      <p className="text-blue-800"><strong>Método:</strong> {selectedOrder.paymentMethod?.toUpperCase()}</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Ações do Modal */}
                 {selectedOrder.status === 'pending' && (

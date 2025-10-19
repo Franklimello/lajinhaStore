@@ -369,6 +369,11 @@ export default function Header() {
                 )}
               </Link>
 
+              {/* Contato */}
+              <Link to="/contato" className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200" title="Entre em contato">
+                <span className="text-xl">📧</span>
+              </Link>
+
               {/* Notificações */}
               <button className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 relative">
                 <FaBell size={20} className="text-gray-700 dark:text-gray-300 hover:text-yellow-500" />

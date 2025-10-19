@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://compreaqui.com.br/sitemap.xml
+Sitemap: https://compreaqui-324df.web.app/sitemap.xml
 
 # Disallow admin pages
 Disallow: /admin-pedidos

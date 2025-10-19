@@ -35,7 +35,7 @@ export const createOrder = async (orderData) => {
       updatedAt: now,
       createdAtTimestamp: now.getTime(),
       status: 'Aguardando Pagamento', // Status inicial mais claro
-      paymentMethod: 'PIX_QR'
+      paymentMethod: orderData.paymentMethod || 'pix'
     });
     
     console.log("✅ Pedido criado com sucesso:", orderRef.id);

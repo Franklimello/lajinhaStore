@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createOrder } from '../../firebase/orders';
 
 const PixPayment = () => {
-  const { cart, showToast } = useContext(ShopContext);
+  const { cart, showToast, saveOrderToFirestore } = useContext(ShopContext);
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -255,7 +255,7 @@ const PixPayment = () => {
       console.log('Dados do pedido:', orderData);
       console.log('Usuário UID:', user.uid);
       
-      const orderResult = await createOrder(orderData);
+      const orderResult = await saveOrderToFirestore(orderData);
       
       if (orderResult.success) {
         if (paymentMethod === 'pix') {

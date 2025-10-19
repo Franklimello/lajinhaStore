@@ -115,9 +115,31 @@ export default function MeusPedidos() {
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Método de Pagamento:</span>
-                      <span className="ml-2">{pedido.paymentMethod || "PIX"}</span>
+                      <span className="ml-2">
+                        {pedido.paymentMethod === 'dinheiro' ? '💵 Dinheiro' : '📱 PIX'}
+                      </span>
                     </div>
                   </div>
+                  
+                  {/* Informações específicas para pagamento em dinheiro */}
+                  {pedido.paymentMethod === 'dinheiro' && (pedido.valorPago || pedido.troco) && (
+                    <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-green-700">Valor Pago:</span>
+                          <span className="ml-2 text-green-800 font-semibold">
+                            R$ {(pedido.valorPago || 0)?.toFixed(2) || "0,00"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-green-700">Troco:</span>
+                          <span className={`ml-2 font-semibold ${(pedido.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            R$ {(pedido.troco || 0)?.toFixed(2) || "0,00"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

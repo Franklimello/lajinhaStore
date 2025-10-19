@@ -201,8 +201,46 @@ export default function AdminOrders() {
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Pagamento:</span>
-                      <span className="ml-2 text-blue-600">{pedido.paymentMethod || "PIX"}</span>
+                      <span className={`ml-2 ${pedido.paymentMethod === 'dinheiro' ? 'text-green-600' : 'text-blue-600'}`}>
+                        {pedido.paymentMethod === 'dinheiro' ? '💵 Dinheiro' : '📱 PIX'}
+                      </span>
                     </div>
+                    
+                    {/* Informações específicas para pagamento em dinheiro */}
+                    {pedido.paymentMethod === 'dinheiro' && (pedido.valorPago || pedido.troco) && (
+                      <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                        <h6 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                          💰 Informações de Pagamento
+                        </h6>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                          <div className="bg-white p-2 rounded border border-green-100">
+                            <span className="font-medium text-green-700">Valor Total:</span>
+                            <div className="text-lg font-bold text-green-800">
+                              R$ {(pedido.valorTotal || pedido.total)?.toFixed(2) || "0,00"}
+                            </div>
+                          </div>
+                          <div className="bg-white p-2 rounded border border-green-100">
+                            <span className="font-medium text-green-700">Valor Pago:</span>
+                            <div className="text-lg font-bold text-blue-800">
+                              R$ {(pedido.valorPago || 0)?.toFixed(2) || "0,00"}
+                            </div>
+                          </div>
+                          <div className="bg-white p-2 rounded border border-green-100">
+                            <span className="font-medium text-green-700">Troco:</span>
+                            <div className={`text-lg font-bold ${(pedido.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              R$ {(pedido.troco || 0)?.toFixed(2) || "0,00"}
+                            </div>
+                          </div>
+                        </div>
+                        {(pedido.troco || 0) > 0 && (
+                          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded p-2">
+                            <p className="text-yellow-800 text-xs">
+                              ⚠️ <strong>Importante:</strong> O entregador deve ter troco de R$ {(pedido.troco || 0)?.toFixed(2)} disponível.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Itens do pedido */}

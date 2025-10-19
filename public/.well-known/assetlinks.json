@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.compreaqui.twa",
+      "sha256_cert_fingerprints": [
+        "2D:1A:CC:88:F4:94:CA:4E:BD:35:6D:4C:42:13:CC:16:55:E2:02:0D:C1:62:A0:97:E8:FE:67:EB:80:79:98:4F"
+      ]
+    }
+  }
+]

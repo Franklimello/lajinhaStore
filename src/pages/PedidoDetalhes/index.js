@@ -147,8 +147,39 @@ export default function PedidoDetalhes() {
             </p>
           </div>
 
-          {/* QR Code de Pagamento */}
-          {qrCodeUrl && (
+          {/* Informações de Pagamento */}
+          {pedido.paymentMethod === 'dinheiro' ? (
+            <div className="bg-green-50 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-green-900 mb-3">💵 Pagamento em Dinheiro</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <p className="text-sm font-medium text-green-600 mb-1">Valor Total</p>
+                  <p className="text-xl font-bold text-green-800">
+                    R$ {(pedido.valorTotal || pedido.total)?.toFixed(2) || "0,00"}
+                  </p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <p className="text-sm font-medium text-green-600 mb-1">Valor Pago</p>
+                  <p className="text-xl font-bold text-blue-800">
+                    R$ {(pedido.valorPago || 0)?.toFixed(2) || "0,00"}
+                  </p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <p className="text-sm font-medium text-green-600 mb-1">Troco</p>
+                  <p className={`text-xl font-bold ${(pedido.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    R$ {(pedido.troco || 0)?.toFixed(2) || "0,00"}
+                  </p>
+                </div>
+              </div>
+              {(pedido.troco || 0) > 0 && (
+                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ <strong>Importante:</strong> O entregador terá troco de R$ {(pedido.troco || 0)?.toFixed(2)} disponível.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : qrCodeUrl ? (
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <h3 className="text-lg font-semibold text-blue-900 mb-3">💳 Pagamento PIX</h3>
               <div className="text-center">
@@ -161,7 +192,7 @@ export default function PedidoDetalhes() {
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Informações do Pedido */}
@@ -176,7 +207,9 @@ export default function PedidoDetalhes() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Método de Pagamento:</span>
-                  <span className="font-medium">{pedido.paymentMethod || "PIX"}</span>
+                  <span className="font-medium">
+                    {pedido.paymentMethod === 'dinheiro' ? '💵 Dinheiro' : '📱 PIX'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Quantidade de Itens:</span>
