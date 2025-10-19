@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { ShopContext } from '../../context/ShopContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { appConfig } from '../../config/appConfig';
 // import { createOrder } from '../../firebase/orders'; // Removido - não usado
 
 const PixPayment = () => {
@@ -40,7 +41,7 @@ const PixPayment = () => {
     return methodFromUrl || methodFromStorage || 'pix';
   })();
 
-  const PIX_KEY = '12819359647';
+  const PIX_KEY = appConfig.PIX_KEY;
   const MERCHANT_NAME = 'Sua Loja';
   const CITY = 'LAJINHA';
 

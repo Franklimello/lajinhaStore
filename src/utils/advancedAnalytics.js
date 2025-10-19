@@ -234,3 +234,5 @@ export const advancedAnalytics = {
 
 // Inicializa automaticamente
 advancedAnalytics.init();
+
+

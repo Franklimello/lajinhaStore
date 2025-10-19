@@ -12,7 +12,7 @@ import {
   serverTimestamp 
 } from "firebase/firestore";
 import { db } from "./config";
-import { createNewOrderNotification } from "./notifications";
+// Sistema de notificações removido
 
 // Função para criar um novo pedido
 export const createOrder = async (orderData) => {
@@ -40,23 +40,7 @@ export const createOrder = async (orderData) => {
     
     console.log("✅ Pedido criado com sucesso:", orderRef.id);
     
-    // Criar notificação para o admin
-    console.log("🔔 Tentando criar notificação para o admin...");
-    try {
-      const notificationResult = await createNewOrderNotification({
-        id: orderRef.id,
-        ...orderData
-      });
-      
-      if (notificationResult.success) {
-        console.log("✅ Notificação criada para o admin com sucesso!");
-        console.log("📄 ID da notificação:", notificationResult.id);
-      } else {
-        console.warn("⚠️ Falha ao criar notificação:", notificationResult.error);
-      }
-    } catch (notificationError) {
-      console.warn("⚠️ Erro ao criar notificação:", notificationError);
-    }
+    // Sistema de notificações removido
     
     return { success: true, orderId: orderRef.id };
   } catch (error) {

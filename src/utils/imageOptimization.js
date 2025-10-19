@@ -151,3 +151,5 @@ export const imageOptimization = {
 document.addEventListener('DOMContentLoaded', () => {
   imageOptimization.lazyLoadImages();
 });
+
+

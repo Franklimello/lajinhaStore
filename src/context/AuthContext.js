@@ -117,11 +117,41 @@ export function AuthProvider({ children }) {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
     
+    // Configurações adicionais do provider
+    provider.addScope('email');
+    provider.addScope('profile');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
     try {
+      console.log("🔐 Tentando login com Google...");
+      
+      // Verifica se estamos em um ambiente seguro
+      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        throw new Error('Login com Google requer HTTPS em produção');
+      }
+      
       const result = await signInWithPopup(auth, provider);
+      console.log("✅ Login com Google bem-sucedido:", result.user);
       return { success: true, user: result.user };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error("❌ Erro no login com Google:", error);
+      
+      // Tratamento específico de erros
+      let errorMessage = error.message;
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Login cancelado pelo usuário';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup bloqueado pelo navegador. Permita popups para este site.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Erro de conexão. Verifique sua internet.';
+      } else if (error.code === 'auth/internal-error') {
+        errorMessage = 'Erro interno. Tente novamente em alguns minutos.';
+      }
+      
+      return { success: false, error: errorMessage, code: error.code };
     }
   };
 

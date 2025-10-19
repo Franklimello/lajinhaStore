@@ -163,3 +163,5 @@ export const abTesting = {
 setInterval(() => {
   abTesting.cleanupExpiredTests();
 }, 24 * 60 * 60 * 1000); // Uma vez por dia
+
+

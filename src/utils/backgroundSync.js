@@ -215,3 +215,5 @@ window.addEventListener('online', () => {
 setInterval(() => {
   backgroundSync.cleanupOldSyncs();
 }, 24 * 60 * 60 * 1000); // Uma vez por dia
+
+

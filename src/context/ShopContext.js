@@ -16,9 +16,11 @@ export function ShopProvider({ children }) {
       const savedFavorites = JSON.parse(localStorage.getItem("favorites")) || [];
       const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
       
-      console.log('Carregando do localStorage:');
-      console.log('Favorites:', savedFavorites);
-      console.log('Cart:', savedCart);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Carregando do localStorage:');
+        console.log('Favorites:', savedFavorites);
+        console.log('Cart:', savedCart);
+      }
       
       setFavorites(savedFavorites.filter(Boolean)); // remove null/undefined
       setCart(savedCart.filter(Boolean));
@@ -33,9 +35,11 @@ export function ShopProvider({ children }) {
   // Salva alterações no localStorage
   useEffect(() => {
     if (!isLoading) {
-      console.log('Salvando no localStorage:');
-      console.log('Favorites:', favorites);
-      console.log('Cart:', cart);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Salvando no localStorage:');
+        console.log('Favorites:', favorites);
+        console.log('Cart:', cart);
+      }
       
       localStorage.setItem("favorites", JSON.stringify(favorites));
       localStorage.setItem("cart", JSON.stringify(cart));
@@ -44,7 +48,9 @@ export function ShopProvider({ children }) {
 
   // Alterna favorito - compatível com ID ou produto completo
   const toggleFavorite = (productOrId) => {
-    console.log('toggleFavorite chamado com:', productOrId);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('toggleFavorite chamado com:', productOrId);
+    }
     
     if (!productOrId) {
       console.error('Produto ou ID não fornecido');
@@ -94,7 +100,9 @@ export function ShopProvider({ children }) {
       return;
     }
 
-    console.log('Adicionando ao carrinho:', product);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Adicionando ao carrinho:', product);
+    }
 
     // Garante que o produto tenha ID único
     const productId = product.id || uuidv4();
@@ -117,7 +125,9 @@ export function ShopProvider({ children }) {
 
       // Se não existe, adiciona como novo
       const newCart = [...prev, { ...product, id: productId, qty: 1 }];
-      console.log('Adicionando novo produto ao carrinho:', newCart);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Adicionando novo produto ao carrinho:', newCart);
+      }
       
       // Mostra notificação de produto adicionado
       showToast(`"${product.titulo || product.nome || 'Produto'}" adicionado ao carrinho!`, "success");

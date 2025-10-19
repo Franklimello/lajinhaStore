@@ -49,9 +49,6 @@ const PedidoDetalhes = lazy(() => import("./pages/PedidoDetalhes"));
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 // Lazy loading para páginas finais
 const Contato = lazy(() => import("./pages/Contato"));
-const Notificacoes = lazy(() => import("./pages/Notificacoes"));
-const NotificationDiagnostic = lazy(() => import("./components/NotificationDiagnostic"));
-const NotificationTest = lazy(() => import("./components/NotificationTest"));
 const FirestoreTest = lazy(() => import("./components/FirestoreTest"));
 // Lazy loading para componentes de debug
 const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
@@ -168,33 +165,9 @@ function AppContent() {
             }
           />
                       <Route
-                        path="/notificacoes"
-                        element={
-                          <AdminRoute>
-                            <Notificacoes />
-                          </AdminRoute>
-                        }
-                      />
-                      <Route
                         path="/test-permissions"
                         element={<FirestorePermissionsTest />}
                       />
-          <Route
-            path="/diagnostic-notifications"
-            element={
-              <AdminRoute>
-                <NotificationDiagnostic />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/test-notifications"
-            element={
-              <AdminRoute>
-                <NotificationTest />
-              </AdminRoute>
-            }
-          />
           <Route
             path="/test-firestore"
             element={

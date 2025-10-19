@@ -5,22 +5,21 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Link } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, memo, useCallback } from "react";
 import { ShopContext } from "../../context/ShopContext";
 import { buildFormatSources, defaultSizes } from "../../utils/imageSources";
 
-export default function CardProduto({ fotosUrl = [], titulo, descricao, preco, id, onAddToCart }) {
+const CardProduto = memo(function CardProduto({ fotosUrl = [], titulo, descricao, preco, id, onAddToCart }) {
   const { addToCart } = useContext(ShopContext);
-  
-  const produto = { id, fotosUrl, titulo, descricao, preco };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = useCallback(() => {
+    const produto = { id, fotosUrl, titulo, descricao, preco };
     addToCart(produto);
     // Chama o callback para limpar a busca (se fornecido)
     if (onAddToCart) {
       onAddToCart();
     }
-  };
+  }, [addToCart, id, fotosUrl, titulo, descricao, preco, onAddToCart]);
 
   return (
     <div className="group relative bg-white shadow-lg overflow-hidden border border-gray-50 hover:shadow-2xl transition-all duration-200 ease-out">
@@ -161,4 +160,6 @@ export default function CardProduto({ fotosUrl = [], titulo, descricao, preco, i
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
     </div>
   );
-}
+});
+
+export default CardProduto;

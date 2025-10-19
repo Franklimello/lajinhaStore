@@ -1,13 +1,13 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
-import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 // import { FaMobileAlt } from "react-icons/fa"; // Removido - não usado
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { useAdmin } from "../../hooks/useAdmin";
-import { getUnreadNotificationsCount } from "../../firebase/notifications";
+// Sistema de notificações removido
 
 
 export default function Header() {
@@ -23,7 +23,7 @@ export default function Header() {
   const [isInstalling, setIsInstalling] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  // Sistema de notificações removido
 
   useEffect(() => {
     // Detectar iOS
@@ -143,19 +143,7 @@ export default function Header() {
     }
   };
 
-  // Função para carregar notificações não lidas
-  const loadUnreadNotifications = useCallback(async () => {
-    if (isAdmin) {
-      try {
-        const result = await getUnreadNotificationsCount();
-        if (result.success) {
-          setUnreadNotifications(result.count);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar notificações:', error);
-      }
-    }
-  }, [isAdmin]);
+  // Sistema de notificações removido
 
   // Função para atualizar contadores (estabilizada)
   const updateCounts = useCallback(() => {
@@ -183,10 +171,7 @@ export default function Header() {
     updateCounts();
   }, [updateCounts]);
 
-  // Carregar notificações não lidas
-  useEffect(() => {
-    loadUnreadNotifications();
-  }, [loadUnreadNotifications]);
+  // Sistema de notificações removido
 
   // Escutar mudanças no localStorage
   useEffect(() => {
@@ -374,13 +359,6 @@ export default function Header() {
                 <span className="text-xl">📧</span>
               </Link>
 
-              {/* Notificações */}
-              <button className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 relative">
-                <FaBell size={20} className="text-gray-700 dark:text-gray-300 hover:text-yellow-500" />
-                <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  0
-                </span>
-              </button>
 
               {/* Theme Toggle */}
               <ThemeToggle className="hidden sm:flex" />
@@ -477,25 +455,6 @@ export default function Header() {
                     <span className="text-sm">Pedidos</span>
                   </NavLink>
 
-                  {/* Notificações */}
-                  <NavLink
-                    to="/notificacoes"
-                    className={({ isActive }) => `
-                      hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 relative
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-                        : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600 hover:from-orange-200 hover:to-red-200'
-                      }
-                    `}
-                  >
-                    <FaBell size={16} />
-                    <span className="text-sm">Notificações</span>
-                    {unreadNotifications > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                      </span>
-                    )}
-                  </NavLink>
 
                   {/* Dashboard */}
                   <NavLink
@@ -689,27 +648,6 @@ export default function Header() {
                       >
                         <FaShoppingCart className="text-lg" />
                         <span className="font-medium text-sm">Pedidos</span>
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
-                        to="/notificacoes"
-                        onClick={handleNavClick}
-                        className={({ isActive }) => `
-                          flex items-center gap-4 p-3 rounded-2xl transition-all duration-200 relative
-                          ${isActive 
-                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-                            : 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-600'
-                          }
-                        `}
-                      >
-                        <FaBell className="text-lg" />
-                        <span className="font-medium text-sm">Notificações</span>
-                        {unreadNotifications > 0 && (
-                          <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                            {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                          </span>
-                        )}
                       </NavLink>
                     </li>
                     <li>

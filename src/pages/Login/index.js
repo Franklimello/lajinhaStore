@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import GoogleAuthDiagnostic from "../../components/GoogleAuthDiagnostic";
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
@@ -39,18 +41,24 @@ export default function Login({ onLoginSuccess }) {
     setLoading(true);
 
     try {
+      console.log("🔐 Iniciando login com Google...");
       const result = await loginWithGoogle();
       
+      console.log("🔐 Resultado do login:", result);
+      
       if (result.success) {
+        console.log("✅ Login com Google bem-sucedido!");
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
           navigate("/"); // Redireciona para a home após login
         }
       } else {
+        console.error("❌ Erro no login com Google:", result.error);
         setErro("Erro ao fazer login com Google: " + result.error);
       }
     } catch (err) {
+      console.error("❌ Erro no login com Google:", err);
       setErro("Erro ao fazer login com Google. Tente novamente.");
     } finally {
       setLoading(false);
@@ -203,6 +211,23 @@ export default function Login({ onLoginSuccess }) {
           </p>
         </div>
       </div>
+      
+      {/* Botão para mostrar diagnóstico */}
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => setShowDiagnostic(!showDiagnostic)}
+          className="text-sm text-gray-500 hover:text-gray-700 underline"
+        >
+          {showDiagnostic ? 'Ocultar' : 'Mostrar'} Diagnóstico do Google Auth
+        </button>
+      </div>
+      
+      {/* Componente de diagnóstico */}
+      {showDiagnostic && (
+        <div className="mt-8">
+          <GoogleAuthDiagnostic />
+        </div>
+      )}
     </div>
   );
 }

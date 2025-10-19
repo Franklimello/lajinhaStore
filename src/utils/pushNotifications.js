@@ -137,3 +137,5 @@ export const pushNotifications = {
 // Inicializa automaticamente
 pushNotifications.init();
 pushNotifications.setupBackgroundMessages();
+
+
