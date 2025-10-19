@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCheck, FaTimes, FaClock, FaShoppingCart, FaWhatsapp, FaArrowLeft, FaCopy, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaShoppingCart, FaWhatsapp, FaArrowLeft, FaCopy, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 const StatusPedido = () => {
   const { orderId } = useParams();

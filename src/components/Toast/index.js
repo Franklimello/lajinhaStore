@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react"; // Removido useState - não usado
 import { FaCheck, FaTimes, FaShoppingCart } from "react-icons/fa";
 
 export default function Toast({ message, type = "success", isVisible, onClose }) {

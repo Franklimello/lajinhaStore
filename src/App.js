@@ -1,62 +1,64 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { Suspense, lazy, useContext } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Toast from "./components/Toast";
 import WebViewBanner from "./components/WebViewBanner";
-import Painel from "./pages/Painel";
-import Categorias from "./pages/Categorias"
-import Hortifruti from "./pages/Hortifruti"
-import Acougue from "./pages/Acougue"
-import FriosLaticinios from "./pages/FriosLaticinios"
-import Mercearia from "./pages/Mercearia"
-import GulosemasSnacks from "./pages/GulosemasSnacks"
-import Bebidas from "./pages/Bebidas"
-import BebidasGeladas from "./pages/BebidasGeladas"
-import Limpeza from "./pages/Limpeza"
-import HigienePessoal from "./pages/HigienePessoal"
-import UtilidadesDomesticas from "./pages/UtilidadesDomesticas"
-import PetShop from "./pages/PetShop"
-import Infantil from "./pages/Infantil"
-import Ofertas from "./pages/Ofertas"
-import Favoritos from "./pages/Favoritos";
-import Cart from "./pages/Cart"
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Detalhes from "./pages/Detalhes";
-import Farmacia from "./pages/farmacia";
-import Home from "./pages/Home";
-import PagamentoPix from "./pages/PagamentoPix";
-import StatusPedido from "./pages/StatusPedido";
-import ConsultaPedidos from "./pages/ConsultaPedidos";
-import DashboardPage from "./pages/Dashboard";
-import MeusPedidos from "./pages/MeusPedidos";
-import PedidoDetalhes from "./pages/PedidoDetalhes";
-import AdminOrders from "./pages/AdminOrders";
-import Contato from "./pages/Contato";
-import Notificacoes from "./pages/Notificacoes";
-import NotificationDiagnostic from "./components/NotificationDiagnostic";
-import NotificationTest from "./components/NotificationTest";
-import FirestoreTest from "./components/FirestoreTest";
-import FirestoreDiagnostic from "./components/FirestoreDiagnostic";
-import FirestoreRulesValidator from "./components/FirestoreRulesValidator";
-import FirestorePermissionsTest from "./components/FirestorePermissionsTest";
-import AuthDebug from "./components/AuthDebug";
-import LogoutDiagnostic from "./components/LogoutDiagnostic";
 import ProtectedRoute from "./components/protectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import ImageMigration from "./components/ImageMigration";
 import StorageTest from "./components/StorageTest";
+import ProductList from "./components/ProductList";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
-
-// Contexto de carrinho/favorito
 import { ShopProvider, ShopContext } from "./context/ShopContext";
 
-// Páginas
-import ProductList from "./components/ProductList";
-
-import { useContext } from "react";
+// Lazy loading para melhor performance
+const Painel = lazy(() => import("./pages/Painel"));
+const Categorias = lazy(() => import("./pages/Categorias"));
+const Hortifruti = lazy(() => import("./pages/Hortifruti"));
+const Acougue = lazy(() => import("./pages/Acougue"));
+const FriosLaticinios = lazy(() => import("./pages/FriosLaticinios"));
+const Mercearia = lazy(() => import("./pages/Mercearia"));
+const GulosemasSnacks = lazy(() => import("./pages/GulosemasSnacks"));
+const Bebidas = lazy(() => import("./pages/Bebidas"));
+const BebidasGeladas = lazy(() => import("./pages/BebidasGeladas"));
+const Limpeza = lazy(() => import("./pages/Limpeza"));
+const HigienePessoal = lazy(() => import("./pages/HigienePessoal"));
+const UtilidadesDomesticas = lazy(() => import("./pages/UtilidadesDomesticas"));
+const PetShop = lazy(() => import("./pages/PetShop"));
+const Infantil = lazy(() => import("./pages/Infantil"));
+// Lazy loading para páginas principais
+const Ofertas = lazy(() => import("./pages/Ofertas"));
+const Favoritos = lazy(() => import("./pages/Favoritos"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+// Lazy loading para páginas restantes
+const Detalhes = lazy(() => import("./pages/Detalhes"));
+const Farmacia = lazy(() => import("./pages/farmacia"));
+const Home = lazy(() => import("./pages/Home"));
+const PagamentoPix = lazy(() => import("./pages/PagamentoPix"));
+const StatusPedido = lazy(() => import("./pages/StatusPedido"));
+// Lazy loading para páginas administrativas
+const ConsultaPedidos = lazy(() => import("./pages/ConsultaPedidos"));
+const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const MeusPedidos = lazy(() => import("./pages/MeusPedidos"));
+const PedidoDetalhes = lazy(() => import("./pages/PedidoDetalhes"));
+const AdminOrders = lazy(() => import("./pages/AdminOrders"));
+// Lazy loading para páginas finais
+const Contato = lazy(() => import("./pages/Contato"));
+const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+const NotificationDiagnostic = lazy(() => import("./components/NotificationDiagnostic"));
+const NotificationTest = lazy(() => import("./components/NotificationTest"));
+const FirestoreTest = lazy(() => import("./components/FirestoreTest"));
+// Lazy loading para componentes de debug
+const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
+const FirestoreRulesValidator = lazy(() => import("./components/FirestoreRulesValidator"));
+const FirestorePermissionsTest = lazy(() => import("./components/FirestorePermissionsTest"));
+const AuthDebug = lazy(() => import("./components/AuthDebug"));
+const LogoutDiagnostic = lazy(() => import("./components/LogoutDiagnostic"));
 
 // Componente Layout que lida com a navegação e o layout principal
 function Layout({ children }) {
@@ -92,7 +94,12 @@ function AppContent() {
   return (
     <>
       <Layout>
-        <Routes>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+          </div>
+        }>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/categorias" element={<Categorias />} />
@@ -228,7 +235,8 @@ function AppContent() {
               </AdminRoute>
             }
           />
-        </Routes>
+          </Routes>
+        </Suspense>
       </Layout>
       
       {/* Toast de notificação global */}

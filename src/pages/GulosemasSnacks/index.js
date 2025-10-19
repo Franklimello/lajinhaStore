@@ -6,7 +6,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaCookie } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 

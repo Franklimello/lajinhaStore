@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FaTimes, FaEdit, FaSave, FaSearch, FaFilter, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import FormAnuncio from "../../components/FormAnuncio"

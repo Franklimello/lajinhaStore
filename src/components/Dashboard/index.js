@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaChartBar, FaShoppingCart, FaMoneyBillWave, FaUsers, FaCalendarAlt, FaArrowUp, FaArrowDown, FaTrophy, FaClock, FaPercentage, FaSync } from 'react-icons/fa';
+import { FaChartBar, FaShoppingCart, FaMoneyBillWave, FaCalendarAlt, FaArrowUp, FaArrowDown, FaTrophy, FaClock, FaPercentage, FaSync } from 'react-icons/fa';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -36,9 +36,9 @@ const Dashboard = () => {
     }).format(value);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
+  // const formatDate = (dateString) => {
+  //   return new Date(dateString).toLocaleDateString('pt-BR');
+  // };
 
   const getFilteredOrders = () => {
     const days = parseInt(timeRange);

@@ -3,7 +3,7 @@ import { BsList, BsX } from "react-icons/bs";
 import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaBell, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { FaMobileAlt } from "react-icons/fa";
+// import { FaMobileAlt } from "react-icons/fa"; // Removido - não usado
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { useAdmin } from "../../hooks/useAdmin";

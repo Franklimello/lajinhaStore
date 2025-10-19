@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { ShopContext } from '../../context/ShopContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createOrder } from '../../firebase/orders';
+// import { createOrder } from '../../firebase/orders'; // Removido - não usado
 
 const PixPayment = () => {
   const { cart, showToast, saveOrderToFirestore } = useContext(ShopContext);

@@ -9,12 +9,29 @@
     <link rel="icon" sizes="32x32" href="%PUBLIC_URL%/favicon.ico" />
     <link rel="icon" sizes="48x48" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https: blob:;
+      connect-src 'self' https://www.google-analytics.com https://firebaseapp.com https://firebasestorage.googleapis.com;
+      frame-src 'self' https://www.google.com;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    " />
     <meta name="theme-color" content="#3b82f6" />
     <meta
       name="description"
       content="Supermercado Online Lajinha - Seu supermercado com os melhores produtos e preços. Faça suas compras online com praticidade e segurança."
     />
-    <meta name="keywords" content="supermercado, online, compras, delivery, produtos, alimentos, bebidas" />
+    <meta name="keywords" content="supermercado lajinha, supermercado online, delivery lajinha, compras online, alimentos, bebidas, produtos, entrega domicilio, ecommerce lajinha, minas gerais" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://compreaqui-324df.web.app" />
     <meta name="author" content="Supermercado Lajinha" />
     
     <!-- Open Graph Meta Tags para Google e Redes Sociais -->
@@ -40,17 +57,45 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": "Store",
       "name": "Supermercado Online Lajinha",
       "description": "Seu supermercado com os melhores produtos e preços. Faça suas compras online com praticidade e segurança.",
       "url": "https://compreaqui-324df.web.app",
       "logo": "https://compreaqui-324df.web.app/logo512.png",
       "image": "https://compreaqui-324df.web.app/logo512.png",
-      "sameAs": [],
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Lajinha",
+        "addressRegion": "MG",
+        "addressCountry": "BR"
+      },
       "contactPoint": {
         "@type": "ContactPoint",
         "telephone": "+55-33-99999-9999",
         "contactType": "customer service"
+      },
+      "priceRange": "$$",
+      "paymentAccepted": ["PIX", "Dinheiro"],
+      "currenciesAccepted": "BRL",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Produtos do Supermercado",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Produtos de Hortifruti"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Produtos de Açougue"
+            }
+          }
+        ]
       }
     }
     </script>
@@ -87,6 +132,15 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Supermercado Online Lajinha</title>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
