@@ -13,6 +13,15 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 
+// UIDs dos administradores autorizados
+const ADMIN_UIDS = [
+  'ZG5D6IrTRTZl5SDoEctLAtr4WkE2',
+  '6VbaNslrhQhXcyussPj53YhLiYj2'
+];
+
+// Função para obter o adminId (primeiro da lista)
+const getAdminId = () => ADMIN_UIDS[0];
+
 // Função para inicializar a coleção de notificações
 export const initializeNotificationsCollection = async () => {
   try {
@@ -25,7 +34,7 @@ export const initializeNotificationsCollection = async () => {
       message: "Coleção de notificações criada automaticamente",
       orderId: "system-init",
       userId: "system",
-      adminId: "ZG5D6IrTRTZl5SDoEctLAtr4WkE2",
+      adminId: getAdminId(),
       read: true,
       createdAt: serverTimestamp(),
       data: {
@@ -109,7 +118,7 @@ export const createNewOrderNotification = async (orderData) => {
       message: `Pedido #${orderData.id.slice(-8).toUpperCase()} - R$ ${orderData.total?.toFixed(2) || "0,00"}`,
       orderId: orderData.id,
       userId: orderData.userId,
-      adminId: "ZG5D6IrTRTZl5SDoEctLAtr4WkE2", // ID do admin
+      adminId: getAdminId(), // ID do admin
       data: {
         orderId: orderData.id,
         total: orderData.total,
@@ -140,7 +149,7 @@ export const getAdminNotifications = async () => {
       console.log("🔍 Tentando query com filtro adminId...");
       const q = query(
         notificationsRef,
-        where("adminId", "==", "ZG5D6IrTRTZl5SDoEctLAtr4WkE2"),
+        where("adminId", "==", getAdminId()),
         orderBy("createdAt", "desc")
       );
       
@@ -186,7 +195,7 @@ export const getAdminNotifications = async () => {
           title: data.title
         });
         
-        if (data.adminId === "ZG5D6IrTRTZl5SDoEctLAtr4WkE2") {
+        if (ADMIN_UIDS.includes(data.adminId)) {
           console.log("✅ Notificação do admin encontrada:", doc.id);
           allNotifications.push({
             id: doc.id,
@@ -234,7 +243,7 @@ export const markAllNotificationsAsRead = async () => {
     const notificationsRef = collection(db, "notificacoes");
     const q = query(
       notificationsRef,
-      where("adminId", "==", "ZG5D6IrTRTZl5SDoEctLAtr4WkE2"),
+      where("adminId", "==", getAdminId()),
       where("read", "==", false)
     );
     
@@ -270,7 +279,7 @@ export const getUnreadNotificationsCount = async () => {
     try {
       const q = query(
         notificationsRef,
-        where("adminId", "==", "ZG5D6IrTRTZl5SDoEctLAtr4WkE2"),
+        where("adminId", "==", getAdminId()),
         where("read", "==", false)
       );
       
@@ -291,7 +300,7 @@ export const getUnreadNotificationsCount = async () => {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.adminId === "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" && data.read === false) {
+        if (ADMIN_UIDS.includes(data.adminId) && data.read === false) {
           count++;
         }
       });
@@ -398,7 +407,7 @@ export const deleteReadNotifications = async () => {
     // Buscar notificações lidas
     const q = query(
       notificationsRef,
-      where("adminId", "==", "ZG5D6IrTRTZl5SDoEctLAtr4WkE2"),
+      where("adminId", "==", getAdminId()),
       where("read", "==", true)
     );
     

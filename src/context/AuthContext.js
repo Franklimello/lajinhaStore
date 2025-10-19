@@ -28,32 +28,62 @@ export function AuthProvider({ children }) {
     console.log("🔐 AuthContext: Inicializando listener de autenticação...");
     const auth = getAuth();
     
-    // Configurar persistência local
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-      console.warn("⚠️ Erro ao configurar persistência:", error);
-    });
+    // Configurar persistência local com mais detalhes
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        console.log("✅ Persistência local configurada com sucesso");
+      })
+      .catch((error) => {
+        console.error("❌ Erro ao configurar persistência:", error);
+        console.error("Detalhes do erro:", {
+          code: error.code,
+          message: error.message,
+          stack: error.stack
+        });
+      });
     
     // Verificar se já existe um usuário logado
     const currentUser = auth.currentUser;
+    console.log("🔍 Verificando usuário atual:", currentUser ? "Encontrado" : "Não encontrado");
     if (currentUser) {
-      console.log("🔐 AuthContext: Usuário já logado encontrado:", currentUser.uid);
+      console.log("🔐 AuthContext: Usuário já logado encontrado:", {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName,
+        emailVerified: currentUser.emailVerified,
+        lastSignInTime: currentUser.metadata?.lastSignInTime,
+        creationTime: currentUser.metadata?.creationTime
+      });
       setUser(currentUser);
       setLoading(false);
     }
     
     const unsub = onAuthStateChanged(auth, (u) => {
-      console.log("🔐 AuthContext: Estado de autenticação mudou:", u ? "Usuário logado" : "Usuário deslogado");
+      const timestamp = new Date().toLocaleTimeString();
+      console.log(`🔐 AuthContext [${timestamp}]: Estado de autenticação mudou:`, u ? "Usuário logado" : "Usuário deslogado");
+      
       if (u) {
         console.log("👤 Usuário logado:", {
           uid: u.uid,
           email: u.email,
           displayName: u.displayName,
-          emailVerified: u.emailVerified
+          emailVerified: u.emailVerified,
+          lastSignInTime: u.metadata?.lastSignInTime,
+          creationTime: u.metadata?.creationTime,
+          providerData: u.providerData?.map(p => ({ providerId: p.providerId, uid: p.uid }))
         });
+      } else {
+        console.log("❌ Usuário deslogado - possíveis causas:");
+        console.log("- Token expirado");
+        console.log("- Sessão inválida");
+        console.log("- Erro de rede");
+        console.log("- Logout manual");
       }
+      
       setUser(u);
       setLoading(false);
     });
+    
     return () => {
       console.log("🔐 AuthContext: Removendo listener de autenticação");
       unsub();

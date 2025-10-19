@@ -40,8 +40,12 @@ import FirestoreTest from "./components/FirestoreTest";
 import FirestoreDiagnostic from "./components/FirestoreDiagnostic";
 import FirestoreRulesValidator from "./components/FirestoreRulesValidator";
 import FirestorePermissionsTest from "./components/FirestorePermissionsTest";
+import AuthDebug from "./components/AuthDebug";
+import LogoutDiagnostic from "./components/LogoutDiagnostic";
 import ProtectedRoute from "./components/protectedRoute";
 import AdminRoute from "./components/AdminRoute";
+import ImageMigration from "./components/ImageMigration";
+import StorageTest from "./components/StorageTest";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -206,6 +210,22 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/migrate-images"
+            element={
+              <AdminRoute>
+                <ImageMigration />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/test-storage"
+            element={
+              <AdminRoute>
+                <StorageTest />
+              </AdminRoute>
+            }
+          />
         </Routes>
       </Layout>
       
@@ -216,6 +236,12 @@ function AppContent() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+      
+      {/* Debug de autenticação - apenas em desenvolvimento */}
+      <AuthDebug />
+      
+      {/* Diagnóstico de logout - apenas em desenvolvimento */}
+      <LogoutDiagnostic />
     </>
   );
 }

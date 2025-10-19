@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { FaTimes, FaEdit, FaSave, FaSearch, FaFilter, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getAuth, signOut } from "firebase/auth";
 import FormAnuncio from "../../components/FormAnuncio"
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { useDeleteDocument } from "../../hooks/useDeleteDocument";
@@ -46,10 +45,11 @@ export default function Painel() {
     setEditandoId(null);
   };
 
+  const { logout } = useAuth();
+  
   const handleLogout = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
+      await logout();
       navigate('/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
@@ -57,11 +57,30 @@ export default function Painel() {
     }
   };
 
-  // Obter categorias únicas para o filtro
+  // Lista completa de categorias disponíveis
+  const todasCategorias = [
+    "Oferta",
+    "Hortifruti",
+    "Açougue", 
+    "Frios e laticínios",
+    "Mercearia",
+    "Guloseimas e snacks",
+    "Bebidas",
+    "Bebidas Geladas",
+    "Limpeza",
+    "Higiene pessoal",
+    "Utilidades domésticas",
+    "Pet shop",
+    "Infantil",
+    "Farmácia"
+  ];
+
+  // Obter categorias únicas dos produtos + categorias disponíveis
   const categorias = useMemo(() => {
-    if (!produtos) return [];
-    const cats = [...new Set(produtos.map(p => p.categoria))];
-    return cats.sort();
+    if (!produtos) return todasCategorias;
+    const catsProdutos = [...new Set(produtos.map(p => p.categoria))];
+    const todasCategoriasSet = new Set([...catsProdutos, ...todasCategorias]);
+    return Array.from(todasCategoriasSet).sort();
   }, [produtos]);
 
   // Filtrar e ordenar produtos

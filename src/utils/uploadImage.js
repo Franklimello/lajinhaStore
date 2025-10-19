@@ -24,6 +24,10 @@ export const uploadImageToCloudinary = async (file, options = {}) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", "uploadEmpregue");
+  
+  // Otimizações automáticas do Cloudinary
+  formData.append("transformation", "q_auto,f_auto,w_auto:breakpoints");
+  formData.append("format", "auto"); // Converte automaticamente para WebP quando suportado
 
   // Função para fazer uma tentativa de upload
   const attemptUpload = async (attemptNumber) => {
@@ -102,8 +106,8 @@ export const uploadImageToCloudinary = async (file, options = {}) => {
   throw new Error(`Upload falhou após ${maxRetries} tentativas: ${lastError.message}`);
 };
 
-// Função auxiliar para comprimir imagem (opcional)
-export const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
+// Função auxiliar para comprimir imagem e converter para WebP
+export const compressImage = (file, maxWidth = 1200, quality = 0.8, format = 'webp') => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -131,7 +135,7 @@ export const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
       // Desenhar imagem redimensionada
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Converter para blob
+      // Converter para blob com formato otimizado
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -140,7 +144,7 @@ export const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
             reject(new Error('Falha ao comprimir imagem'));
           }
         },
-        'image/jpeg',
+        `image/${format}`,
         quality
       );
     };
@@ -150,16 +154,17 @@ export const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
-// Exemplo de uso com progresso e compressão
+// Função principal com compressão e otimização automática
 export const uploadWithCompression = async (file, onProgress = null) => {
   try {
     onProgress?.({ stage: 'validating' });
 
-    // Comprimir se a imagem for muito grande
+    // Comprimir e converter para WebP se a imagem for muito grande
     let fileToUpload = file;
-    if (file.size > 2 * 1024 * 1024) { // Se > 2MB
+    if (file.size > 1 * 1024 * 1024) { // Se > 1MB
       onProgress?.({ stage: 'compressing' });
-      fileToUpload = await compressImage(file);
+      fileToUpload = await compressImage(file, 1200, 0.8, 'webp');
+      console.log(`📊 Imagem comprimida: ${file.size} → ${fileToUpload.size} bytes (${Math.round((1 - fileToUpload.size/file.size) * 100)}% redução)`);
     }
 
     onProgress?.({ stage: 'preparing' });

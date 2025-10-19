@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { uploadImageToCloudinary } from "../../utils/uploadImage";
+import { uploadMultipleImages } from "../../utils/firebaseStorage";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../firebase/config";
 
@@ -23,6 +23,7 @@ export default function FormAnuncio() {
     "Mercearia",
     "Guloseimas e snacks",
     "Bebidas",
+    "Bebidas Geladas",
     "Limpeza",
     "Higiene pessoal",
     "Utilidades domésticas",
@@ -133,33 +134,38 @@ export default function FormAnuncio() {
       let fotosUrl = [];
       const totalFotos = fotos.length;
 
-      // Upload das imagens com progresso
-      for (let i = 0; i < fotos.length; i++) {
-        const foto = fotos[i];
-        setMensagem(`Enviando imagem ${i + 1} de ${totalFotos}...`);
-        setTipoMensagem("info");
-        
-        try {
-          const url = await uploadImageToCloudinary(foto, {
-            maxRetries: 3,
-            timeoutMs: 60000,
-            onProgress: (status) => {
-              if (status.stage === 'uploading') {
-                setMensagem(`Enviando imagem ${i + 1}/${totalFotos} (tentativa ${status.attempt || 1})...`);
-              }
-            }
-          });
-          
-          if (!url) {
-            throw new Error(`Falha ao enviar a imagem ${i + 1}`);
+      // Upload das imagens para Firebase Storage
+      setMensagem("Enviando imagens para Firebase Storage...");
+      setTipoMensagem("info");
+
+      const uploadResults = await uploadMultipleImages(fotos, {
+        folder: 'produtos',
+        compress: true,
+        onProgress: (progress) => {
+          if (progress.stage === 'uploading_multiple') {
+            setMensagem(`Enviando imagem ${progress.current}/${progress.total}: ${progress.fileName}`);
+            setUploadProgress((progress.current / progress.total) * 100);
+          } else if (progress.stage === 'compressing') {
+            setMensagem(`Comprimindo imagem ${progress.current}/${progress.total}: ${progress.fileName}`);
+          } else if (progress.stage === 'uploading') {
+            setMensagem(`Enviando para Firebase Storage: ${progress.fileName}`);
           }
-          
-          fotosUrl.push(url);
-          setUploadProgress(((i + 1) / totalFotos) * 100);
-          
-        } catch (uploadError) {
-          throw new Error(`Erro na imagem ${i + 1}: ${uploadError.message}`);
         }
+      });
+
+      // Verificar resultados do upload
+      const successfulUploads = uploadResults.filter(result => result.success);
+      const failedUploads = uploadResults.filter(result => !result.success);
+
+      if (failedUploads.length > 0) {
+        console.warn('Alguns uploads falharam:', failedUploads);
+        // Continuar com os uploads bem-sucedidos
+      }
+
+      fotosUrl.push(...successfulUploads.map(result => result.url));
+      
+      if (fotosUrl.length === 0) {
+        throw new Error('Nenhuma imagem foi enviada com sucesso');
       }
 
       setIsUploading(false);

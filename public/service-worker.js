@@ -110,10 +110,16 @@ if (typeof workbox !== 'undefined') {
     })
   );
 
-  // Background sync for offline actions
-  workbox.backgroundSync.register('offline-orders', {
-    maxRetentionTime: 24 * 60 // 24 horas
-  });
+  // Background sync for offline actions (compatibilidade com versões mais recentes)
+  try {
+    if (workbox.backgroundSync && typeof workbox.backgroundSync.register === 'function') {
+      workbox.backgroundSync.register('offline-orders', {
+        maxRetentionTime: 24 * 60 // 24 horas
+      });
+    }
+  } catch (error) {
+    console.warn('⚠️ Background sync não disponível:', error.message);
+  }
 }
 
 
