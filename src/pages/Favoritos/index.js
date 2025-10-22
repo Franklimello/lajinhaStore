@@ -1,10 +1,12 @@
 import React, { useContext, useState } from "react";
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 import { FaHeart, FaShoppingCart, FaArrowLeft, FaTrash, FaCheck } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Favoritos() {
-  const { favorites, toggleFavorite, addToCart } = useContext(ShopContext);
+  const { favorites, toggleFavorite } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [addedItems, setAddedItems] = useState(new Set());
 

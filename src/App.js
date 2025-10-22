@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { Suspense, lazy, useContext } from "react";
+import React, { Suspense, lazy, useContext, useEffect } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import Toast from "./components/Toast";
+import CartToast from "./components/CartToast";
+import StoreClosedModal from "./components/StoreClosedModal";
 import WebViewBanner from "./components/WebViewBanner";
 import ProtectedRoute from "./components/protectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -13,6 +14,10 @@ import ProductList from "./components/ProductList";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ShopProvider, ShopContext } from "./context/ShopContext";
+import { CartProvider } from "./context/CartContext";
+import { StoreStatusProvider } from "./context/StoreStatusContext";
+import { ProductsProvider } from "./context/ProductsContext";
+import { NotificationService } from "./services/notificationService";
 
 // Lazy loading para melhor performance
 const Painel = lazy(() => import("./pages/Painel"));
@@ -26,6 +31,7 @@ const Bebidas = lazy(() => import("./pages/Bebidas"));
 const BebidasGeladas = lazy(() => import("./pages/BebidasGeladas"));
 const Limpeza = lazy(() => import("./pages/Limpeza"));
 const HigienePessoal = lazy(() => import("./pages/HigienePessoal"));
+const Cosmeticos = lazy(() => import("./pages/Cosmeticos"));
 const UtilidadesDomesticas = lazy(() => import("./pages/UtilidadesDomesticas"));
 const PetShop = lazy(() => import("./pages/PetShop"));
 const Infantil = lazy(() => import("./pages/Infantil"));
@@ -49,6 +55,7 @@ const PedidoDetalhes = lazy(() => import("./pages/PedidoDetalhes"));
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 // Lazy loading para páginas finais
 const Contato = lazy(() => import("./pages/Contato"));
+const Notificacoes = lazy(() => import("./pages/Notificacoes"));
 const FirestoreTest = lazy(() => import("./components/FirestoreTest"));
 // Lazy loading para componentes de debug
 const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
@@ -76,10 +83,13 @@ function Layout({ children }) {
 // Novo componente que lida com o carregamento do contexto
 function AppContent() {
   // Obtém o estado de carregamento do contexto
-  const { isLoading, toast, hideToast } = useContext(ShopContext);
-
+  const { isLoading: shopLoading } = useContext(ShopContext);
+  
+  // Nota: removemos cartLoading para evitar re-renders desnecessários
+  // O CartContext é carregado de forma independente
+  
   // Exibe um spinner de carregamento enquanto o contexto está sendo inicializado
-  if (isLoading) {
+  if (shopLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
@@ -110,6 +120,7 @@ function AppContent() {
           <Route path="/bebidas-geladas" element={<BebidasGeladas />} />
           <Route path="/limpeza" element={<Limpeza />} />
           <Route path="/higiene-pessoal" element={<HigienePessoal />} />
+          <Route path="/cosmeticos" element={<Cosmeticos />} />
           <Route path="/utilidades-domesticas" element={<UtilidadesDomesticas />} />
           <Route path="/pet-shop" element={<PetShop />} />
           <Route path="/infantil" element={<Infantil />} />
@@ -132,6 +143,7 @@ function AppContent() {
           <Route path="/pagamento-pix" element={<PagamentoPix />} />
           <Route path="/consulta-pedidos" element={<ConsultaPedidos />} />
           <Route path="/status-pedido/:orderId" element={<StatusPedido />} />
+          <Route path="/notificacoes" element={<Notificacoes />} />
           <Route
             path="/meus-pedidos"
             element={
@@ -212,13 +224,11 @@ function AppContent() {
         </Suspense>
       </Layout>
       
-      {/* Toast de notificação global */}
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-      />
+      {/* Toast de notificação global - Componente isolado */}
+      <CartToast />
+      
+      {/* Modal de loja fechada */}
+      <StoreClosedModal />
       
       {/* Debug de autenticação - apenas em desenvolvimento */}
       <AuthDebug />
@@ -231,14 +241,29 @@ function AppContent() {
 
 // Componente principal do App
 function App() {
+  // Inicializar sistema de notificações
+  useEffect(() => {
+    try {
+      NotificationService.setupMessageListener();
+    } catch (error) {
+      console.warn('Erro ao configurar notificações:', error);
+    }
+  }, []);
+
   return (
     <HelmetProvider>
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <ShopProvider>
-              <AppContent />
-            </ShopProvider>
+            <StoreStatusProvider>
+              <ProductsProvider>
+                <ShopProvider>
+                  <CartProvider>
+                    <AppContent />
+                  </CartProvider>
+                </ShopProvider>
+              </ProductsProvider>
+            </StoreStatusProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

@@ -1,11 +1,11 @@
 import React, { useContext, useState } from "react";
-import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 import { FaTrash, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
 import { useNavigate, Link } from "react-router-dom";
 import CheckoutGuard from "../../components/CheckoutGuard";
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity } = useContext(ShopContext);
+  const { cart, removeFromCart, updateQuantity } = useContext(CartContext);
   const navigate = useNavigate();
   
   const [paymentMethod, setPaymentMethod] = useState('pix'); // 'pix' ou 'dinheiro'
@@ -117,6 +117,11 @@ export default function Cart() {
                         <p className="text-sm text-gray-500 mt-1">
                           Preço unitário: R$ {parseFloat(item.preco || 0).toFixed(2)}
                         </p>
+                        {item.meatCut && (
+                          <p className="text-xs text-red-600 font-semibold mt-1 bg-red-50 inline-block px-2 py-1 rounded">
+                            🥩 Corte: {item.meatCut}
+                          </p>
+                        )}
                         
                         <div className="flex items-center gap-3 mt-3">
                           <span className="text-sm text-gray-600">Qtd:</span>

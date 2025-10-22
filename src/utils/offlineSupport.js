@@ -31,10 +31,12 @@ export const offlineSupport = {
 
   // Mostra notificação de offline
   showOfflineNotification: () => {
-    if ('serviceWorker' in navigator && 'Notification' in window) {
+    // ✅ ATUALIZADO: Só mostra se já tem permissão (não solicita)
+    if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Modo Offline', {
         body: 'Você está offline. Algumas funcionalidades podem estar limitadas.',
         icon: '/logo192.png',
+        badge: '/logo192.png',
         tag: 'offline-notification'
       });
     }

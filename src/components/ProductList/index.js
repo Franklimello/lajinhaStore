@@ -1,8 +1,10 @@
 import { useContext } from "react";
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 
  function ProductList() {
-  const { favorites, toggleFavorite, addToCart } = useContext(ShopContext);
+  const { favorites, toggleFavorite } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
 
   const products = [
     { id: 1, name: "Produto 1", price: 49.9 },

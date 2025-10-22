@@ -1,36 +1,72 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { FaCheck, FaTimes, FaEye, FaTrash, FaBell, FaShoppingCart, FaWhatsapp, FaQrcode, FaCopy } from 'react-icons/fa';
 import { ShopContext } from '../../context/ShopContext';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const AdminOrders = () => {
   const { clearCart, showToast } = useContext(ShopContext);
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // ============================================================
+  // ✅ LISTENER EM TEMPO REAL PARA PEDIDOS
+  // ============================================================
   useEffect(() => {
-    loadOrders();
-    
-    if (autoRefresh) {
-      const interval = setInterval(loadOrders, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
+    console.log('👂 [AdminOrders] Configurando listener de pedidos...');
 
-  const loadOrders = () => {
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
-      const sortedOrders = savedOrders.sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setOrders(sortedOrders);
-    } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
-      setOrders([]);
+    // Query dos pedidos do Firestore
+    const q = query(
+      collection(db, 'pedidos'),
+      orderBy('createdAt', 'desc')
+    );
+
+    // Listener em tempo real
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setOrders(ordersData);
+      setLoading(false);
+      
+      console.log('✅ [AdminOrders] Pedidos atualizados:', ordersData.length);
+    }, (error) => {
+      console.error('❌ [AdminOrders] Erro ao escutar pedidos:', error);
+      setLoading(false);
+    });
+
+    return () => {
+      console.log('🧹 [AdminOrders] Removendo listener de pedidos');
+      unsubscribe();
+    };
+  }, []);
+
+  // ============================================================
+  // ✅ FALLBACK: Carregar do localStorage se Firestore falhar
+  // ============================================================
+  useEffect(() => {
+    // Fallback para localStorage se não houver pedidos do Firestore
+    if (orders.length === 0) {
+      try {
+        const savedOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
+        const sortedOrders = savedOrders.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        
+        if (sortedOrders.length > 0) {
+          console.log('📦 [AdminOrders] Carregando do localStorage como fallback');
+          setOrders(sortedOrders);
+        }
+      } catch (error) {
+        console.error('❌ [AdminOrders] Erro ao carregar do localStorage:', error);
+      }
     }
-  };
+  }, [orders.length]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -200,11 +236,7 @@ Status: ${getStatusText(order.status)}
 
   const stats = calculateStats();
 
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // useEffect removido - permissão de notificações agora é solicitada apenas no componente NotificationPermission
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">

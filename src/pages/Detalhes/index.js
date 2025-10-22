@@ -13,6 +13,7 @@ import "swiper/css/zoom";
 
 // Importe o contexto
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 
 export default function Detalhes() {
   const { id } = useParams();
@@ -20,7 +21,8 @@ export default function Detalhes() {
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
   
   // Use o contexto para acessar favoritos e carrinho
-  const { toggleFavorite, favorites, addToCart } = useContext(ShopContext);
+  const { toggleFavorite, favorites } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
 
   // Verificação se o contexto está funcionando
   if (!toggleFavorite) {

@@ -8,6 +8,7 @@ export default function FormAnuncio() {
   const [preco, setPreco] = useState("");
   const [descricao, setDescricao] = useState("");
   const [categoria, setCategoria] = useState("");
+  const [esgotado, setEsgotado] = useState(false);
   const [fotos, setFotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -26,6 +27,7 @@ export default function FormAnuncio() {
     "Bebidas Geladas",
     "Limpeza",
     "Higiene pessoal",
+    "Cosméticos",
     "Utilidades domésticas",
     "Pet shop",
     "Infantil",
@@ -181,6 +183,7 @@ export default function FormAnuncio() {
         preco: precoNumerico,
         descricao: descricao.trim(),
         fotosUrl,
+        esgotado: esgotado,
         criadoEm: new Date()
       });
 
@@ -193,6 +196,7 @@ export default function FormAnuncio() {
       setDescricao("");
       setPreco("");
       setCategoria("");
+      setEsgotado(false);
       setFotos([]);
       setUploadProgress(0);
       
@@ -287,6 +291,20 @@ export default function FormAnuncio() {
             maxLength={500}
           />
           <p className="text-xs text-gray-500 mt-1">{descricao.length}/500 caracteres</p>
+        </div>
+
+        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <input
+            type="checkbox"
+            id="esgotado"
+            checked={esgotado}
+            onChange={(e) => setEsgotado(e.target.checked)}
+            disabled={loading}
+            className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer"
+          />
+          <label htmlFor="esgotado" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+            Marcar produto como esgotado
+          </label>
         </div>
 
         <div>

@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser, FaStore, FaLock, FaUnlock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useStoreStatus } from "../../context/StoreStatusContext";
 import FormAnuncio from "../../components/FormAnuncio"
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { useDeleteDocument } from "../../hooks/useDeleteDocument";
@@ -12,6 +13,7 @@ export default function Painel() {
   const { deleteDocument } = useDeleteDocument("produtos");
   const { updateDocument } = useUpdateDocument("produtos");
   const { user } = useAuth();
+  const { isClosed, toggleStoreStatus, loading: storeLoading } = useStoreStatus();
   const navigate = useNavigate();
 
   const [editandoId, setEditandoId] = useState(null);
@@ -20,6 +22,7 @@ export default function Painel() {
     categoria:"",
     descricao: "",
     preco: "",
+    esgotado: false,
   });
 
   // Estados para busca e filtros
@@ -37,6 +40,7 @@ export default function Painel() {
       categoria: produto.categoria,
       descricao: produto.descricao,
       preco: produto.preco,
+      esgotado: produto.esgotado || false,
     });
   };
 
@@ -57,6 +61,21 @@ export default function Painel() {
     }
   };
 
+  const handleToggleStore = async () => {
+    const confirmMessage = isClosed 
+      ? "Deseja ABRIR a loja? Os clientes poderão realizar compras normalmente."
+      : "Deseja FECHAR a loja? Os clientes verão um aviso ao acessar o site.";
+    
+    if (window.confirm(confirmMessage)) {
+      const result = await toggleStoreStatus();
+      if (result.success) {
+        alert(isClosed ? "✅ Loja ABERTA com sucesso!" : "🔒 Loja FECHADA com sucesso!");
+      } else {
+        alert("❌ Erro ao alterar status da loja: " + result.error);
+      }
+    }
+  };
+
   // Lista completa de categorias disponíveis
   const todasCategorias = [
     "Oferta",
@@ -69,6 +88,7 @@ export default function Painel() {
     "Bebidas Geladas",
     "Limpeza",
     "Higiene pessoal",
+    "Cosméticos",
     "Utilidades domésticas",
     "Pet shop",
     "Infantil",
@@ -155,7 +175,7 @@ export default function Painel() {
           <p className="text-sm md:text-base text-gray-600 mt-1">Gerencie seus produtos e anúncios</p>
         </div>
         
-        {/* Linha de usuário e botão sair - responsiva */}
+        {/* Linha de usuário e botões - responsiva */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           {/* Informações do usuário */}
           {user && (
@@ -167,10 +187,26 @@ export default function Painel() {
             </div>
           )}
           
+          {/* Botão Abrir/Fechar Loja */}
+          <button
+            onClick={handleToggleStore}
+            disabled={storeLoading}
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg w-full sm:w-auto ${
+              isClosed 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title={isClosed ? "Loja está FECHADA - Clique para abrir" : "Loja está ABERTA - Clique para fechar"}
+          >
+            {isClosed ? <FaLock className="text-lg" /> : <FaUnlock className="text-lg" />}
+            <FaStore className="text-lg" />
+            <span>{isClosed ? 'Loja Fechada' : 'Loja Aberta'}</span>
+          </button>
+          
           {/* Botão de Sair */}
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto"
             title="Sair da conta"
           >
             <FaSignOutAlt className="text-lg" />
@@ -318,6 +354,19 @@ export default function Painel() {
                         className="w-full border p-2 text-sm rounded"
                       />
                     </div>
+                    
+                    <div className="sm:col-span-2 lg:col-span-1 flex items-center gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                      <input
+                        type="checkbox"
+                        id={`esgotado-${produto.id}`}
+                        checked={formEdit.esgotado}
+                        onChange={(e) => setFormEdit({ ...formEdit, esgotado: e.target.checked })}
+                        className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer"
+                      />
+                      <label htmlFor={`esgotado-${produto.id}`} className="text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                        Produto esgotado
+                      </label>
+                    </div>
                   </div>
                 </div>
                 
@@ -352,6 +401,9 @@ export default function Painel() {
                   <div className="flex items-center gap-3 sm:gap-4 mt-1 flex-wrap">
                     <span className="text-green-600 font-semibold text-sm sm:text-base">R$ {produto.preco}</span>
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{produto.categoria}</span>
+                    {produto.esgotado && (
+                      <span className="text-xs text-white bg-red-500 px-2 py-1 rounded font-semibold">Esgotado</span>
+                    )}
                   </div>
                 </div>
                 

@@ -10,6 +10,7 @@
     "@testing-library/user-event": "^13.5.0",
     "firebase": "^12.0.0",
     "kjua": "^0.10.0",
+    "localforage": "^1.10.0",
     "pix-qrcode": "^1.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,9 +22,26 @@
     "uuid": "^13.0.0",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "@google-cloud/storage": "^7.17.2",
+    "autoprefixer": "^10.4.21",
+    "imagemin": "^9.0.1",
+    "imagemin-mozjpeg": "^10.0.0",
+    "imagemin-pngquant": "^10.0.0",
+    "imagemin-webp": "^8.0.0",
+    "postcss": "^8.5.6",
+    "sharp": "^0.34.4",
+    "tailwindcss": "^3.4.17"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:optimized": "npm run optimize-images && npm run build",
+    "optimize-images": "node scripts/optimize-images.js",
+    "optimize-and-upload": "node scripts/optimize-and-upload.js",
+    "upload-images": "node scripts/optimize-and-upload.js",
+    "test-optimization": "node scripts/test-optimization.js",
+    "firebase-upload": "node scripts/optimize-and-upload.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -44,10 +62,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17"
   }
 }

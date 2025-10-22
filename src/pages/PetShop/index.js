@@ -1,86 +1,187 @@
 "use client";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, getDocs } from "firebase/firestore";
-import { FaHeart, FaShoppingCart, FaStar, FaEye, FaPaw } from "react-icons/fa";
+import { collection, getDocs, query, where, orderBy, limit, startAfter } from "firebase/firestore";
+import { FaHeart, FaShoppingCart, FaStar, FaEye, FaPaw, FaSearch } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 
-export default function PetShop({ searchTerm = "" }) {
-  const { favorites, toggleFavorite, addToCart } = useContext(ShopContext);
+// ✅ CONSTANTES para otimização
+const CACHE_KEY = "products_petshop";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const PRODUCTS_PER_PAGE = 20; // Limitar a 20 produtos por vez
+
+const PetShop = memo(function PetShop({ searchTerm = "", isPreview = false }) {
+  const { favorites, toggleFavorite } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
 
   const [carousels, setCarousels] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [lastDoc, setLastDoc] = useState(null);
   const [hoveredProduct, setHoveredProduct] = useState(null);
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
+
+  const fetchProducts = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      if (!isLoadMore) {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { products, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < CACHE_TTL) {
+            console.log(`✅ Cache hit: Pet Shop (${products.length} produtos)`);
+            setAllProducts(products);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
+
+      const catOptions = ["Pet shop"]; // ✅ CORRIGIDO: nome EXATO do Firebase
+      let q = query(
+        collection(db, "produtos"),
+        where("categoria", "in", catOptions),
+        orderBy("titulo"),
+        limit(PRODUCTS_PER_PAGE)
+      );
+
+      if (isLoadMore && lastDoc) {
+        q = query(
+          collection(db, "produtos"),
+          where("categoria", "in", ["Pet shop"]), // ✅ CORRIGIDO
+          orderBy("titulo"),
+          startAfter(lastDoc),
+          limit(PRODUCTS_PER_PAGE)
+        );
+      }
+
+      const qs = await getDocs(q);
+
+      if (qs.docs.length > 0) {
+        setLastDoc(qs.docs[qs.docs.length - 1]);
+      }
+
+      const newProducts = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      console.log(`✅ Carregados ${newProducts.length} produtos de Pet Shop`);
+
+      setHasMore(qs.docs.length === PRODUCTS_PER_PAGE);
+
+      if (isLoadMore) {
+        setAllProducts(prev => [...prev, ...newProducts]);
+      } else {
+        setAllProducts(newProducts);
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+          products: newProducts,
+          timestamp: Date.now()
+        }));
+      }
+
+    } catch (error) {
+      console.error("❌ Erro ao buscar produtos pet shop:", error);
+      setAllProducts([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Buscar todos os produtos do Firestore
-        const querySnapshot = await getDocs(collection(db, "produtos"));
-        
-        // Filtrar localmente por categoria
-        const products = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter(product => {
-            const categoria = (product.categoria || "").toLowerCase().trim();
-            // Aceita "pet shop", "pet", "petshop" ou variações
-            return categoria.includes("pet") || 
-                   categoria === "pet shop" ||
-                   categoria === "petshop";
-          });
-        
-        // Ordenar produtos por ordem alfabética (título)
-        const sortedProducts = products.sort((a, b) => {
-          const titleA = (a.titulo || a.nome || "").toLowerCase();
-          const titleB = (b.titulo || b.nome || "").toLowerCase();
-          return titleA.localeCompare(titleB, 'pt-BR');
-        });
-        
-        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Pet Shop (ordenados A-Z)`);
-        
-        // Debug: mostrar as categorias encontradas
-        if (sortedProducts.length === 0) {
-          console.warn("⚠️ Nenhum produto de Pet Shop encontrado. Verificando todas as categorias disponíveis:");
-          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
-          console.log("Categorias no banco:", [...new Set(allCategories)]);
-        }
-        
-        setAllProducts(sortedProducts);
-      } catch (error) {
-        console.error("❌ Erro ao buscar produtos pet shop:", error);
-        setAllProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchProducts(false);
   }, []);
 
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProducts(true);
+    }
+  };
+
+  const searchProducts = async (searchTerm) => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Buscando produtos com termo: "${searchTerm}"...`);
+
+      const catOptions = ["Pet shop"]; // ✅ CORRIGIDO: nome EXATO do Firebase
+      const q = query(
+        collection(db, "produtos"),
+        where("categoria", "in", catOptions),
+        limit(100)
+      );
+
+      const qs = await getDocs(q);
+      let products = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const searchLower = searchTerm.toLowerCase();
+      products = products.filter(p =>
+        (p.titulo || "").toLowerCase().includes(searchLower) ||
+        (p.descricao || "").toLowerCase().includes(searchLower)
+      );
+
+      products.sort((a, b) => {
+        const titleA = (a.titulo || a.nome || "").toLowerCase();
+        const titleB = (b.titulo || b.nome || "").toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+
+      console.log(`✅ Encontrados ${products.length} produtos com "${searchTerm}"`);
+      setAllProducts(products);
+      setHasMore(false);
+      setLoading(false);
+    } catch (error) {
+      console.error("❌ Erro ao buscar produtos:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const term = searchTerm.trim().toLowerCase();
+    if (!isPreview) {
+      if (localSearchTerm.trim()) {
+        const timer = setTimeout(() => {
+          searchProducts(localSearchTerm.trim());
+        }, 500);
+        return () => clearTimeout(timer);
+      } else {
+        setAllProducts([]);
+        setLastDoc(null);
+        setHasMore(true);
+        fetchProducts(false);
+      }
+    }
+  }, [localSearchTerm, isPreview]);
+
+  useEffect(() => {
+    // Usar termo local quando não for preview, senão usar searchTerm da home
+    const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
     const source = term
       ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
       : allProducts;
 
+    // Limitar a 10 produtos apenas quando for preview na home
+    const productsToShow = isPreview ? source.slice(0, 10) : source;
+    
     const chunkSize = 5;
     const grouped = [];
-    for (let i = 0; i < source.length; i += chunkSize) {
-      grouped.push(source.slice(i, i + chunkSize));
+    for (let i = 0; i < productsToShow.length; i += chunkSize) {
+      grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm]);
+  }, [allProducts, searchTerm, isPreview, localSearchTerm]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
@@ -170,10 +271,16 @@ export default function PetShop({ searchTerm = "" }) {
                       onMouseEnter={() => setHoveredProduct(product.id)}
                       onMouseLeave={() => setHoveredProduct(null)}
                     >
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                          Pet
-                        </div>
+                      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        {product.esgotado ? (
+                          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Esgotado
+                          </div>
+                        ) : (
+                          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Pet
+                          </div>
+                        )}
                       </div>
 
                       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -221,7 +328,7 @@ export default function PetShop({ searchTerm = "" }) {
                           <span className="text-xs text-gray-500 ml-1">({product.reviews || '12'})</span>
                         </div>
 
-                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-200">
+                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-200 uppercase">
                           {product.titulo || product.nome}
                         </h3>
 
@@ -243,16 +350,19 @@ export default function PetShop({ searchTerm = "" }) {
                         </div>
 
                         <button
-                          onClick={() => addToCart(product)}
+                          onClick={() => !product.esgotado && addToCart(product)}
+                          disabled={product.esgotado}
                           className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform ${
-                            hoveredProduct === product.id
-                              ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg scale-105'
-                              : 'bg-gradient-to-r from-amber-400 to-orange-400'
-                          } hover:shadow-xl active:scale-95 flex items-center justify-center gap-2`}
-                          aria-label="Adicionar ao carrinho"
+                            product.esgotado
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : hoveredProduct === product.id
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg scale-105'
+                                : 'bg-gradient-to-r from-amber-400 to-orange-400'
+                          } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
+                          aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
                           <FaShoppingCart className="text-sm" />
-                          <span>Carrinho</span>
+                          <span>{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
                         </button>
                       </div>
 
@@ -264,7 +374,70 @@ export default function PetShop({ searchTerm = "" }) {
             </div>
           </div>
         ))}
+
+        {/* Botão Ver Mais - só aparece no preview da home */}
+        {isPreview && allProducts.length > 10 && (
+          <div className="text-center mt-8">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/pet-shop';
+              }}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <span>Ver todos os produtos</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              Mostrando 10 de {allProducts.length} produtos
+            </p>
+          </div>
+        )}
+
+        {!isPreview && hasMore && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-3"
+            >
+              {loadingMore ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Carregando...</span>
+                </>
+              ) : (
+                <>
+                  <FaPaw className="text-xl" />
+                  <span>Carregar Mais Produtos</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {!isPreview && !hasMore && allProducts.length > 0 && (
+          <div className="text-center mt-8 py-6 bg-white/50 backdrop-blur-sm rounded-2xl shadow-md">
+            <div className="inline-flex items-center gap-2 text-green-600 font-semibold text-lg mb-2">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Todos os produtos foram carregados!</span>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Total: <span className="font-bold text-amber-600">{allProducts.length}</span> produtos
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );
-}
+});
+
+export default PetShop;

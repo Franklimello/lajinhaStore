@@ -199,6 +199,14 @@ export default function AdminOrders() {
                         )}
                       </div>
                     </div>
+                    {pedido.horarioEntrega && (
+                      <div>
+                        <span className="font-medium text-gray-700">Horário de Entrega:</span>
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          🕐 {pedido.horarioEntrega}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <span className="font-medium text-gray-700">Pagamento:</span>
                       <span className={`ml-2 ${pedido.paymentMethod === 'dinheiro' ? 'text-green-600' : 'text-blue-600'}`}>
@@ -259,6 +267,11 @@ export default function AdminOrders() {
                             <p className="text-gray-800 font-semibold text-sm leading-tight">
                               {item.nome}
                             </p>
+                            {item.corte && (
+                              <p className="text-xs text-red-600 font-semibold mt-1 bg-red-50 inline-block px-2 py-0.5 rounded">
+                                🥩 Corte: {item.corte}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 Qtd: {item.quantidade}

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -9,9 +9,11 @@ import { db } from "../../firebase/config";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaTag } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 
-export default function Ofertas({ searchTerm = "" }) {
-  const { favorites, toggleFavorite, addToCart } = useContext(ShopContext);
+const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
+  const { favorites, toggleFavorite } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
 
   const [carousels, setCarousels] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -166,12 +168,18 @@ export default function Ofertas({ searchTerm = "" }) {
                       onMouseEnter={() => setHoveredProduct(product.id)}
                       onMouseLeave={() => setHoveredProduct(null)}
                     >
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg relative overflow-hidden">
-                          {/* Efeito de fogo no badge */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-red-500 opacity-50 animate-pulse"></div>
-                          <span className="relative z-10">🔥 Oferta 🔥</span>
-                        </div>
+                      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        {product.esgotado ? (
+                          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Esgotado
+                          </div>
+                        ) : (
+                          <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg relative overflow-hidden">
+                            {/* Efeito de fogo no badge */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-red-500 opacity-50 animate-pulse"></div>
+                            <span className="relative z-10">🔥 Oferta 🔥</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -219,7 +227,7 @@ export default function Ofertas({ searchTerm = "" }) {
                           <span className="text-xs text-gray-500 ml-1">({product.reviews || '12'})</span>
                         </div>
 
-                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-red-600 transition-colors duration-200">
+                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-red-600 transition-colors duration-200 uppercase">
                           {product.titulo || product.nome}
                         </h3>
 
@@ -241,18 +249,22 @@ export default function Ofertas({ searchTerm = "" }) {
                         </div>
 
                         <button
-                          onClick={() => addToCart(product)}
+                          onClick={() => !product.esgotado && addToCart(product)}
+                          disabled={product.esgotado}
                           className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform relative overflow-hidden ${
-                            hoveredProduct === product.id
-                              ? 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg scale-105'
-                              : 'bg-gradient-to-r from-red-400 to-orange-400'
-                          } hover:shadow-xl active:scale-95 flex items-center justify-center gap-2`}
-                          aria-label="Adicionar ao carrinho"
+                            product.esgotado
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : hoveredProduct === product.id
+                                ? 'bg-gradient-to-r from-red-500 to-orange-500 shadow-lg scale-105'
+                                : 'bg-gradient-to-r from-red-400 to-orange-400'
+                          } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
+                          aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
-                          {/* Efeito de fogo no botão */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-red-500 to-orange-500 opacity-30 animate-pulse"></div>
+                          {!product.esgotado && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-red-500 to-orange-500 opacity-30 animate-pulse"></div>
+                          )}
                           <FaShoppingCart className="text-sm relative z-10" />
-                          <span className="relative z-10">🔥 Comprar 🔥</span>
+                          <span className="relative z-10">{product.esgotado ? 'Esgotado' : '🔥 Comprar 🔥'}</span>
                         </button>
                       </div>
 
@@ -275,4 +287,6 @@ export default function Ofertas({ searchTerm = "" }) {
       </div>
     </section>
   );
-}
+});
+
+export default Ofertas;

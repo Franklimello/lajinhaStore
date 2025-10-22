@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaWhatsapp, FaArrowLeft, FaCopy, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const StatusPedido = () => {
   const { orderId } = useParams();
@@ -10,64 +12,80 @@ const StatusPedido = () => {
   const [notFound, setNotFound] = useState(false);
   const [lastStatus, setLastStatus] = useState(null);
   const [showStatusChange, setShowStatusChange] = useState(false);
-  const [countdown, setCountdown] = useState(5);
+  // ❌ countdown removido - não precisa mais com listener em tempo real
 
+  // ============================================================
+  // ✅ LISTENER EM TEMPO REAL PARA STATUS DO PEDIDO
+  // ============================================================
   useEffect(() => {
-    loadOrder();
-    
-    const interval = setInterval(() => {
-      loadOrder();
-      setCountdown(5);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [orderId]);
+    if (!orderId) return;
 
+    console.log('👂 [StatusPedido] Configurando listener para pedido:', orderId);
+
+    // Listener em tempo real para o pedido específico
+    const unsubscribe = onSnapshot(
+      doc(db, 'pedidos', orderId),
+      (doc) => {
+        if (doc.exists()) {
+          const orderData = { id: doc.id, ...doc.data() };
+          console.log('📦 [StatusPedido] Pedido atualizado:', orderData.status);
+          
+          // Verifica mudança de status
+          if (lastStatus && lastStatus !== orderData.status) {
+            setShowStatusChange(true);
+            setTimeout(() => setShowStatusChange(false), 3000);
+            
+            if (orderData.status === 'confirmed') {
+              showClientNotification('🎉 Pagamento Confirmado!', `Seu pedido ${orderId} foi confirmado e está sendo preparado.`);
+            } else if (orderData.status === 'cancelled') {
+              showClientNotification('❌ Pedido Cancelado', `Seu pedido ${orderId} foi cancelado. Entre em contato conosco.`);
+            }
+          }
+          
+          setOrder(orderData);
+          setLastStatus(orderData.status);
+          setLoading(false);
+        } else {
+          console.log('❌ [StatusPedido] Pedido não encontrado no Firestore');
+          setNotFound(true);
+          setLoading(false);
+        }
+      },
+      (error) => {
+        console.error('❌ [StatusPedido] Erro ao escutar pedido:', error);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      console.log('🧹 [StatusPedido] Removendo listener do pedido');
+      unsubscribe();
+    };
+  }, [orderId, lastStatus]);
+
+  // ============================================================
+  // ✅ FALLBACK: Verificar localStorage se não encontrar no Firestore
+  // ============================================================
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => prev > 0 ? prev - 1 : 5);
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
+    if (!orderId) return;
 
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  const loadOrder = () => {
+    // Tenta carregar do localStorage como fallback
     try {
       const orders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
       const foundOrder = orders.find(o => o.id === orderId);
       
-      if (foundOrder) {
-        // Verifica mudança de status
-        if (lastStatus && lastStatus !== foundOrder.status) {
-          setShowStatusChange(true);
-          setTimeout(() => setShowStatusChange(false), 3000);
-          
-          if (foundOrder.status === 'confirmed') {
-            showClientNotification('🎉 Pagamento Confirmado!', `Seu pedido ${orderId} foi confirmado e está sendo preparado.`);
-          } else if (foundOrder.status === 'cancelled') {
-            showClientNotification('❌ Pedido Cancelado', `Seu pedido ${orderId} foi cancelado. Entre em contato conosco.`);
-          }
-        }
-        
+      if (foundOrder && !order) {
+        console.log('📦 [StatusPedido] Carregando do localStorage como fallback');
         setOrder(foundOrder);
         setLastStatus(foundOrder.status);
-        setNotFound(false);
-      } else {
-        setNotFound(true);
+        setLoading(false);
       }
     } catch (error) {
-      console.error('Erro ao carregar pedido:', error);
-      setNotFound(true);
-    } finally {
-      setLoading(false);
+      console.error('❌ [StatusPedido] Erro ao carregar do localStorage:', error);
     }
-  };
+  }, [orderId, order]);
+
+  // ❌ Função loadOrder removida - agora usamos listener em tempo real
 
   const showClientNotification = (title, body) => {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -416,7 +434,7 @@ const StatusPedido = () => {
         <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 text-center">
           <p className="text-white font-medium flex items-center justify-center gap-2">
             <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Atualizando em {countdown}s... (Auto-refresh ativo)
+            Atualizando em tempo real... (Listener ativo)
           </p>
         </div>
       </div>

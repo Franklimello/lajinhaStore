@@ -1,342 +1,309 @@
 /**
- * Firebase Cloud Functions - E-commerce Email Service
- * Função para envio de e-mails via Resend API
+ * Firebase Cloud Functions - E-commerce Notification Service
+ * Sistema de Notificações via Telegram e Push Notifications
+ * (Email desabilitado - Telegram já basta)
  *
- * @author Seu Nome
- * @version 1.0.0
+ * @version 3.0.0
  */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const {Resend} = require("resend");
+// Resend removido - usando apenas Telegram
+// const {Resend} = require("resend");
+const config = require("./config"); 
 
 // Inicializa o Firebase Admin SDK
 admin.initializeApp();
 
-// Inicializa o cliente Resend com a API key das variáveis de ambiente
-const resend = new Resend(functions.config().resend.key);
+// ========================================
+// E-MAIL DESABILITADO - Usando apenas Telegram
+// ========================================
+// Código de inicialização do Resend removido
+// Notificações são enviadas apenas via Telegram
+console.log("ℹ️ Sistema de email desabilitado - usando apenas Telegram para notificações");
+
+// ========================================
+// SISTEMA DE NOTIFICAÇÕES PUSH - NÚCLEO (MANTIDO)
+// ========================================
+async function sendNotificationToUser(userId, title, body, data = {}) {
+  // ... Código da função sendNotificationToUser MANTIDO SEM ALTERAÇÕES ...
+  // [CÓDIGO OMITIDO PARA CONCISÃO]
+  try {
+    console.log(`📤 Enviando notificação para: ${userId}`);
+    const notificationRef = await admin.firestore().collection("notifications").add({
+      userId, title, body, data,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false, type: data.type || "general",
+    });
+
+    console.log(`✅ Notificação gravada no Firestore: ${notificationRef.id}`);
+
+    try {
+      const tokenDoc = await admin.firestore().collection("userTokens").doc(userId).get();
+      if (tokenDoc.exists) {
+        const {token, active} = tokenDoc.data();
+        if (active && token) {
+          const message = {
+            notification: {title, body, icon: "/logo192.png"},
+            data: {...data, notificationId: notificationRef.id, timestamp: Date.now().toString()},
+            token,
+          };
+          const fcmResponse = await admin.messaging().send(message);
+          console.log("✅ FCM enviado:", fcmResponse);
+          await notificationRef.update({fcmMessageId: fcmResponse, sentViaFCM: true});
+        } else {
+          console.log(`⚠️ Token inativo para usuário: ${userId}`);
+        }
+      } else {
+        console.log(`ℹ️ Token FCM não encontrado para: ${userId}`);
+      }
+    } catch (fcmError) {
+      console.warn("⚠️ Erro ao enviar FCM (notificação gravada):", fcmError.message);
+      if (fcmError.code === "messaging/registration-token-not-registered") {
+        await admin.firestore().collection("userTokens").doc(userId).update({active: false});
+      }
+    }
+    return {success: true, notificationId: notificationRef.id};
+  } catch (error) {
+    console.error("❌ ERRO CRÍTICO ao gravar notificação:", error);
+    return {success: false, error: error.message};
+  }
+}
+
+
+// ========================================
+// TRIGGERS DE PEDIDOS
+// ========================================
 
 /**
- * Função para envio de e-mails via Resend
- * Endpoint: POST /enviarEmail
- *
- * @param {Object} req - Objeto da requisição HTTP
- * @param {Object} res - Objeto da resposta HTTP
- * @returns {Promise<void>}
+ * Trigger quando um pedido é CRIADO
+ * VERSÃO COM LOGS APRIMORADOS PARA E-MAIL
  */
-exports.enviarEmail = functions.https.onRequest(async (req, res) => {
-  // Configura CORS para permitir requisições do frontend
+exports.onOrderCreated = functions.firestore
+    .document("pedidos/{orderId}")
+    .onCreate(async (snap, context) => {
+      console.log("🎯 === TRIGGER DISPARADO ===");
+
+      try {
+        const order = snap.data();
+        const orderId = context.params.orderId;
+        console.log("📦 Order ID:", orderId);
+        console.log("🔍 DEBUG: Chegou até aqui - iniciando seção de e-mail...");
+
+        // ========================================
+        // SEÇÃO 1: E-MAIL DESABILITADA (Telegram já basta)
+        // ========================================
+        console.log("ℹ️ Envio de e-mail desabilitado - usando apenas Telegram");
+
+        // ... O restante da seção de Notificações (MANTIDO) ...
+        console.log("📱 === SEÇÃO NOTIFICAÇÕES INICIADA ===");
+        if (order.userId) {
+          const clientResult = await sendNotificationToUser(
+              order.userId, "🛒 Pedido Confirmado!", `Seu pedido #${orderId.slice(-8)} foi criado com sucesso!`, 
+              {orderId, type: "order_created", url: `/pedidos/${orderId}`});
+          console.log("📱 Resultado notificação cliente:", clientResult);
+        }
+        const adminUIDs = ["ZG5D6IrTRTZl5SDoEctLAtr4WkE2", "6VbaNslrhQhXcyussPj53YhLiYj2"];
+        for (const adminId of adminUIDs) {
+          const adminResult = await sendNotificationToUser(
+              adminId, "🔔 Novo Pedido Recebido!", 
+              `Pedido #${orderId.slice(-8)} de ${order.endereco?.nome || "Cliente"} - R$ ${order.total?.toFixed(2)}`,
+              {orderId, type: "new_order_admin", url: "/admin-pedidos"});
+          console.log(`📱 Resultado admin ${adminId}:`, adminResult);
+        }
+        console.log("📱 === SEÇÃO NOTIFICAÇÕES FINALIZADA ===\n");
+        console.log("✅ === TRIGGER FINALIZADO COM SUCESSO ===");
+      } catch (error) {
+        console.error("❌ === ERRO GERAL NO TRIGGER ===");
+        console.error("❌ Mensagem:", error.message);
+      }
+    });
+
+/**
+ * Trigger quando status do pedido MUDA (MANTIDO)
+ */
+exports.onOrderStatusChange = functions.firestore
+    .document("pedidos/{orderId}")
+    .onUpdate(async (change, context) => {
+      // ... Código da função onOrderStatusChange MANTIDO SEM ALTERAÇÕES ...
+      // [CÓDIGO OMITIDO PARA CONCISÃO]
+      const before = change.before.data();
+      const after = change.after.data();
+      const orderId = context.params.orderId;
+      if (before.status === after.status) return;
+
+      console.log("📦 TRIGGER: Status mudou:", before.status, "->", after.status);
+      const statusMessages = {
+        "Pago": "✅ Pagamento confirmado! Seu pedido está sendo preparado.",
+        "Em Separação": "📦 Seu pedido está sendo separado.",
+        "Enviado": "🚚 Seu pedido foi enviado e está a caminho!",
+        "Entregue": "🎉 Seu pedido foi entregue! Obrigado pela compra.",
+        "Cancelado": "❌ Seu pedido foi cancelado. Entre em contato conosco.",
+      };
+      const message = statusMessages[after.status] || `Status atualizado para: ${after.status}`;
+
+      try {
+        if (after.userId) {
+          const result = await sendNotificationToUser(
+              after.userId, `📦 Pedido #${orderId.slice(-8)}`, message,
+              {orderId, type: "order_status_update", status: after.status, url: `/pedidos/${orderId}`});
+          console.log("✅ Notificação de status enviada:", result);
+        }
+      } catch (error) {
+        console.error("❌ Erro no trigger onOrderStatusChange:", error);
+      }
+    });
+
+/**
+ * Endpoint para envio de notificação manual (MANTIDO)
+ */
+exports.sendNotification = functions.https.onRequest(async (req, res) => {
+  // ... Código da função sendNotification MANTIDO SEM ALTERAÇÕES ...
+  // [CÓDIGO OMITIDO PARA CONCISÃO]
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  // Responde a requisições OPTIONS (preflight)
-  if (req.method === "OPTIONS") {
-    res.status(200).send("");
-    return;
-  }
-
-  // Valida se o método é POST
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: "Método não permitido. Use POST.",
-    });
-  }
-
+  if (req.method === "OPTIONS") return res.status(200).send("");
+  if (req.method !== "POST") return res.status(405).json({success: false, error: "Método não permitido. Use POST."});
   try {
-    // Extrai dados do corpo da requisição
-    const {nome, email, mensagem} = req.body;
-
-    // Validação dos campos obrigatórios
-    if (!nome || !email || !mensagem) {
-      return res.status(400).json({
-        success: false,
-        error: "Campos obrigatórios: nome, email e mensagem são necessários.",
-        missing: {
-          nome: !nome,
-          email: !email,
-          mensagem: !mensagem,
-        },
-      });
-    }
-
-    // Validação básica do formato do e-mail
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: "Formato de e-mail inválido.",
-      });
-    }
-
-    // Validação do tamanho da mensagem (máximo 5000 caracteres)
-    if (mensagem.length > 5000) {
-      return res.status(400).json({
-        success: false,
-        error: "Mensagem muito longa. Máximo 5000 caracteres.",
-      });
-    }
-
-    // E-mail de destino (configurado como variável de ambiente)
-    const emailDestino = functions.config().resend.destination || "frank.melo.wal@gmail.com";
-
-    // Dados do e-mail a ser enviado
-    const emailData = {
-      from: "E-commerce CompreAqui <onboarding@resend.dev>", // Domínio verificado da Resend
-      to: [emailDestino],
-      subject: `Nova mensagem de contato - ${nome}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0;">
-            <h1 style="margin: 0; font-size: 24px;">📧 Nova Mensagem de Contato</h1>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">E-commerce - Sistema de Contato</p>
-          </div>
-          
-          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
-            <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #667eea; padding-bottom: 10px;">👤 Informações do Cliente</h2>
-              <p style="margin: 10px 0;"><strong>Nome:</strong> ${nome}</p>
-              <p style="margin: 10px 0;"><strong>E-mail:</strong> <a href="mailto:${email}" style="color: #667eea;">${email}</a></p>
-            </div>
-            
-            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #667eea; padding-bottom: 10px;">💬 Mensagem</h2>
-              <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #667eea; white-space: pre-wrap; line-height: 1.6;">${mensagem}</div>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3;">
-              <p style="margin: 0; color: #1565c0; font-size: 14px;">
-                <strong>📅 Data/Hora:</strong> ${new Date().toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })}
-              </p>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
-            <p>Este e-mail foi enviado automaticamente pelo sistema de contato do e-commerce.</p>
-          </div>
-        </div>
-      `,
-      text: `
-Nova mensagem de contato - E-commerce
-
-Informações do Cliente:
-Nome: ${nome}
-E-mail: ${email}
-
-Mensagem:
-${mensagem}
-
-Data/Hora: ${new Date().toLocaleString("pt-BR", {timeZone: "America/Sao_Paulo"})}
-      `,
-    };
-
-    // Envia o e-mail via Resend
-    const result = await resend.emails.send(emailData);
-
-    // Log do sucesso (apenas em desenvolvimento)
-    console.log("E-mail enviado com sucesso:", {
-      id: result.data?.id,
-      destinatario: emailDestino,
-      remetente: email,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Resposta de sucesso
-    return res.status(200).json({
-      success: true,
-      message: "E-mail enviado com sucesso!",
-      data: {
-        id: result.data?.id,
-        destinatario: emailDestino,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    const {userId, title, body, data} = req.body;
+    if (!userId || !title || !body) return res.status(400).json({success: false, error: "Campos obrigatórios: userId, title, body"});
+    const result = await sendNotificationToUser(userId, title, body, data || {});
+    return res.status(200).json({success: result.success, message: result.success ? "Notificação enviada com sucesso!" : "Erro ao enviar notificação", data: result});
   } catch (error) {
-    // Log do erro para debugging
-    console.error("Erro ao enviar e-mail:", {
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Resposta de erro interno
-    return res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor. Tente novamente mais tarde.",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    console.error("❌ Erro na função sendNotification:", error);
+    return res.status(500).json({success: false, error: "Erro interno do servidor", details: error.message});
   }
 });
 
 /**
- * Função para notificar por e-mail quando um novo pedido é criado
- * Trigger: onCreate na coleção "pedidos"
+ * Função de teste para envio de e-mail (DESABILITADA)
  */
-exports.notificarNovoPedido = functions.firestore
-  .document("pedidos/{pedidoId}")
-  .onCreate(async (snap, context) => {
-    try {
-      const pedido = snap.data();
-      const pedidoId = context.params.pedidoId;
-
-      console.log("🆕 Novo pedido detectado:", {
-        id: pedidoId,
-        total: pedido.total,
-        cliente: pedido.endereco?.nome || "Não informado",
-        timestamp: new Date().toISOString(),
-      });
-
-      // E-mail de destino (configurado como variável de ambiente)
-      const emailDestino = functions.config().resend.destination || "frank.melo.wal@gmail.com";
-
-      // Dados do e-mail de notificação
-      const emailData = {
-        from: "E-commerce CompreAqui <onboarding@resend.dev>", // Domínio verificado da Resend
-        to: [emailDestino],
-        subject: `🆕 Novo Pedido #${pedidoId.slice(-8).toUpperCase()} - R$ ${pedido.total?.toFixed(2) || "0,00"}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0;">
-              <h1 style="margin: 0; font-size: 24px;">🆕 Novo Pedido Recebido!</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9;">E-commerce - Sistema de Notificações</p>
-            </div>
-            
-            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
-              <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #28a745; padding-bottom: 10px;">📋 Informações do Pedido</h2>
-                <p style="margin: 10px 0;"><strong>ID do Pedido:</strong> #${pedidoId.slice(-8).toUpperCase()}</p>
-                <p style="margin: 10px 0;"><strong>Valor Total:</strong> R$ ${pedido.total?.toFixed(2) || "0,00"}</p>
-                <p style="margin: 10px 0;"><strong>Status:</strong> ${pedido.status || "Aguardando Pagamento"}</p>
-                <p style="margin: 10px 0;"><strong>Método de Pagamento:</strong> ${pedido.paymentMethod === 'dinheiro' ? '💵 Dinheiro' : '📱 PIX'}</p>
-                ${pedido.paymentMethod === 'dinheiro' && (pedido.valorPago || pedido.troco) ? `
-                  <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #3b82f6;">
-                    <h4 style="margin: 0 0 10px 0; color: #1e40af; font-size: 16px;">💰 Informações de Pagamento em Dinheiro</h4>
-                    <p style="margin: 5px 0;"><strong>Valor Total:</strong> R$ ${(pedido.valorTotal || pedido.total)?.toFixed(2) || "0,00"}</p>
-                    <p style="margin: 5px 0;"><strong>Valor Pago:</strong> R$ ${pedido.valorPago?.toFixed(2) || "0,00"}</p>
-                    <p style="margin: 5px 0;"><strong>Troco:</strong> R$ ${pedido.troco?.toFixed(2) || "0,00"}</p>
-                    ${(pedido.troco || 0) > 0 ? `<p style="margin: 10px 0 0 0; color: #dc2626; font-weight: bold;">⚠️ IMPORTANTE: O entregador deve ter troco de R$ ${pedido.troco?.toFixed(2)} disponível!</p>` : ''}
-                  </div>
-                ` : ''}
-              </div>
-              
-              <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #28a745; padding-bottom: 10px;">👤 Dados do Cliente</h2>
-                <p style="margin: 10px 0;"><strong>Nome:</strong> ${pedido.endereco?.nome || "Não informado"}</p>
-                <p style="margin: 10px 0;"><strong>Telefone:</strong> ${pedido.endereco?.telefone || "Não informado"}</p>
-                <p style="margin: 10px 0;"><strong>Endereço:</strong> ${pedido.endereco?.rua || ""}, ${pedido.endereco?.numero || ""}</p>
-                <p style="margin: 10px 0;"><strong>Bairro:</strong> ${pedido.endereco?.bairro || ""}</p>
-                <p style="margin: 10px 0;"><strong>Cidade:</strong> ${pedido.endereco?.cidade || ""}</p>
-                ${pedido.endereco?.referencia ? `<p style="margin: 10px 0;"><strong>Referência:</strong> ${pedido.endereco.referencia}</p>` : ''}
-              </div>
-              
-              <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="color: #333; margin-top: 0; border-bottom: 2px solid #28a745; padding-bottom: 10px;">🛒 Itens do Pedido</h2>
-                ${pedido.items?.map(item => `
-                  <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
-                    <p style="margin: 5px 0; font-weight: bold;">${item.nome || item.titulo}</p>
-                    <p style="margin: 5px 0; color: #666;">Quantidade: ${item.quantidade || item.qty} | Preço: R$ ${item.precoUnitario?.toFixed(2) || item.preco?.toFixed(2) || "0,00"}</p>
-                    <p style="margin: 5px 0; font-weight: bold; color: #28a745;">Subtotal: R$ ${item.subtotal?.toFixed(2) || ((item.preco || 0) * (item.qty || 1)).toFixed(2)}</p>
-                  </div>
-                `).join('') || '<p>Nenhum item encontrado</p>'}
-              </div>
-              
-              <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3;">
-                <p style="margin: 0; color: #1565c0; font-size: 14px;">
-                  <strong>📅 Data/Hora:</strong> ${new Date().toLocaleString("pt-BR", {
-          timeZone: "America/Sao_Paulo",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })}
-                </p>
-              </div>
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
-              <p>Este e-mail foi enviado automaticamente pelo sistema de notificações do e-commerce.</p>
-              <p><strong>Ação necessária:</strong> Acesse o painel administrativo para gerenciar este pedido.</p>
-            </div>
-          </div>
-        `,
-        text: `
-🆕 NOVO PEDIDO RECEBIDO!
-
-📋 Informações do Pedido:
-ID: #${pedidoId.slice(-8).toUpperCase()}
-Valor Total: R$ ${pedido.total?.toFixed(2) || "0,00"}
-Status: ${pedido.status || "Aguardando Pagamento"}
-Método de Pagamento: ${pedido.paymentMethod === 'dinheiro' ? 'Dinheiro' : 'PIX'}
-${pedido.paymentMethod === 'dinheiro' && (pedido.valorPago || pedido.troco) ? `
-💰 INFORMAÇÕES DE PAGAMENTO EM DINHEIRO:
-Valor Total: R$ ${(pedido.valorTotal || pedido.total)?.toFixed(2) || "0,00"}
-Valor Pago: R$ ${pedido.valorPago?.toFixed(2) || "0,00"}
-Troco: R$ ${pedido.troco?.toFixed(2) || "0,00"}
-${(pedido.troco || 0) > 0 ? `⚠️ IMPORTANTE: O entregador deve ter troco de R$ ${pedido.troco?.toFixed(2)} disponível!` : ''}
-` : ''}
-
-👤 Dados do Cliente:
-Nome: ${pedido.endereco?.nome || "Não informado"}
-Telefone: ${pedido.endereco?.telefone || "Não informado"}
-Endereço: ${pedido.endereco?.rua || ""}, ${pedido.endereco?.numero || ""}
-Bairro: ${pedido.endereco?.bairro || ""}
-Cidade: ${pedido.endereco?.cidade || ""}
-
-🛒 Itens do Pedido:
-${pedido.items?.map(item => `- ${item.nome || item.titulo} (Qtd: ${item.quantidade || item.qty}) - R$ ${item.subtotal?.toFixed(2) || ((item.preco || 0) * (item.qty || 1)).toFixed(2)}`).join('\n') || 'Nenhum item encontrado'}
-
-📅 Data/Hora: ${new Date().toLocaleString("pt-BR", {timeZone: "America/Sao_Paulo"})}
-
-Ação necessária: Acesse o painel administrativo para gerenciar este pedido.
-        `,
-      };
-
-      // Envia o e-mail via Resend
-      const result = await resend.emails.send(emailData);
-
-      console.log("📧 E-mail de notificação enviado:", {
-        id: result.data?.id,
-        destinatario: emailDestino,
-        pedidoId: pedidoId,
-        timestamp: new Date().toISOString(),
-      });
-
-      return { success: true, emailId: result.data?.id };
-    } catch (error) {
-      console.error("❌ Erro ao enviar e-mail de notificação:", {
-        error: error.message,
-        stack: error.stack,
-        pedidoId: context.params.pedidoId,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Não relança o erro para não quebrar o fluxo de criação do pedido
-      return { success: false, error: error.message };
-    }
+exports.testEmail = functions.https.onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.status(200).json({
+    success: false,
+    message: "Sistema de e-mail desabilitado. Usando apenas Telegram para notificações.",
+    timestamp: new Date().toISOString()
   });
+});
 
-/**
- * Função de teste para verificar se a API está funcionando
- * Endpoint: GET /test
- */
+exports.enviarEmail = functions.https.onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.status(200).send("");
+  
+  return res.status(200).json({
+    success: false,
+    message: "Sistema de e-mail desabilitado. Entre em contato via Telegram ou WhatsApp.",
+    timestamp: new Date().toISOString()
+  });
+});
+exports.notificarNovoPedido = functions.firestore.document("pedidos/{pedidoId}").onCreate(async (snap, context) => {});
 exports.test = functions.https.onRequest((req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
-
-  res.status(200).json({
-    success: true,
-    message: "API de e-mail funcionando corretamente!",
-    timestamp: new Date().toISOString(),
-    version: "1.0.0",
-  });
+  res.status(200).json({success: true, message: "API funcionando!", timestamp: new Date().toISOString(), version: "2.1.0"});
 });
+
+/**
+ * ========================================
+ * NOTIFICAÇÕES TELEGRAM - NOVA FUNCIONALIDADE
+ * ========================================
+ */
+
+const axios = require("axios");
+
+// Configurações do Telegram
+const TELEGRAM_TOKEN = "8393627901:AAGmDARJlrBeNU6h_nNu3EKEPxzqn_Id5Zw";
+
+// Adicione todos os chat_ids aqui:
+const CHAT_IDS = [
+  "1493334673", // Você (Franklim)
+  "1430325412"  // ID do Nuke
+];
+
+/**
+ * Função que dispara quando um novo pedido é criado no Firestore
+ * Envia notificação direta para o Telegram
+ */
+exports.notificarTelegram = functions.firestore
+  .document("pedidos/{pedidoId}")
+  .onCreate(async (snapshot, context) => {
+    const pedido = snapshot.data();
+    const pedidoId = context.params.pedidoId;
+    
+    console.log("🤖 === NOTIFICAÇÃO TELEGRAM INICIADA ===");
+    console.log("🤖 Pedido ID:", pedidoId);
+    console.log("🤖 Dados do pedido:", JSON.stringify(pedido, null, 2));
+
+    try {
+      // Monta a mensagem do Telegram
+      const endereco = pedido.endereco || {};
+      const isDinheiro = pedido.paymentMethod === "dinheiro";
+      const paymentLabel = isDinheiro ? "Dinheiro" : "PIX";
+      
+      // Formata os itens
+      const itensTexto = (pedido.items || [])
+        .map(item => {
+          const itemNome = item.titulo || item.nome || item.title || "Item";
+          const itemQtd = item.qty || item.quantidade || 1;
+          const itemCorte = item.corte ? ` 🥩 Corte: ${item.corte}` : "";
+          return `• ${itemNome} (Qtd: ${itemQtd})${itemCorte}`;
+        })
+        .join("\n");
+
+      const mensagem = `
+🛒 *NOVO PEDIDO RECEBIDO!*
+
+📋 *Pedido:* #${pedidoId.slice(-8)}
+👤 *Cliente:* ${endereco.nome || "Cliente"}
+📱 *Telefone:* ${endereco.telefone || "Não informado"}
+💰 *Total:* R$ ${pedido.total?.toFixed(2) || "0,00"}
+💳 *Pagamento:* ${paymentLabel}
+${isDinheiro ? `💵 *Valor Pago:* R$ ${pedido.valorPago?.toFixed(2) || "0,00"}` : ""}
+${isDinheiro ? `🔄 *Troco:* R$ ${pedido.troco?.toFixed(2) || "0,00"}` : ""}
+${pedido.horarioEntrega ? `🕐 *Horário de Entrega:* ${pedido.horarioEntrega}` : ""}
+
+📍 *Endereço:*
+${endereco.rua || "Rua não informada"}, ${endereco.numero || "N/A"}
+${endereco.bairro || "Bairro não informado"} - ${endereco.cidade || "Cidade não informada"}
+${endereco.referencia ? `📍 *Referência:* ${endereco.referencia}` : ""}
+
+📦 *Itens:*
+${itensTexto}
+
+${pedido.observacoes ? `📝 *Observações:* ${pedido.observacoes}` : ""}
+
+⏰ *Data:* ${new Date().toLocaleString("pt-BR")}
+`;
+
+      console.log("🤖 Enviando mensagem para Telegram...");
+      console.log("🤖 Mensagem:", mensagem);
+      console.log("🤖 Chat IDs:", CHAT_IDS);
+
+      // Envia a notificação para cada chat_id
+      for (const chatId of CHAT_IDS) {
+        try {
+          const response = await axios.post(
+            `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
+            {
+              chat_id: chatId,
+              text: mensagem,
+              parse_mode: "Markdown",
+            }
+          );
+          
+          console.log(`✅ Notificação enviada para chat ${chatId}:`, response.data);
+        } catch (chatError) {
+          console.error(`❌ Erro ao enviar para chat ${chatId}:`, chatError.message);
+        }
+      }
+
+      console.log("✅ Notificações Telegram processadas!");
+
+    } catch (error) {
+      console.error("❌ Erro ao enviar notificação Telegram:", error.message);
+      console.error("❌ Detalhes do erro:", error.response?.data || error.stack);
+    }
+  });

@@ -1,13 +1,13 @@
 import React, { useState, useContext, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { ShopContext } from '../../context/ShopContext';
+import { CartContext } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { appConfig } from '../../config/appConfig';
 // import { createOrder } from '../../firebase/orders'; // Removido - não usado
 
 const PixPayment = () => {
-  const { cart, showToast, saveOrderToFirestore } = useContext(ShopContext);
+  const { cart, showToast, saveOrderToFirestore } = useContext(CartContext);
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +19,7 @@ const PixPayment = () => {
   const [clientBairro, setClientBairro] = useState('');
   const [clientCidade, setClientCidade] = useState('');
   const [clientReferencia, setClientReferencia] = useState('');
+  const [horarioEntrega, setHorarioEntrega] = useState('');
   const [nameError, setNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [addressError, setAddressError] = useState('');
@@ -226,7 +227,9 @@ const PixPayment = () => {
           nome: item.titulo || item.nome,
           quantidade: item.qty || 1,
           precoUnitario: item.preco || 0,
-          subtotal: (item.preco || 0) * (item.qty || 1)
+          subtotal: (item.preco || 0) * (item.qty || 1),
+          ...(item.meatCut && { corte: item.meatCut }), // Informação do corte de carne
+          ...(item.observacao && { observacao: item.observacao }) // Observações adicionais
         })),
         endereco: {
           nome: clientName.trim(),
@@ -237,6 +240,7 @@ const PixPayment = () => {
           cidade: clientCidade.trim(),
           referencia: clientReferencia.trim()
         },
+        horarioEntrega: horarioEntrega || 'Não especificado',
         paymentMethod: paymentMethod,
         paymentReference: newOrderId,
         qrData: paymentMethod === 'pix' ? payload : null,
@@ -290,11 +294,7 @@ const PixPayment = () => {
     });
   };
 
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // useEffect removido - permissão de notificações agora é solicitada apenas no componente NotificationPermission
 
   const cartTotal = calculateCartTotal();
 
@@ -307,11 +307,18 @@ const PixPayment = () => {
         {/* Resumo do Pedido */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">
           <h3 className="text-green-800 font-semibold mb-3">🛒 Resumo do Pedido</h3>
-          <div className="space-y-1 mb-2">
+          <div className="space-y-2 mb-2">
             {cart.map((item) => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span className="truncate flex-1 mr-2">{item.titulo} x{item.qty}</span>
-                <span className="font-medium">{formatCurrency(parseFloat(item.preco || 0) * (item.qty || 1))}</span>
+              <div key={item.id}>
+                <div className="flex justify-between text-sm">
+                  <span className="truncate flex-1 mr-2">{item.titulo} x{item.qty}</span>
+                  <span className="font-medium">{formatCurrency(parseFloat(item.preco || 0) * (item.qty || 1))}</span>
+                </div>
+                {item.meatCut && (
+                  <div className="text-xs text-red-600 font-semibold ml-2 bg-red-50 inline-block px-2 py-0.5 rounded mt-0.5">
+                    🥩 Corte: {item.meatCut}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -487,6 +494,23 @@ const PixPayment = () => {
               <span>{addressError}</span>
             </div>
           )}
+        </div>
+
+        {/* Horário de Entrega */}
+        <div className="border rounded-lg p-4 mb-6 bg-purple-50 border-purple-200">
+          <h3 className="font-semibold mb-3 text-purple-800 flex items-center gap-2">
+            🕐 Melhor Horário para Entrega
+          </h3>
+          <input
+            type="text"
+            placeholder="Ex: 14h, 18h30, após 15h, manhã..."
+            value={horarioEntrega}
+            onChange={(e) => setHorarioEntrega(e.target.value)}
+            className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-800 font-medium"
+          />
+          <p className="text-xs text-purple-700 mt-2">
+            💡 Digite o melhor horário para receber sua entrega
+          </p>
         </div>
 
         {/* Campo de Valor Pago - Apenas para Dinheiro */}

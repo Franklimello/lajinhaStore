@@ -9,7 +9,8 @@ service cloud.firestore {
       // Permitir que usuários leiam apenas seus próprios pedidos
       allow read: if request.auth != null && 
                      (resource.data.userId == request.auth.uid || 
-                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
+                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                      request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
       
       // Permitir que usuários criem pedidos apenas para si mesmos
       allow create: if request.auth != null && 
@@ -18,17 +19,54 @@ service cloud.firestore {
       // Permitir que administradores atualizem qualquer pedido
       allow update: if request.auth != null && 
                        (resource.data.userId == request.auth.uid || 
-                        request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
+                        request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                        request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
     }
     
-    // Regras para outras coleções (produtos, etc.)
+    // Regras para a coleção de notificações
+    match /notifications/{notificationId} {
+      // Permitir leitura apenas para o usuário dono da notificação
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Permitir que usuários marquem suas próprias notificações como lidas
+      allow update: if request.auth != null && 
+                      resource.data.userId == request.auth.uid &&
+                      request.resource.data.keys().hasAll(['read', 'readAt']) &&
+                      request.resource.data.read == true;
+      
+      // Permitir que administradores criem notificações para qualquer usuário
+      allow create: if request.auth != null && 
+                      (request.resource.data.userId == request.auth.uid ||
+                       request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                       request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+      
+      // Permitir que administradores deletem qualquer notificação
+      allow delete: if request.auth != null && 
+                      (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                       request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
+    // Regras para produtos - permitir leitura pública
+    match /produtos/{produtoId} {
+      // Permitir leitura pública para produtos
+      allow read: if true;
+      
+      // Permitir escrita apenas para administradores
+      allow write: if request.auth != null && 
+                      (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                       request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
+    // Regras para outras coleções (categorias, etc.)
     match /{document=**} {
       // Permitir leitura para todos os usuários autenticados
       allow read: if request.auth != null;
       
       // Permitir escrita apenas para administradores
       allow write: if request.auth != null && 
-                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
+                      (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                       request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
     }
   }
 }

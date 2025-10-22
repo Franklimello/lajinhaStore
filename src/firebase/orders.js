@@ -12,7 +12,7 @@ import {
   serverTimestamp 
 } from "firebase/firestore";
 import { db } from "./config";
-// Sistema de notificações removido
+import { NotificationService } from "../services/notificationService";
 
 // Função para criar um novo pedido
 export const createOrder = async (orderData) => {
@@ -40,7 +40,9 @@ export const createOrder = async (orderData) => {
     
     console.log("✅ Pedido criado com sucesso:", orderRef.id);
     
-    // Sistema de notificações removido
+    // Notificações agora são enviadas automaticamente via Cloud Functions
+    // quando o documento é criado no Firestore
+    console.log("✅ Pedido criado - notificações serão enviadas automaticamente via Cloud Functions");
     
     return { success: true, orderId: orderRef.id };
   } catch (error) {
@@ -80,12 +82,24 @@ export const getOrdersByUser = async (userId) => {
     
     const querySnapshot = await getDocs(q);
     const pedidos = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      const normalizedItems = Array.isArray(data.items)
+        ? data.items.map((item) => ({
+            // Mantém campos originais
+            ...item,
+            // Normalizações para retrocompatibilidade
+            titulo: item.titulo ?? item.nome ?? item.title ?? "",
+            qty: item.qty ?? item.quantidade ?? item.quantity ?? 1,
+            preco: item.preco ?? item.precoUnitario ?? item.price ?? 0,
+          }))
+        : [];
+
       pedidos.push({
         id: doc.id,
-        ...data
+        ...data,
+        items: normalizedItems
       });
     });
     
@@ -112,12 +126,22 @@ export const getAllOrders = async () => {
     
     const querySnapshot = await getDocs(q);
     const pedidos = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      const normalizedItems = Array.isArray(data.items)
+        ? data.items.map((item) => ({
+            ...item,
+            titulo: item.titulo ?? item.nome ?? item.title ?? "",
+            qty: item.qty ?? item.quantidade ?? item.quantity ?? 1,
+            preco: item.preco ?? item.precoUnitario ?? item.price ?? 0,
+          }))
+        : [];
+
       pedidos.push({
         id: doc.id,
-        ...data
+        ...data,
+        items: normalizedItems
       });
     });
     
@@ -142,9 +166,19 @@ export const getOrderById = async (orderId) => {
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
+      const data = docSnap.data();
+      const normalizedItems = Array.isArray(data.items)
+        ? data.items.map((item) => ({
+            ...item,
+            titulo: item.titulo ?? item.nome ?? item.title ?? "",
+            qty: item.qty ?? item.quantidade ?? item.quantity ?? 1,
+            preco: item.preco ?? item.precoUnitario ?? item.price ?? 0,
+          }))
+        : [];
+
       return { 
         success: true, 
-        pedido: { id: docSnap.id, ...docSnap.data() } 
+        pedido: { id: docSnap.id, ...data, items: normalizedItems } 
       };
     } else {
       return { success: false, error: "Pedido não encontrado" };

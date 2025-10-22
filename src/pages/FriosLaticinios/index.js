@@ -1,89 +1,208 @@
 "use client";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
-import { collection, getDocs } from "firebase/firestore";
-import { FaHeart, FaShoppingCart, FaStar, FaEye, FaCheese } from "react-icons/fa";
+import { collection, getDocs, query, where, orderBy, limit, startAfter } from "firebase/firestore";
+import { FaHeart, FaShoppingCart, FaStar, FaEye, FaCheese, FaSearch } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
+import { CartContext } from "../../context/CartContext";
 
-export default function FriosLaticinios({ searchTerm = "" }) {
-  const { favorites, toggleFavorite, addToCart } = useContext(ShopContext);
+// ✅ CONSTANTES para otimização
+const CACHE_KEY = "products_frios_laticinios";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const PRODUCTS_PER_PAGE = 20; // Limitar a 20 produtos por vez
+
+const FriosLaticinios = memo(function FriosLaticinios({ searchTerm = "", isPreview = false }) {
+  const { favorites, toggleFavorite } = useContext(ShopContext);
+  const { addToCart } = useContext(CartContext);
 
   const [carousels, setCarousels] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false); // ✅ Estado para "Carregar Mais"
+  const [hasMore, setHasMore] = useState(true); // ✅ Indica se há mais produtos
+  const [lastDoc, setLastDoc] = useState(null); // ✅ Último documento para paginação
   const [hoveredProduct, setHoveredProduct] = useState(null);
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
+  // ✅ NOVA FUNÇÃO: Busca produtos com LIMIT e paginação
+  const fetchProducts = async (isLoadMore = false) => {
+    try {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
         setLoading(true);
-        
-        // Buscar todos os produtos do Firestore
-        const querySnapshot = await getDocs(collection(db, "produtos"));
-        
-        // Filtrar localmente por categoria (aceita variações)
-        const products = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter(product => {
-            const categoria = (product.categoria || "").toLowerCase().trim();
-            // Remove acentos para comparação
-            const categoriaNormalized = categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return categoria.includes("frios") || 
-                   categoria.includes("laticínios") ||
-                   categoria.includes("laticinios") ||
-                   categoriaNormalized.includes("frios") ||
-                   categoriaNormalized.includes("laticinios");
-          });
-        
-        // Ordenar produtos por ordem alfabética (título)
-        const sortedProducts = products.sort((a, b) => {
-          const titleA = (a.titulo || a.nome || "").toLowerCase();
-          const titleB = (b.titulo || b.nome || "").toLowerCase();
-          return titleA.localeCompare(titleB);
-        });
-        
-        console.log(`✅ Encontrados ${sortedProducts.length} produtos de Frios e Laticínios (ordenados A-Z)`);
-        
-        // Debug: mostrar as categorias encontradas
-        if (sortedProducts.length === 0) {
-          console.warn("⚠️ Nenhum produto de Frios e Laticínios encontrado. Verificando todas as categorias disponíveis:");
-          const allCategories = querySnapshot.docs.map(doc => doc.data().categoria);
-          console.log("Categorias no banco:", [...new Set(allCategories)]);
-        }
-        
-        setAllProducts(sortedProducts);
-      } catch (error) {
-        console.error("❌ Erro ao buscar frios e laticínios:", error);
-        setAllProducts([]);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchData();
+      // ✅ Verifica cache APENAS na primeira carga
+      if (!isLoadMore) {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { products, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < CACHE_TTL) {
+            console.log(`✅ Cache hit: Frios e Laticínios (${products.length} produtos)`);
+            setAllProducts(products);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
+
+      // ✅ Query com LIMIT e orderBy (requer índice composto)
+      const catOptions = ["Frios e laticínios"]; // ✅ CORRIGIDO: nome EXATO do Firebase
+      let q = query(
+        collection(db, "produtos"),
+        where("categoria", "in", catOptions),
+        orderBy("titulo"), // 👈 Ordenação no Firestore
+        limit(PRODUCTS_PER_PAGE)
+      );
+
+      // ✅ Se for "carregar mais", usa startAfter
+      if (isLoadMore && lastDoc) {
+        q = query(
+          collection(db, "produtos"),
+          where("categoria", "in", ["Frios e laticínios"]), // ✅ CORRIGIDO
+          orderBy("titulo"),
+          startAfter(lastDoc), // 👈 Começa após o último documento
+          limit(PRODUCTS_PER_PAGE)
+        );
+      }
+
+      const qs = await getDocs(q);
+
+      // ✅ Salvar lastDoc para paginação
+      if (qs.docs.length > 0) {
+        setLastDoc(qs.docs[qs.docs.length - 1]);
+      }
+
+      const newProducts = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // ✅ Produtos já vêm ordenados do Firestore!
+
+      console.log(`✅ Carregados ${newProducts.length} produtos de Frios e Laticínios`);
+
+      // ✅ Verifica se há mais produtos
+      setHasMore(qs.docs.length === PRODUCTS_PER_PAGE);
+
+      if (isLoadMore) {
+        // Adiciona novos produtos aos existentes
+        setAllProducts(prev => [...prev, ...newProducts]);
+      } else {
+        // Substitui produtos (primeira carga)
+        setAllProducts(newProducts);
+
+        // ✅ Salva no cache apenas na primeira carga
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+          products: newProducts,
+          timestamp: Date.now()
+        }));
+      }
+
+    } catch (error) {
+      console.error("❌ Erro ao buscar produtos de frios e laticínios:", error);
+      setAllProducts([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // ✅ useEffect: Busca produtos na montagem
+  useEffect(() => {
+    fetchProducts(false);
   }, []);
 
+  // ✅ Função para carregar mais produtos
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProducts(true);
+    }
+  };
+
+  // ✅ NOVA: Função para buscar produtos por termo (busca no DB)
+  const searchProducts = async (searchTerm) => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Buscando produtos com termo: "${searchTerm}"...`);
+
+      const catOptions = ["Frios e laticínios"]; // ✅ CORRIGIDO: nome EXATO do Firebase
+      const q = query(
+        collection(db, "produtos"),
+        where("categoria", "in", catOptions),
+        limit(100) // Aumenta limite para busca mais abrangente
+      );
+
+      const qs = await getDocs(q);
+      let products = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Filtrar por termo de busca
+      const searchLower = searchTerm.toLowerCase();
+      products = products.filter(p =>
+        (p.titulo || "").toLowerCase().includes(searchLower) ||
+        (p.descricao || "").toLowerCase().includes(searchLower)
+      );
+
+      // Ordenar localmente
+      products.sort((a, b) => {
+        const titleA = (a.titulo || a.nome || "").toLowerCase();
+        const titleB = (b.titulo || b.nome || "").toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+
+      console.log(`✅ Encontrados ${products.length} produtos com "${searchTerm}"`);
+      setAllProducts(products);
+      setHasMore(false); // Desabilita "Carregar Mais" durante busca
+      setLoading(false);
+    } catch (error) {
+      console.error("❌ Erro ao buscar produtos:", error);
+      setLoading(false);
+    }
+  };
+
+  // ✅ useEffect para busca (dispara quando localSearchTerm muda)
   useEffect(() => {
-    const term = searchTerm.trim().toLowerCase();
+    // Busca apenas quando NÃO for preview
+    if (!isPreview) {
+      if (localSearchTerm.trim()) {
+        // Se tem termo de busca, busca no banco
+        const timer = setTimeout(() => {
+          searchProducts(localSearchTerm.trim());
+        }, 500); // Debounce de 500ms
+        return () => clearTimeout(timer);
+      } else {
+        // Se não tem termo, recarrega produtos normais
+        setAllProducts([]);
+        setLastDoc(null);
+        setHasMore(true);
+        fetchProducts(false);
+      }
+    }
+  }, [localSearchTerm, isPreview]);
+
+  useEffect(() => {
+    // Usar termo local quando não for preview, senão usar searchTerm da home
+    const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
     const source = term
       ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
       : allProducts;
 
+    // Limitar a 10 produtos apenas quando for preview na home
+    const productsToShow = isPreview ? source.slice(0, 10) : source;
+    
     const chunkSize = 5;
     const grouped = [];
-    for (let i = 0; i < source.length; i += chunkSize) {
-      grouped.push(source.slice(i, i + chunkSize));
+    for (let i = 0; i < productsToShow.length; i += chunkSize) {
+      grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm]);
+  }, [allProducts, searchTerm, isPreview, localSearchTerm]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
@@ -110,6 +229,42 @@ export default function FriosLaticinios({ searchTerm = "" }) {
   return (
     <section className="min-h-screen mt-10 bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        
+        {/* SearchBar - apenas quando não for preview */}
+        {!isPreview && (
+          <div className="w-full flex justify-center py-8 mb-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
+              <div className="flex items-center justify-center">
+                <div className="w-full relative">
+                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar frios e laticínios..."
+                    value={localSearchTerm}
+                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl 
+                              focus:outline-none focus:ring-2 focus:ring-yellow-300 
+                              focus:border-yellow-400 text-lg transition-all duration-300 
+                              bg-gray-50 hover:bg-white shadow-sm hover:shadow-md"
+                    aria-label="Pesquisar frios e laticínios"
+                    autoComplete="off"
+                    spellCheck="false"
+                  />
+                  {localSearchTerm && (
+                    <button
+                      onClick={() => setLocalSearchTerm("")}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Limpar busca"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg mb-6">
             <FaCheese className="text-yellow-500 text-xl animate-pulse" />
@@ -138,6 +293,12 @@ export default function FriosLaticinios({ searchTerm = "" }) {
           {hasSearch && (
             <p className="mt-4 text-sm text-gray-600">
               Resultados para "{searchTerm}": {resultsCount} produto(s)
+            </p>
+          )}
+          
+          {!isPreview && localSearchTerm && (
+            <p className="mt-4 text-sm text-gray-600">
+              Resultados para "{localSearchTerm}": {resultsCount} produto(s)
             </p>
           )}
         </div>
@@ -175,10 +336,16 @@ export default function FriosLaticinios({ searchTerm = "" }) {
                       onMouseEnter={() => setHoveredProduct(product.id)}
                       onMouseLeave={() => setHoveredProduct(null)}
                     >
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                          Fresco
-                        </div>
+                      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        {product.esgotado ? (
+                          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Esgotado
+                          </div>
+                        ) : (
+                          <div className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Fresco
+                          </div>
+                        )}
                       </div>
 
                       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -226,7 +393,7 @@ export default function FriosLaticinios({ searchTerm = "" }) {
                           <span className="text-xs text-gray-500 ml-1">({product.reviews || '12'})</span>
                         </div>
 
-                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors duration-200">
+                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-yellow-600 transition-colors duration-200 uppercase">
                           {product.titulo || product.nome}
                         </h3>
 
@@ -248,16 +415,19 @@ export default function FriosLaticinios({ searchTerm = "" }) {
                         </div>
 
                         <button
-                          onClick={() => addToCart(product)}
+                          onClick={() => !product.esgotado && addToCart(product)}
+                          disabled={product.esgotado}
                           className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform ${
-                            hoveredProduct === product.id
-                              ? 'bg-gradient-to-r from-yellow-500 to-amber-500 shadow-lg scale-105'
-                              : 'bg-gradient-to-r from-yellow-400 to-amber-400'
-                          } hover:shadow-xl active:scale-95 flex items-center justify-center gap-2`}
-                          aria-label="Adicionar ao carrinho"
+                            product.esgotado
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : hoveredProduct === product.id
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-500 shadow-lg scale-105'
+                                : 'bg-gradient-to-r from-yellow-400 to-amber-400'
+                          } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
+                          aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
                           <FaShoppingCart className="text-sm" />
-                          <span>Carrinho</span>
+                          <span>{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
                         </button>
                       </div>
 
@@ -274,9 +444,73 @@ export default function FriosLaticinios({ searchTerm = "" }) {
           </div>
         ))}
 
+        {/* Botão Ver Mais - só aparece no preview da home */}
+        {isPreview && allProducts.length > 10 && (
+          <div className="text-center mt-8">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/frios-laticinios';
+              }}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <span>Ver todos os produtos</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              Mostrando 10 de {allProducts.length} produtos
+            </p>
+          </div>
+        )}
+
+        {/* ✅ NOVO: Botão "Carregar Mais" - só aparece quando NÃO é preview */}
+        {!isPreview && hasMore && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-3"
+            >
+              {loadingMore ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Carregando...</span>
+                </>
+              ) : (
+                <>
+                  <FaCheese className="text-xl" />
+                  <span>Carregar Mais Produtos</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* ✅ Indicador de fim da lista */}
+        {!isPreview && !hasMore && allProducts.length > 0 && (
+          <div className="text-center mt-8 py-6 bg-white/50 backdrop-blur-sm rounded-2xl shadow-md">
+            <div className="inline-flex items-center gap-2 text-green-600 font-semibold text-lg mb-2">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Todos os produtos foram carregados!</span>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Total: <span className="font-bold text-yellow-600">{allProducts.length}</span> produtos
+            </p>
+          </div>
+        )}
         
       </div>
     </section>
   );
-}
+});
+
+export default FriosLaticinios;
 

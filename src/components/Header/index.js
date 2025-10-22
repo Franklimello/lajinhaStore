@@ -1,13 +1,17 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
-import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox } from "react-icons/fa";
-import { useState, useEffect, useCallback } from "react";
+import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox, FaBell } from "react-icons/fa";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-// import { FaMobileAlt } from "react-icons/fa"; // Removido - não usado
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { useAdmin } from "../../hooks/useAdmin";
-// Sistema de notificações removido
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase/config";
+import firestoreMonitor from "../../services/firestoreMonitor";
+
+// ⏱️ Intervalo de polling para notificações: 30 segundos
+const NOTIFICATIONS_POLLING_INTERVAL = 30 * 1000;
 
 
 export default function Header() {
@@ -18,12 +22,13 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const location = useLocation();
+  const notificationsIntervalRef = useRef(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  // Sistema de notificações removido
 
   useEffect(() => {
     // Detectar iOS
@@ -145,11 +150,15 @@ export default function Header() {
 
   // Sistema de notificações removido
 
-  // Função para atualizar contadores (estabilizada)
+  // ============================================================
+  // ✅ ATUALIZAÇÃO DE CARRINHO E FAVORITOS (mantém como está)
+  // ============================================================
+
   const updateCounts = useCallback(() => {
     setCartCount(getCartCount());
     setFavoritesCount(getFavoritesCount());
-  }, []);
+    // ❌ NÃO atualiza mais notificações aqui - o listener faz isso automaticamente
+  }, []); // user removido das dependências
 
   // Detectar scroll para efeito no header
   useEffect(() => {
@@ -171,29 +180,104 @@ export default function Header() {
     updateCounts();
   }, [updateCounts]);
 
+  // ============================================================
+  // ✅ POLLING DE NOTIFICAÇÕES NÃO LIDAS (30s)
+  // ============================================================
+  const fetchUnreadNotifications = useCallback(async () => {
+    if (!user) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    try {
+      // Query apenas das notificações NÃO LIDAS do usuário
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', user.uid),
+        where('read', '==', false)
+      );
+
+      const snapshot = await getDocs(q);
+      const count = snapshot.size;
+      
+      // 📊 Monitorar leitura de notificações
+      firestoreMonitor.trackRead('notifications', snapshot.size, {
+        userId: user.uid,
+        type: 'unread_count',
+        isPolling: true
+      });
+      
+      console.log(`📬 [Header] Notificações não lidas: ${count}`);
+      setUnreadNotifications(count);
+    } catch (error) {
+      console.error('❌ [Header] Erro ao buscar notificações:', error);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    console.log('⏱️ [Header] Configurando polling de notificações (30s)...');
+
+    // Busca inicial
+    fetchUnreadNotifications();
+
+    // Configura polling
+    notificationsIntervalRef.current = setInterval(() => {
+      fetchUnreadNotifications();
+    }, NOTIFICATIONS_POLLING_INTERVAL);
+
+    // ✅ Cleanup ao desmontar ou quando user mudar
+    return () => {
+      console.log('🧹 [Header] Removendo polling de notificações');
+      if (notificationsIntervalRef.current) {
+        clearInterval(notificationsIntervalRef.current);
+      }
+    };
+  }, [user, fetchUnreadNotifications]);
+
   // Sistema de notificações removido
 
-  // Escutar mudanças no localStorage
+  // Escutar mudanças no localStorage (carrinho e favoritos)
   useEffect(() => {
-    // Função para escutar mudanças no localStorage
     const handleStorageChange = (e) => {
       if (e.key === 'cart' || e.key === 'favorites') {
         updateCounts();
       }
     };
 
-    // Escutar mudanças de outras abas/janelas
     window.addEventListener('storage', handleStorageChange);
 
-    // Criar um intervalo para verificar mudanças na mesma aba
-    // (localStorage events não disparam na mesma aba que fez a mudança)
-    const interval = setInterval(updateCounts, 1000);
+    // ✅ Intervalo apenas para carrinho/favoritos (não notificações)
+    const interval = setInterval(updateCounts, 2000); // Pode aumentar para 2-3 segundos
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
   }, [updateCounts]);
+
+  // ============================================================
+  // ✅ LISTENER PARA MENSAGENS FCM (quando app está aberto)
+  // ============================================================
+  useEffect(() => {
+    // Listener para mensagens FCM recebidas quando app está aberto
+    const handleFCMMessage = (event) => {
+      console.log('📬 [Header] Mensagem FCM recebida:', event.detail);
+      
+      // Mostra toast ou feedback visual se desejar
+      // O contador de notificações já será atualizado pelo listener onSnapshot
+    };
+
+    window.addEventListener('fcm-message', handleFCMMessage);
+
+    return () => {
+      window.removeEventListener('fcm-message', handleFCMMessage);
+    };
+  }, []);
 
   // Alternativa mais eficiente: usar custom event
   useEffect(() => {
@@ -389,6 +473,18 @@ export default function Header() {
               )}
 
 
+              {/* Notificações - apenas para usuários logados */}
+              {user && (
+                <Link to="/notificacoes" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
+                  <FaBell size={22} className="text-gray-700 group-hover:text-blue-600" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ">
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
+              )}
+
               {/* Carrinho */}
               <Link to="/carrinho" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
                 <FaShoppingCart size={22} className="text-gray-700 group-hover:text-blue-600" />
@@ -582,16 +678,33 @@ export default function Header() {
                         </div>
                       </div>
                     </li>
+                  {user && (
                     <li>
                       <Link
-                        to="/meus-pedidos"
+                        to="/notificacoes"
                         onClick={handleNavClick}
-                        className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                        className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-yellow-100 text-yellow-600 hover:bg-yellow-200 relative"
                       >
-                        <FaBox className="text-xl" />
-                        <span className="font-medium">Meus Pedidos</span>
+                        <FaBell className="text-xl" />
+                        <span className="font-medium">Notificações</span>
+                        {unreadNotifications > 0 && (
+                          <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                            {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                          </span>
+                        )}
                       </Link>
                     </li>
+                  )}
+                  <li>
+                    <Link
+                      to="/meus-pedidos"
+                      onClick={handleNavClick}
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                    >
+                      <FaBox className="text-xl" />
+                      <span className="font-medium">Meus Pedidos</span>
+                    </Link>
+                  </li>
                     <li>
                       <button
                         onClick={handleLogout}
