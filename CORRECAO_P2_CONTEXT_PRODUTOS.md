@@ -497,3 +497,5 @@ export default function Painel() {
 **Próximo passo:** Implementar este context e refatorar as 15 páginas de categoria para usá-lo.
 
 
+
+

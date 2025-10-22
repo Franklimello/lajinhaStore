@@ -563,3 +563,5 @@ const observer = new IntersectionObserver((entries) => {
 *Documento criado automaticamente pelo assistente de IA*
 
 
+
+

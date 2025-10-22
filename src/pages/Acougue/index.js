@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useContext, memo } from "react";
+import { useState, useEffect, useContext, memo, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -71,9 +71,35 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
             console.log(`✅ Cache hit: Açougue (${products.length} produtos)`);
             setAllProducts(products);
             setLoading(false);
+            setHasMore(products.length >= PRODUCTS_PER_PAGE);
+            
+            // ✅ CORREÇÃO: Busca em background para obter lastDoc
+            console.log('🔄 Buscando lastDoc em background...');
+            const catOptions = ["Açougue", "acougue"];
+            const bgQuery = query(
+              collection(db, "produtos"),
+              where("categoria", "in", catOptions),
+              orderBy("titulo"),
+              limit(PRODUCTS_PER_PAGE)
+            );
+            getDocs(bgQuery).then(qs => {
+              if (qs.docs.length > 0) {
+                setLastDoc(qs.docs[qs.docs.length - 1]);
+                console.log('✅ lastDoc obtido do background');
+              }
+            }).catch(err => {
+              console.error('❌ Erro ao obter lastDoc:', err);
+            });
+            
             return;
           }
         }
+      }
+      
+      if (isLoadMore && !lastDoc) {
+        console.log('⏳ Aguardando lastDoc...');
+        setLoadingMore(false);
+        return;
       }
 
       console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
@@ -143,8 +169,13 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
   }, []);
 
   // ✅ Função para carregar mais produtos
-  const handleLoadMore = () => {
+  const handleLoadMore = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!loadingMore && hasMore) {
+      console.log('🔄 Carregando mais produtos...');
       fetchProducts(true);
     }
   };
@@ -192,19 +223,20 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
   useEffect(() => {
     // Busca apenas quando NÃO for preview
     if (!isPreview) {
-      if (localSearchTerm.trim()) {
-        // Se tem termo de busca, busca no banco
+      if (localSearchTerm.trim() && localSearchTerm.trim().length >= 3) {
+        // Se tem termo de busca com mínimo 3 caracteres, busca no banco
         const timer = setTimeout(() => {
           searchProducts(localSearchTerm.trim());
         }, 500); // Debounce de 500ms
         return () => clearTimeout(timer);
-      } else {
+      } else if (localSearchTerm.trim().length === 0) {
         // Se não tem termo, recarrega produtos normais
         setAllProducts([]);
         setLastDoc(null);
         setHasMore(true);
         fetchProducts(false);
       }
+      // Se tiver menos de 3 caracteres, não faz nada (aguarda digitar mais)
     }
   }, [localSearchTerm, isPreview]);
 
@@ -256,7 +288,7 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
-              <div className="flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center">
                 <div className="w-full relative">
                   <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
                   <input
@@ -282,6 +314,11 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
                     </button>
                   )}
                 </div>
+                {localSearchTerm && localSearchTerm.length < 3 && (
+                  <p className="text-orange-600 text-sm font-semibold mt-2">
+                    💡 Digite pelo menos 3 caracteres para buscar ({localSearchTerm.length}/3)
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -492,9 +529,19 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
         {!isPreview && hasMore && (
           <div className="flex justify-center mt-8">
             <button
+              type="button"
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-3"
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 
+                        text-white px-8 py-4 rounded-xl font-semibold text-lg
+                        transition-all duration-200 
+                        hover:scale-105 active:scale-95
+                        shadow-lg hover:shadow-xl 
+                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 
+                        flex items-center gap-3
+                        focus:outline-none focus:ring-4 focus:ring-red-300
+                        touch-manipulation select-none"
+              aria-label="Carregar mais produtos"
             >
               {loadingMore ? (
                 <>
@@ -506,7 +553,7 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
                 </>
               ) : (
                 <>
-                  <FaDrumstickBite className="text-xl" />
+                  <FaDrumstickBite className="text-xl pointer-events-none" />
                   <span>Carregar Mais Produtos</span>
                 </>
               )}

@@ -79,3 +79,5 @@ match /config/storeStatus {
 Neste caso, você precisará adicionar um campo `isAdmin: true` no documento do usuário no Firestore.
 
 
+
+

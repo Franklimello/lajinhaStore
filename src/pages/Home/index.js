@@ -177,6 +177,7 @@ export default function Home() {
     'Higiene pessoal',
     'Cosméticos',
     'Farmácia',
+    'Utilidades domésticas',
     'Pet shop',
     'Infantil',
     'Hortifruti',
@@ -244,14 +245,26 @@ export default function Home() {
             </ErrorBoundary>
           )}
 
+          {/* Segunda Barra de Busca - Após ofertas para facilitar acesso */}
+          {!termo.trim() && shouldHydrateNonCritical && (
+            <ErrorBoundary>
+              <Suspense fallback={<SkeletonCard variant="search" className="w-full" />}>
+                <SearchBar 
+                  termo={termo} 
+                  setTermo={setTermo} 
+                  onClearSearch={handleClearSearch} 
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+
           {/* Resultados da Busca ou Preview das Categorias */}
-          {termo.trim() ? (
+          {termo.trim() && termo.trim().length >= 3 ? (
             <ErrorBoundary>
               <Suspense fallback={<SkeletonCard variant="product" count={10} />}>
                 <SearchResults 
                   filteredProducts={filteredProducts}
                   loading={searchLoading}
-                  onAddToCart={handleClearSearch}
                 />
               </Suspense>
             </ErrorBoundary>

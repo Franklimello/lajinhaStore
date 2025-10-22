@@ -64,28 +64,30 @@ export default function Login({ onLoginSuccess }) {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Card Principal */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header com Logo */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <img 
-                  src="/static/media/ideal.553d5328aede47d1204b.png" 
-                  alt="Logo" 
-                  className="w-16 h-16 object-contain"
-                />
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo de volta!</h1>
-            <p className="text-blue-100">Faça login para continuar suas compras</p>
-          </div>
+  // Se está sendo usado como modal (tem onLoginSuccess), não renderiza o wrapper
+  const isModal = !!onLoginSuccess;
 
-          {/* Formulário */}
-          <div className="px-8 py-8">
+  const loginForm = (
+    <div className={isModal ? "" : "bg-white rounded-2xl shadow-2xl overflow-hidden"}>
+      {/* Header com Logo - só mostra se não for modal */}
+      {!isModal && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <img 
+                src="/static/media/ideal.553d5328aede47d1204b.png" 
+                alt="Logo" 
+                className="w-16 h-16 object-contain"
+              />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Bem-vindo de volta!</h1>
+          <p className="text-blue-100">Faça login para continuar suas compras</p>
+        </div>
+      )}
+
+      {/* Formulário */}
+      <div className={isModal ? "" : "px-8 py-8"}>
             {erro && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-6">
                 <div className="flex">
@@ -201,12 +203,26 @@ export default function Login({ onLoginSuccess }) {
               </p>
             </div>
 
-            {/* Componente de Notificações */}
-            <div className="mt-6">
-              <NotificationPermission />
-            </div>
+            {/* Componente de Notificações - só mostra se não for modal */}
+            {!isModal && (
+              <div className="mt-6">
+                <NotificationPermission />
+              </div>
+            )}
           </div>
-        </div>
+    </div>
+  );
+
+  // Se é modal, retorna apenas o form
+  if (isModal) {
+    return loginForm;
+  }
+
+  // Se não é modal, retorna com wrapper completo
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {loginForm}
 
         {/* Footer */}
         <div className="text-center mt-6">
@@ -215,7 +231,6 @@ export default function Login({ onLoginSuccess }) {
           </p>
         </div>
       </div>
-      
     </div>
   );
 }

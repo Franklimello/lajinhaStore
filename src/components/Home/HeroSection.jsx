@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTruck, FaShieldAlt, FaHeart } from 'react-icons/fa';
+import { FaTruck, FaShieldAlt, FaHeart, FaClock } from 'react-icons/fa';
 
 /**
  * HeroSection - Seção principal com banner e benefícios
@@ -18,9 +18,30 @@ const HeroSection = () => {
                 Entregamos
               </span> na sua casa
             </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed mb-6">
               Descubra produtos incríveis com entrega rápida e segura. Qualidade garantida e os melhores preços do mercado!
             </p>
+
+            {/* Horário de Funcionamento - Destaque */}
+            <div className="inline-flex flex-col items-center bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-4 rounded-2xl shadow-2xl border-2 border-white/30 backdrop-blur-sm transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2">
+                <FaClock className="text-2xl text-white animate-pulse" />
+                <h3 className="text-xl font-black text-white uppercase tracking-wider">
+                  Horário de Funcionamento
+                </h3>
+                <FaClock className="text-2xl text-white animate-pulse" />
+              </div>
+              <div className="flex gap-6 text-white font-bold text-lg">
+                <div className="flex flex-col items-center bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+                  <span className="text-sm font-semibold">Seg a Sáb</span>
+                  <span className="text-2xl font-black">8h às 19h</span>
+                </div>
+                <div className="flex flex-col items-center bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+                  <span className="text-sm font-semibold">Domingo</span>
+                  <span className="text-2xl font-black">8h às 11h</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Benefícios */}
@@ -64,13 +85,26 @@ const HeroSection = () => {
           </span>
         </h1>
         
-        <div className="text-white text-sm md:text-base space-y-1 mt-4">
-          <p className="font-medium">
-            Seg a Sáb: 8h às 19h
-          </p>
-          <p className="font-medium">
-            Domingo: 8h às 11h
-          </p>
+        {/* Horário de Funcionamento Mobile - Destaque */}
+        <div className="mt-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-4 rounded-2xl shadow-2xl border-2 border-white/30 transform hover:scale-105 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <FaClock className="text-xl text-white animate-pulse" />
+            <h3 className="text-lg font-black text-white uppercase tracking-wide">
+              Horário de Funcionamento
+            </h3>
+          </div>
+          <div className="space-y-2">
+            <div className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+              <p className="text-white font-bold text-base">
+                Seg a Sáb: <span className="text-xl font-black">8h às 19h</span>
+              </p>
+            </div>
+            <div className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+              <p className="text-white font-bold text-base">
+                Domingo: <span className="text-xl font-black">8h às 11h</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </>
@@ -78,6 +112,15 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
+
+
+
+
+
+
+
+
+
 
 
 

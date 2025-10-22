@@ -70,14 +70,15 @@ export default function Register({ onRegisterSuccess }) {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Card Principal */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header com Logo */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-12 text-center">
-            <div className="flex justify-center mb-4">
+  // Se está sendo usado como modal (tem onRegisterSuccess), não renderiza o wrapper
+  const isModal = !!onRegisterSuccess;
+
+  const registerForm = (
+    <div className={isModal ? "" : "bg-white rounded-2xl shadow-2xl overflow-hidden"}>
+      {/* Header com Logo - só mostra se não for modal */}
+      {!isModal && (
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-12 text-center">
+          <div className="flex justify-center mb-4">
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
                 <img 
                   src="/static/media/ideal.553d5328aede47d1204b.png" 
@@ -89,9 +90,10 @@ export default function Register({ onRegisterSuccess }) {
             <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
             <p className="text-purple-100">Junte-se a nós e comece suas compras</p>
           </div>
+      )}
 
-          {/* Formulário */}
-          <div className="px-8 py-8">
+      {/* Formulário */}
+      <div className={isModal ? "" : "px-8 py-8"}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-6">
                 <div className="flex">
@@ -230,7 +232,19 @@ export default function Register({ onRegisterSuccess }) {
               </p>
             </div>
           </div>
-        </div>
+    </div>
+  );
+
+  // Se é modal, retorna apenas o form
+  if (isModal) {
+    return registerForm;
+  }
+
+  // Se não é modal, retorna com wrapper completo
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {registerForm}
 
         {/* Footer */}
         <div className="text-center mt-6">

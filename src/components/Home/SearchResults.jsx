@@ -8,8 +8,7 @@ import SkeletonCard from '../Common/SkeletonCard';
  */
 const SearchResults = memo(({ 
   filteredProducts, 
-  loading, 
-  onAddToCart 
+  loading
 }) => {
   if (loading) {
     return (
@@ -66,7 +65,6 @@ const SearchResults = memo(({
               descricao={produto.descricao}
               preco={produto.preco}
               id={produto.id}
-              onAddToCart={onAddToCart}
             />
           </div>
         ))}

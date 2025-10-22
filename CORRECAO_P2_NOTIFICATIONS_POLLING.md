@@ -447,3 +447,5 @@ const q = query(
 **Próximo passo:** Aplicar esta correção e monitorar redução nas leituras do Firebase Console.
 
 
+
+

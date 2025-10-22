@@ -12,12 +12,22 @@ export default function AdminOrders() {
   const [updating, setUpdating] = useState({});
   const [deleting, setDeleting] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  // Estado para controlar itens separados (marcados) - persistido no localStorage
+  const [itemsSeparados, setItemsSeparados] = useState(() => {
+    const saved = localStorage.getItem('itemsSeparados');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   useEffect(() => {
     if (isAdmin) {
       loadAllOrders();
     }
   }, [isAdmin]);
+
+  // Salvar estado de itens separados no localStorage
+  useEffect(() => {
+    localStorage.setItem('itemsSeparados', JSON.stringify(itemsSeparados));
+  }, [itemsSeparados]);
 
   const loadAllOrders = async () => {
     try {
@@ -88,6 +98,21 @@ export default function AdminOrders() {
 
   const cancelDelete = () => {
     setShowDeleteConfirm(null);
+  };
+
+  // Função para marcar/desmarcar item como separado
+  const toggleItemSeparado = (pedidoId, itemIndex) => {
+    const key = `${pedidoId}-${itemIndex}`;
+    setItemsSeparados(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Função para verificar se item está separado
+  const isItemSeparado = (pedidoId, itemIndex) => {
+    const key = `${pedidoId}-${itemIndex}`;
+    return itemsSeparados[key] || false;
   };
 
   if (!isAdmin) {
@@ -254,40 +279,94 @@ export default function AdminOrders() {
                   {/* Itens do pedido */}
                   {pedido.items && pedido.items.length > 0 && (
                     <div className="mb-4">
-                    <h5 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-base">
-                      🛒 Itens do Pedido
-                    </h5>
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="font-semibold text-gray-800 flex items-center gap-2 text-base">
+                        🛒 Itens do Pedido
+                      </h5>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                          Separados: {pedido.items.filter((_, idx) => isItemSeparado(pedido.id, idx)).length} / {pedido.items.length}
+                        </span>
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          pedido.items.filter((_, idx) => isItemSeparado(pedido.id, idx)).length === pedido.items.length
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {pedido.items.filter((_, idx) => isItemSeparado(pedido.id, idx)).length === pedido.items.length
+                            ? '✅ Completo'
+                            : '⏳ Em separação'}
+                        </div>
+                      </div>
+                    </div>
                     <div className="space-y-2 bg-white rounded-lg border border-gray-200 p-3">
-                      {pedido.items.map((item, index) => (
-                        <div 
-                          key={index} 
-                          className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0"
-                        >
-                          <div className="flex-1 min-w-0 pr-3">
-                            <p className="text-gray-800 font-semibold text-sm leading-tight">
-                              {item.nome}
-                            </p>
-                            {item.corte && (
-                              <p className="text-xs text-red-600 font-semibold mt-1 bg-red-50 inline-block px-2 py-0.5 rounded">
-                                🥩 Corte: {item.corte}
+                      {pedido.items.map((item, index) => {
+                        const separado = isItemSeparado(pedido.id, index);
+                        return (
+                          <div 
+                            key={index} 
+                            className={`flex items-start gap-3 py-2 border-b border-gray-100 last:border-0 transition-all duration-200 ${
+                              separado ? 'bg-green-50 opacity-60' : ''
+                            }`}
+                          >
+                            {/* Checkbox para marcar item como separado */}
+                            <div className="flex-shrink-0 pt-1">
+                              <button
+                                onClick={() => toggleItemSeparado(pedido.id, index)}
+                                className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                                  separado 
+                                    ? 'bg-green-500 border-green-500' 
+                                    : 'bg-white border-gray-300 hover:border-green-400'
+                                }`}
+                                title={separado ? 'Marcar como não separado' : 'Marcar como separado'}
+                              >
+                                {separado && (
+                                  <svg 
+                                    className="w-4 h-4 text-white" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path 
+                                      strokeLinecap="round" 
+                                      strokeLinejoin="round" 
+                                      strokeWidth={3} 
+                                      d="M5 13l4 4L19 7" 
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+
+                            <div className="flex-1 min-w-0 pr-3">
+                              <p className={`text-gray-800 font-semibold text-sm leading-tight ${
+                                separado ? 'line-through' : ''
+                              }`}>
+                                {item.nome}
                               </p>
-                            )}
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Qtd: {item.quantidade}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                R$ {(item.subtotal / item.quantidade).toFixed(2)} un.
-                              </span>
+                              {item.corte && (
+                                <p className="text-xs text-red-600 font-semibold mt-1 bg-red-50 inline-block px-2 py-0.5 rounded">
+                                  🥩 Corte: {item.corte}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Qtd: {item.quantidade}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  R$ {(item.subtotal / item.quantidade).toFixed(2)} un.
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className={`text-base font-bold text-green-600 ${
+                                separado ? 'line-through' : ''
+                              }`}>
+                                R$ {item.subtotal?.toFixed(2) || "0,00"}
+                              </p>
                             </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-base font-bold text-green-600">
-                              R$ {item.subtotal?.toFixed(2) || "0,00"}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                   )}

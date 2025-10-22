@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import Login from "../../pages/Login";
 import Register from "../../pages/Register";
 
@@ -8,7 +7,7 @@ export default function CheckoutGuard({ children, onAuthSuccess }) {
   const { user, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const navigate = useNavigate();
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Aguarda o carregamento do contexto de autenticação
   if (loading) {
@@ -21,12 +20,40 @@ export default function CheckoutGuard({ children, onAuthSuccess }) {
 
   // Se o usuário está autenticado, mostra o checkout
   if (user) {
-    return children;
+    return (
+      <>
+        {children}
+        {/* Mensagem de sucesso após login */}
+        {showSuccessMessage && (
+          <div className="fixed top-20 right-4 bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl z-50 animate-bounce">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="font-bold">Login realizado com sucesso!</p>
+                <p className="text-sm">Agora você pode finalizar sua compra</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
-  // Se não está autenticado, mostra opções de login/cadastro
+  // Se não está autenticado, renderiza o botão desabilitado com tooltip
+  const handleClick = (e) => {
+    e.preventDefault();
+    setShowLogin(true);
+  };
+
   const handleLoginSuccess = () => {
     setShowLogin(false);
+    setShowSuccessMessage(true);
+    
+    // Remove mensagem após 3 segundos
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+    
     if (onAuthSuccess) {
       onAuthSuccess();
     }
@@ -34,34 +61,53 @@ export default function CheckoutGuard({ children, onAuthSuccess }) {
 
   const handleRegisterSuccess = () => {
     setShowRegister(false);
+    setShowSuccessMessage(true);
+    
+    // Remove mensagem após 3 segundos
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
+    
     if (onAuthSuccess) {
       onAuthSuccess();
     }
   };
 
-  const handleBackToCart = () => {
-    navigate("/carrinho");
-  };
-
   if (showLogin) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-md mx-auto pt-8">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Finalizar Compra</h2>
-              <button
-                onClick={() => setShowLogin(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Faça login para continuar com sua compra
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-4">🔐</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Faça Login para Continuar
+            </h2>
+            <p className="text-gray-600">
+              Entre na sua conta para finalizar a compra
             </p>
           </div>
+          
           <Login onLoginSuccess={handleLoginSuccess} />
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500 mb-2">Não tem uma conta?</p>
+            <button
+              onClick={() => {
+                setShowLogin(false);
+                setShowRegister(true);
+              }}
+              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+            >
+              Criar Conta
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowLogin(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
         </div>
       </div>
     );
@@ -69,70 +115,54 @@ export default function CheckoutGuard({ children, onAuthSuccess }) {
 
   if (showRegister) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-md mx-auto pt-8">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Finalizar Compra</h2>
-              <button
-                onClick={() => setShowRegister(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Crie uma conta para continuar com sua compra
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-4">✨</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Crie sua Conta
+            </h2>
+            <p className="text-gray-600">
+              Cadastre-se para finalizar sua compra
             </p>
           </div>
+          
           <Register onRegisterSuccess={handleRegisterSuccess} />
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500 mb-2">Já tem uma conta?</p>
+            <button
+              onClick={() => {
+                setShowRegister(false);
+                setShowLogin(true);
+              }}
+              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+            >
+              Fazer Login
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowRegister(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
         </div>
       </div>
     );
   }
 
-  // Modal de autenticação obrigatória
+  // Se não está autenticado, clona o children e adiciona handler de click
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="text-center mb-6">
-          <div className="text-4xl mb-4">🔐</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Login Obrigatório
-          </h2>
-          <p className="text-gray-600">
-            Você precisa estar logado para finalizar sua compra
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <button
-            onClick={() => setShowLogin(true)}
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Fazer Login
-          </button>
-          
-          <button
-            onClick={() => setShowRegister(true)}
-            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-          >
-            Criar Conta
-          </button>
-          
-          <button
-            onClick={handleBackToCart}
-            className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-          >
-            Voltar ao Carrinho
-          </button>
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
-            Seus itens estão seguros no carrinho
-          </p>
-        </div>
+    <div className="relative">
+      <div onClick={handleClick}>
+        {children}
+      </div>
+      <div className="mt-2 text-center">
+        <p className="text-sm text-gray-600">
+          🔐 <span className="font-medium">Faça login ou cadastre-se</span> para finalizar sua compra
+        </p>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@
 
 ## 🎯 Visão Geral
 
-Sistema completo de sorteio para clientes que realizam compras com **10 ou mais itens**. O sistema inclui:
+Sistema completo de sorteio para clientes que realizam compras com **5 ou mais itens**. O sistema inclui:
 
 - ✅ Salvamento automático de pedidos elegíveis no Firestore
 - ✅ Interface administrativa para visualizar participantes
@@ -30,7 +30,7 @@ Sistema completo de sorteio para clientes que realizam compras com **10 ou mais 
 ### 1. **Serviço** (`src/services/sorteioService.js`)
 Funções para gerenciar dados do sorteio no Firestore:
 
-- `addSorteioData(order)` - Salva pedido elegível (10+ itens)
+- `addSorteioData(order)` - Salva pedido elegível (5+ itens)
 - `getSorteioData()` - Busca todos os pedidos elegíveis
 - `saveWinner(winner)` - Salva o vencedor do sorteio
 
@@ -371,7 +371,7 @@ service cloud.firestore {
 ### Problemas Comuns
 
 **P: Os pedidos não estão aparecendo no sorteio**
-- R: Verifique se os pedidos têm 10+ itens (soma das quantidades)
+- R: Verifique se os pedidos têm 5+ itens (soma das quantidades)
 - R: Verifique se `addSorteioData()` está sendo chamado no checkout
 
 **P: Erro ao buscar dados**
@@ -384,7 +384,7 @@ service cloud.firestore {
 - R: Execute: `npm install framer-motion react-confetti`
 
 **P: Como testar localmente?**
-- R: Crie pedidos de teste com 10+ itens
+- R: Crie pedidos de teste com 5+ itens
 - R: Use o console do Firebase para adicionar documentos manualmente
 
 ---
@@ -408,4 +408,5 @@ service cloud.firestore {
 Seu sistema de sorteio está 100% funcional! Basta integrar a chamada `addSorteioData()` no seu checkout e começar a realizar sorteios.
 
 **Boa sorte com os sorteios! 🍀🎊**
+
 

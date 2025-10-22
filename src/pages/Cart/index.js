@@ -1,14 +1,19 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useCallback } from "react";
 import { CartContext } from "../../context/CartContext";
 import { FaTrash, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
 import { useNavigate, Link } from "react-router-dom";
-import CheckoutGuard from "../../components/CheckoutGuard";
+import { useAuth } from "../../context/AuthContext";
+import Login from "../Login";
+import Register from "../Register";
 
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity } = useContext(CartContext);
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [paymentMethod, setPaymentMethod] = useState('pix'); // 'pix' ou 'dinheiro'
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   // Calcula o valor total do carrinho
   const total = cart.reduce((acc, item) => {
@@ -20,12 +25,48 @@ export default function Cart() {
   const entrega = 5;
   const totalComEntrega = total + entrega;
 
-  const handleQuantityChange = (itemId, newQty) => {
+  const handleQuantityChange = useCallback((itemId, newQty, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (newQty <= 0) {
       removeFromCart(itemId);
     } else if (updateQuantity) {
       updateQuantity(itemId, newQty);
     }
+  }, [removeFromCart, updateQuantity]);
+
+  // Função para lidar com o checkout
+  const handleCheckout = (e) => {
+    e.preventDefault();
+    
+    // Se usuário não está logado, abre o modal
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    // Se está logado, salva método de pagamento e navega
+    localStorage.setItem('selectedPaymentMethod', paymentMethod);
+    navigate('/pagamento-pix');
+  };
+
+  // Função chamada após login bem-sucedido
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // Após login, automaticamente navega para pagamento
+    localStorage.setItem('selectedPaymentMethod', paymentMethod);
+    navigate('/pagamento-pix');
+  };
+
+  // Função chamada após registro bem-sucedido
+  const handleRegisterSuccess = () => {
+    setShowRegisterModal(false);
+    // Após registro, automaticamente navega para pagamento
+    localStorage.setItem('selectedPaymentMethod', paymentMethod);
+    navigate('/pagamento-pix');
   };
 
 
@@ -127,10 +168,12 @@ export default function Cart() {
                           <span className="text-sm text-gray-600">Qtd:</span>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleQuantityChange(item.id, (item.qty || 1) - 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200"
+                              type="button"
+                              onClick={(e) => handleQuantityChange(item.id, (item.qty || 1) - 1, e)}
+                              className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200 active:scale-95"
+                              aria-label="Diminuir quantidade"
                             >
-                              <FaMinus className="text-xs text-gray-600" />
+                              <FaMinus className="text-xs text-gray-600 pointer-events-none" />
                             </button>
                             
                             <span className="w-12 text-center font-semibold text-gray-800">
@@ -138,10 +181,12 @@ export default function Cart() {
                             </span>
                             
                             <button
-                              onClick={() => handleQuantityChange(item.id, (item.qty || 1) + 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200"
+                              type="button"
+                              onClick={(e) => handleQuantityChange(item.id, (item.qty || 1) + 1, e)}
+                              className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200 active:scale-95"
+                              aria-label="Aumentar quantidade"
                             >
-                              <FaPlus className="text-xs text-gray-600" />
+                              <FaPlus className="text-xs text-gray-600 pointer-events-none" />
                             </button>
                           </div>
                         </div>
@@ -153,11 +198,17 @@ export default function Cart() {
                         </span>
                         
                         <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110"
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            removeFromCart(item.id);
+                          }}
+                          className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
                           title="Remover item"
+                          aria-label="Remover item do carrinho"
                         >
-                          <FaTrash />
+                          <FaTrash className="pointer-events-none" />
                         </button>
                       </div>
                     </div>
@@ -252,22 +303,22 @@ export default function Cart() {
 
               {/* Botão de ação */}
               <div className="space-y-3">
-                <CheckoutGuard>
-                  <Link
-                    to="/pagamento-pix"
-                    onClick={() => {
-                      // Salvar método de pagamento no localStorage
-                      localStorage.setItem('selectedPaymentMethod', paymentMethod);
-                    }}
-                    className={`w-full py-4 text-white rounded-xl font-bold text-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl inline-block text-center ${
-                      paymentMethod === 'pix' 
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                        : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-                    }`}
-                  >
-                    {paymentMethod === 'pix' ? '💳 Finalizar Compra com PIX' : '💵 Finalizar Compra (Dinheiro)'}
-                  </Link>
-                </CheckoutGuard>
+                <button
+                  onClick={handleCheckout}
+                  className={`w-full py-4 text-white rounded-xl font-bold text-lg transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl ${
+                    paymentMethod === 'pix' 
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                      : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                  }`}
+                >
+                  {paymentMethod === 'pix' ? '💳 Finalizar Compra com PIX' : '💵 Finalizar Compra (Dinheiro)'}
+                </button>
+                
+                {!user && (
+                  <p className="text-center text-sm text-gray-600">
+                    🔐 Você precisa fazer login para continuar
+                  </p>
+                )}
                 
                 <Link
                   to="/"
@@ -280,6 +331,84 @@ export default function Cart() {
           </div>
         )}
       </div>
+
+      {/* Modal de Login */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">🔐</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Faça Login para Continuar
+              </h2>
+              <p className="text-gray-600">
+                Entre na sua conta para finalizar a compra
+              </p>
+            </div>
+            
+            <Login onLoginSuccess={handleLoginSuccess} />
+            
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-500 mb-2">Não tem uma conta?</p>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  setShowRegisterModal(true);
+                }}
+                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+              >
+                Criar Conta
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Registro */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">✨</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Crie sua Conta
+              </h2>
+              <p className="text-gray-600">
+                Cadastre-se para finalizar sua compra
+              </p>
+            </div>
+            
+            <Register onRegisterSuccess={handleRegisterSuccess} />
+            
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-500 mb-2">Já tem uma conta?</p>
+              <button
+                onClick={() => {
+                  setShowRegisterModal(false);
+                  setShowLoginModal(true);
+                }}
+                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+              >
+                Fazer Login
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowRegisterModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

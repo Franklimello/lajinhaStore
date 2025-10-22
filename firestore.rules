@@ -58,6 +58,41 @@ service cloud.firestore {
                        request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
     }
     
+    // Regras para configurações da loja (status aberto/fechado, config de sorteio, etc.)
+    match /config/{configId} {
+      // Permitir leitura pública para qualquer pessoa ver se a loja está aberta
+      allow read: if true;
+      
+      // Permitir escrita apenas para administradores
+      allow write: if request.auth != null && 
+                      (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                       request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
+    // Regras para sorteio - apenas admins
+    match /sorteio/{sorteioId} {
+      // Apenas administradores podem ler/escrever
+      allow read, write: if request.auth != null && 
+                            (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                             request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
+    // Regras para vencedores do sorteio - apenas admins
+    match /sorteio_vencedores/{vencedorId} {
+      // Apenas administradores podem ler/escrever
+      allow read, write: if request.auth != null && 
+                            (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                             request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
+    // Regras para config do sorteio - apenas admins
+    match /sorteio_config/{configId} {
+      // Apenas administradores podem ler/escrever
+      allow read, write: if request.auth != null && 
+                            (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                             request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+    }
+    
     // Regras para outras coleções (categorias, etc.)
     match /{document=**} {
       // Permitir leitura para todos os usuários autenticados

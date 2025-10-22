@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser, FaStore, FaLock, FaUnlock, FaTrophy } from "react-icons/fa";
+import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser, FaStore, FaLock, FaUnlock, FaTrophy, FaImage } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useStoreStatus } from "../../context/StoreStatusContext";
 import FormAnuncio from "../../components/FormAnuncio"
+import EditProductModal from "../../components/EditProductModal";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
 import { useDeleteDocument } from "../../hooks/useDeleteDocument";
 import { useUpdateDocument } from "../../hooks/useUpdateDocument";
@@ -24,6 +25,10 @@ export default function Painel() {
     preco: "",
     esgotado: false,
   });
+
+  // Estados para o modal de edição com imagem
+  const [produtoEmEdicao, setProdutoEmEdicao] = useState(null);
+  const [modalAberto, setModalAberto] = useState(false);
 
   // Estados para busca e filtros
   const [busca, setBusca] = useState("");
@@ -47,6 +52,22 @@ export default function Painel() {
   const handleSalvar = async (id) => {
     await updateDocument(id, formEdit);
     setEditandoId(null);
+  };
+
+  // Funções para o modal de edição com imagem
+  const handleEditarComImagem = (produto) => {
+    setProdutoEmEdicao(produto);
+    setModalAberto(true);
+  };
+
+  const handleFecharModal = () => {
+    setModalAberto(false);
+    setProdutoEmEdicao(null);
+  };
+
+  const handleSucessoEdicao = () => {
+    // A lista será atualizada automaticamente pelo hook useGetDocuments
+    console.log('Produto atualizado com sucesso!');
   };
 
   const { logout } = useAuth();
@@ -419,8 +440,9 @@ export default function Painel() {
                 
                 <div className="flex gap-2 flex-shrink-0">
                   <button
-                    onClick={() => handleEditar(produto)}
+                    onClick={() => handleEditarComImagem(produto)}
                     className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 text-sm hover:bg-blue-700 rounded flex-1 sm:flex-none"
+                    title="Editar produto (com opção de trocar imagem)"
                   >
                     <FaEdit />
                     <span className="hidden sm:inline">Editar</span>
@@ -488,6 +510,14 @@ export default function Painel() {
           </button>
         </div>
       )}
+
+      {/* Modal de Edição com Imagem */}
+      <EditProductModal
+        produto={produtoEmEdicao}
+        isOpen={modalAberto}
+        onClose={handleFecharModal}
+        onSuccess={handleSucessoEdicao}
+      />
     </div>
   );
 }

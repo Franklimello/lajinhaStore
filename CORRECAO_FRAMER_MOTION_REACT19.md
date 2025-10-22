@@ -80,3 +80,5 @@ O `AnimatePresence` é usado para animar componentes quando eles entram/saem do 
 
 **Pronto para usar! 🎊**
 
+
+

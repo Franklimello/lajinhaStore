@@ -277,20 +277,20 @@ const PixPayment = () => {
           totalValue: total
         };
 
-        // Tentar adicionar ao sorteio (só salva se totalItems >= 10)
+        // Tentar adicionar ao sorteio (só salva se totalItems >= 5)
         try {
           const sorteioResult = await addSorteioData(sorteioDataPayload);
           
           if (sorteioResult.eligible) {
             console.log('🎉 Cliente elegível para sorteio!', sorteioResult);
             // Mostrar mensagem ao cliente que ele está participando
-            if (totalItems >= 10) {
+            if (totalItems >= 5) {
               setTimeout(() => {
                 showToast('🎉 Parabéns! Você está participando do nosso sorteio!', 'success');
               }, 2000);
             }
           } else {
-            console.log('⚠️ Pedido não elegível para sorteio (menos de 10 itens)');
+            console.log('⚠️ Pedido não elegível para sorteio (menos de 5 itens ou promoção pausada)');
           }
         } catch (sorteioError) {
           console.error('❌ Erro ao adicionar ao sorteio:', sorteioError);

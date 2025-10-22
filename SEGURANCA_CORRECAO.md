@@ -200,3 +200,5 @@ Depois de fazer todas as correções:
 Após completar todos os passos, o status será: ✅ SEGURO
 
 
+
+

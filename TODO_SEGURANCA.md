@@ -34,3 +34,5 @@ firebase deploy --only functions
 **Por enquanto**: O sistema continua funcionando normalmente ✅
 
 
+
+

@@ -84,8 +84,8 @@ export const useSimpleSearch = (searchTerm = '', category = '') => {
       );
     }
 
-    // Filtro por termo de busca
-    if (searchTerm.trim()) {
+    // Filtro por termo de busca - REQUER MÍNIMO 3 CARACTERES
+    if (searchTerm.trim() && searchTerm.trim().length >= 3) {
       const searchLower = searchTerm.toLowerCase().trim();
       
       filtered = filtered.filter(product => {
@@ -98,6 +98,9 @@ export const useSimpleSearch = (searchTerm = '', category = '') => {
                descricao.includes(searchLower) || 
                categoria.includes(searchLower);
       });
+    } else if (searchTerm.trim() && searchTerm.trim().length < 3) {
+      // Se tiver menos de 3 caracteres, retorna array vazio (não busca)
+      return [];
     }
 
     return filtered;
@@ -120,6 +123,8 @@ export const useSimpleSearch = (searchTerm = '', category = '') => {
     totalProducts: allProducts.length
   };
 };
+
+
 
 
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useContext, memo } from "react";
+import { useState, useEffect, useContext, memo, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -45,9 +45,35 @@ const Infantil = memo(function Infantil({ searchTerm = "", isPreview = false }) 
             console.log(`✅ Cache hit: Infantil (${products.length} produtos)`);
             setAllProducts(products);
             setLoading(false);
+            setHasMore(products.length >= PRODUCTS_PER_PAGE);
+            
+            // ✅ CORREÇÃO: Busca em background para obter lastDoc
+            console.log('🔄 Buscando lastDoc em background...');
+            const catOptions = ["Infantil", "infantil"];
+            const bgQuery = query(
+              collection(db, "produtos"),
+              where("categoria", "in", catOptions),
+              orderBy("titulo"),
+              limit(PRODUCTS_PER_PAGE)
+            );
+            getDocs(bgQuery).then(qs => {
+              if (qs.docs.length > 0) {
+                setLastDoc(qs.docs[qs.docs.length - 1]);
+                console.log('✅ lastDoc obtido do background');
+              }
+            }).catch(err => {
+              console.error('❌ Erro ao obter lastDoc:', err);
+            });
+            
             return;
           }
         }
+      }
+      
+      if (isLoadMore && !lastDoc) {
+        console.log('⏳ Aguardando lastDoc...');
+        setLoadingMore(false);
+        return;
       }
 
       console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
@@ -105,8 +131,13 @@ const Infantil = memo(function Infantil({ searchTerm = "", isPreview = false }) 
     fetchProducts(false);
   }, []);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!loadingMore && hasMore) {
+      console.log('🔄 Carregando mais produtos...');
       fetchProducts(true);
     }
   };

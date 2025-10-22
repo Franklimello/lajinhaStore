@@ -9,7 +9,7 @@ import './SorteioAnimation.css';
  * Exibe um ciclo de nomes que vai desacelerando até selecionar o vencedor
  * Versão otimizada para React 19 (sem Framer Motion)
  * 
- * @param {Array} entries - Lista de pedidos elegíveis (10+ itens)
+ * @param {Array} entries - Lista de pedidos elegíveis (5+ itens)
  * @param {Function} onClose - Callback para fechar o modal
  */
 export default function SorteioAnimation({ entries, onClose }) {
@@ -112,7 +112,7 @@ export default function SorteioAnimation({ entries, onClose }) {
               Nenhum pedido elegível encontrado
             </p>
             <p className="text-sm text-gray-500 mb-6">
-              É necessário ter pelo menos um pedido com 10 ou mais itens para realizar o sorteio.
+              É necessário ter pelo menos um pedido com 5 ou mais itens para realizar o sorteio.
             </p>
             <button
               onClick={onClose}

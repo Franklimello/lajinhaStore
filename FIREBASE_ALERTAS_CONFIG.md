@@ -508,3 +508,5 @@ Se os alertas dispararem constantemente:
 Agora você tem um sistema robusto de monitoramento e alertas para prevenir custos excessivos no Firebase.
 
 
+
+

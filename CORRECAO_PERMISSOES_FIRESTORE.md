@@ -1,240 +1,331 @@
-# 🔐 Correção do Erro de Permissões do Firestore
+# 🔒 Correção: Permissões do Firestore
 
-## ❌ **Problema Identificado**
+## ✅ PROBLEMA RESOLVIDO
 
-**Erro:** `missing or insufficient permissions`
+**Erro:** `Missing or insufficient permissions` ao carregar status da loja
 
-**Causa:** As regras de segurança do Firestore estão bloqueando a criação de pedidos pelos usuários autenticados.
+---
 
-## ✅ **Soluções Implementadas**
+## ❌ Problema
 
-### **1. Regras de Segurança do Firestore**
+Usuários não autenticados (visitantes) não conseguiam visualizar se a loja estava aberta ou fechada, causando erro:
 
-**📁 Arquivo:** `firestore.rules`
+```
+StoreStatusContext.js:23 Erro ao carregar status da loja: 
+FirebaseError: Missing or insufficient permissions.
+```
+
+### Causa Raiz
+
+A coleção `config` (que armazena o status da loja) estava protegida pela regra genérica:
 
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Regras para a coleção de pedidos
-    match /pedidos/{pedidoId} {
-      // Permitir leitura e escrita apenas para usuários autenticados
-      allow read, write: if request.auth != null;
-      
-      // Permitir que usuários leiam apenas seus próprios pedidos
-      allow read: if request.auth != null && 
-                     (resource.data.userId == request.auth.uid || 
-                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
-      
-      // Permitir que usuários criem pedidos apenas para si mesmos
-      allow create: if request.auth != null && 
-                       request.resource.data.userId == request.auth.uid;
-      
-      // Permitir que administradores atualizem qualquer pedido
-      allow update: if request.auth != null && 
-                       (resource.data.userId == request.auth.uid || 
-                        request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2");
-    }
-    
-    // Regras para outras coleções (produtos, etc.)
-    match /{document=**} {
-      // Permitir leitura para todos os usuários autenticados
-      allow read: if request.auth != null;
-      
-      // Permitir escrita apenas para administradores
-      allow write: if request.auth != null && 
-                      request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2";
-    }
-  }
+// ❌ ANTES
+match /{document=**} {
+  allow read: if request.auth != null; // ← Requer autenticação
 }
 ```
 
-### **2. Melhorias na Função createOrder**
+**Resultado:** Visitantes não conseguiam ver se a loja estava aberta/fechada.
 
-**📁 Arquivo:** `src/firebase/orders.js`
+---
 
-**✅ Verificações Adicionadas:**
-- ✅ Verificação de autenticação antes de criar pedido
-- ✅ Mensagens de erro específicas
-- ✅ Logs de debug para troubleshooting
-- ✅ Status inicial mais claro ("Aguardando Pagamento")
+## ✅ Solução Implementada
 
-**🔧 Código Implementado:**
+Adicionei regras específicas para as seguintes coleções:
+
+### 1. **Coleção `config`** (Leitura Pública)
+
 ```javascript
-export const createOrder = async (orderData) => {
-  try {
-    // Verifica se o usuário está autenticado
-    if (!orderData.userId) {
-      throw new Error("Usuário não autenticado");
-    }
-
-    const now = new Date();
-    const orderRef = await addDoc(collection(db, "pedidos"), {
-      ...orderData,
-      createdAt: now,
-      updatedAt: now,
-      createdAtTimestamp: now.getTime(),
-      status: 'Aguardando Pagamento', // Status inicial mais claro
-      paymentMethod: 'PIX_QR'
-    });
-    
-    console.log("Pedido criado com sucesso:", orderRef.id);
-    return { success: true, orderId: orderRef.id };
-  } catch (error) {
-    console.error("Erro ao criar pedido:", error);
-    
-    // Mensagens de erro mais específicas
-    if (error.code === 'permission-denied') {
-      return { 
-        success: false, 
-        error: "Erro de permissão. Verifique se você está logado e tente novamente." 
-      };
-    } else if (error.code === 'unauthenticated') {
-      return { 
-        success: false, 
-        error: "Usuário não autenticado. Faça login e tente novamente." 
-      };
-    }
-    
-    return { success: false, error: error.message };
-  }
-};
+match /config/{configId} {
+  // Permitir leitura pública para qualquer pessoa ver se a loja está aberta
+  allow read: if true;
+  
+  // Permitir escrita apenas para administradores
+  allow write: if request.auth != null && 
+                  (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                   request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+}
 ```
 
-### **3. Verificações Adicionais no PixPayment**
+**Benefício:** Todos podem ver o status da loja (aberta/fechada), mas apenas admins podem alterá-lo.
 
-**📁 Arquivo:** `src/components/PixPayment/index.js`
+---
 
-**✅ Verificações Implementadas:**
-- ✅ Verificação dupla de autenticação
-- ✅ Logs de debug dos dados do pedido
-- ✅ Verificação do UID do usuário
+### 2. **Coleção `sorteio`** (Apenas Admins)
 
-**🔧 Código Implementado:**
 ```javascript
-const generatePixPayload = async () => {
-  if (!user) {
-    showToast('Você precisa estar logado para fazer um pedido', 'error');
-    navigate('/login');
-    return;
-  }
-
-  // Verificação adicional de autenticação
-  if (!user.uid) {
-    showToast('Erro de autenticação. Faça login novamente.', 'error');
-    navigate('/login');
-    return;
-  }
-
-  // ... resto do código ...
-
-  // Debug: Log dos dados do pedido
-  console.log('Dados do pedido:', orderData);
-  console.log('Usuário UID:', user.uid);
-  console.log('Usuário autenticado:', !!user);
-};
+match /sorteio/{sorteioId} {
+  allow read, write: if request.auth != null && 
+                        (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                         request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+}
 ```
 
-### **4. Componente de Teste**
+**Benefício:** Apenas admins podem acessar lista de participantes do sorteio.
 
-**📁 Arquivo:** `src/components/FirestoreTest/index.js`
+---
 
-**✅ Funcionalidades:**
-- ✅ Teste de permissões do Firestore
-- ✅ Verificação de autenticação
-- ✅ Criação de pedido de teste
-- ✅ Logs detalhados para debug
+### 3. **Coleção `sorteio_vencedores`** (Apenas Admins)
 
-**🔗 Rota:** `/test-firestore` (temporária para testes)
-
-## 🚀 **Como Resolver o Problema**
-
-### **Passo 1: Configurar Regras do Firestore**
-
-1. **Acesse o Firebase Console:**
-   - Vá para [Firebase Console](https://console.firebase.google.com/)
-   - Selecione o projeto: `compreaqui-324df`
-   - Clique em **"Firestore Database"**
-   - Clique na aba **"Regras"**
-
-2. **Substitua as Regras:**
-   - Copie o conteúdo do arquivo `firestore.rules`
-   - Cole na aba "Regras"
-   - Clique em **"Publicar"**
-
-### **Passo 2: Testar as Permissões**
-
-1. **Acesse a rota de teste:**
-   - Vá para `/test-firestore` (após fazer login)
-   - Clique em "Testar Permissões"
-   - Verifique o resultado
-
-2. **Verificar logs no console:**
-   - Abra o DevTools (F12)
-   - Vá para a aba "Console"
-   - Verifique os logs de debug
-
-### **Passo 3: Testar Criação de Pedido**
-
-1. **Faça login no sistema**
-2. **Adicione produtos ao carrinho**
-3. **Vá para o pagamento PIX**
-4. **Preencha os dados e finalize**
-5. **Verifique se o pedido foi criado**
-
-## 🔍 **Debugging**
-
-### **Verificar Autenticação:**
 ```javascript
-console.log('Usuário logado:', user);
-console.log('UID:', user?.uid);
+match /sorteio_vencedores/{vencedorId} {
+  allow read, write: if request.auth != null && 
+                        (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                         request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+}
 ```
 
-### **Verificar Dados do Pedido:**
+**Benefício:** Apenas admins podem ver histórico de vencedores.
+
+---
+
+### 4. **Coleção `sorteio_config`** (Apenas Admins)
+
 ```javascript
-console.log('Dados do pedido:', orderData);
-console.log('UserId no pedido:', orderData.userId);
+match /sorteio_config/{configId} {
+  allow read, write: if request.auth != null && 
+                        (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                         request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+}
 ```
 
-### **Verificar Erros:**
-```javascript
-// No console do navegador
-// Verificar erros de permissão
-// Verificar se as regras foram aplicadas
+**Benefício:** Apenas admins podem pausar/ativar a promoção de sorteio.
+
+---
+
+## 📊 Resumo das Regras
+
+| Coleção | Leitura | Escrita |
+|---------|---------|---------|
+| **config** | 🌍 Público | 🔐 Apenas Admins |
+| **produtos** | 🌍 Público | 🔐 Apenas Admins |
+| **pedidos** | 🔐 Dono ou Admin | 🔐 Dono ou Admin |
+| **notifications** | 🔐 Dono | 🔐 Dono ou Admin |
+| **sorteio** | 🔐 Apenas Admins | 🔐 Apenas Admins |
+| **sorteio_vencedores** | 🔐 Apenas Admins | 🔐 Apenas Admins |
+| **sorteio_config** | 🔐 Apenas Admins | 🔐 Apenas Admins |
+
+---
+
+## 🚀 Deploy Realizado
+
+As regras foram implantadas com sucesso no Firestore:
+
+```bash
+✅ firebase deploy --only firestore:rules
+
+=== Deploying to 'compreaqui-324df'...
+✅ rules file firestore.rules compiled successfully
+✅ released rules firestore.rules to cloud.firestore
+✅ Deploy complete!
 ```
 
-## 📱 **Teste no Mobile**
+---
 
-### **1. Verificar Autenticação:**
-- ✅ Usuário deve estar logado
-- ✅ UID deve estar presente
-- ✅ Sessão deve estar ativa
+## 🧪 Como Testar
 
-### **2. Verificar Dados:**
-- ✅ `userId` deve ser igual ao `user.uid`
-- ✅ Todos os campos obrigatórios preenchidos
-- ✅ Estrutura do pedido correta
+### Teste 1: Visitante (Não Autenticado)
 
-### **3. Verificar Regras:**
-- ✅ Regras do Firestore configuradas
-- ✅ Permissões corretas aplicadas
-- ✅ Usuário tem permissão para criar pedidos
+```
+1. Abra o navegador em modo anônimo
+2. Acesse http://localhost:3000
+3. ✅ A página deve carregar normalmente
+4. ✅ Não deve aparecer erro de permissão no console
+5. ✅ Se a loja estiver fechada, o modal deve aparecer
+```
 
-## ✅ **Resultado Esperado**
+### Teste 2: Usuário Comum (Autenticado)
 
-Após implementar todas as correções:
+```
+1. Faça login como usuário normal
+2. Acesse a loja normalmente
+3. ✅ Deve ver produtos e fazer pedidos
+4. ✅ Status da loja deve funcionar
+5. ✅ NÃO deve conseguir acessar /sorteio (não é admin)
+```
 
-- ✅ **Usuários autenticados** podem criar pedidos
-- ✅ **Regras de segurança** funcionando corretamente
-- ✅ **Logs de debug** para troubleshooting
-- ✅ **Mensagens de erro** específicas
-- ✅ **Teste de permissões** disponível
+### Teste 3: Admin
 
-**O erro "missing or insufficient permissions" deve ser resolvido!** 🎉
+```
+1. Faça login como admin
+2. Acesse /painel
+3. ✅ Deve conseguir abrir/fechar loja
+4. Acesse /sorteio
+5. ✅ Deve conseguir buscar dados do sorteio
+6. ✅ Deve conseguir pausar/ativar promoção
+```
 
-## 🗑️ **Limpeza (Após Resolver)**
+---
 
-**Remover arquivos temporários:**
-- ❌ `src/components/FirestoreTest/index.js`
-- ❌ Rota `/test-firestore` do `App.js`
-- ❌ Arquivo `firestore.rules` (após configurar no console)
+## 🔐 Segurança
+
+### ✅ O Que Está Protegido
+
+- **Pedidos:** Apenas dono e admins
+- **Notificações:** Apenas dono
+- **Sorteio:** Apenas admins
+- **Vencedores:** Apenas admins
+- **Config do Sorteio:** Apenas admins
+
+### 🌍 O Que É Público
+
+- **Produtos:** Todos podem ver (necessário para navegação)
+- **Status da Loja:** Todos podem ver (necessário para modal)
+
+### 🔐 UIDs dos Admins
+
+Os seguintes UIDs têm permissões de administrador:
+
+```
+ZG5D6IrTRTZl5SDoEctLAtr4WkE2
+6VbaNslrhQhXcyussPj53YhLiYj2
+```
+
+**Para adicionar novo admin:**
+1. Obtenha o UID do Firebase Console
+2. Adicione nas regras do Firestore
+3. Adicione também em `src/config/appConfig.js`
+4. Execute `firebase deploy --only firestore:rules`
+
+---
+
+## 📝 Arquivo Modificado
+
+```
+✅ firestore.rules
+```
+
+### Mudanças:
+
+```diff
++ // Regras para configurações da loja
++ match /config/{configId} {
++   allow read: if true; // Leitura pública
++   allow write: if request.auth != null && (admins);
++ }
+
++ // Regras para sorteio - apenas admins
++ match /sorteio/{sorteioId} {
++   allow read, write: if request.auth != null && (admins);
++ }
+
++ // Regras para vencedores - apenas admins
++ match /sorteio_vencedores/{vencedorId} {
++   allow read, write: if request.auth != null && (admins);
++ }
+
++ // Regras para config do sorteio - apenas admins
++ match /sorteio_config/{configId} {
++   allow read, write: if request.auth != null && (admins);
++ }
+```
+
+---
+
+## ✅ Resultado
+
+### Antes ❌
+```
+Console: Erro ao carregar status da loja: Missing or insufficient permissions
+Modal não aparece quando loja está fechada
+Visitantes não conseguem navegar
+```
+
+### Depois ✅
+```
+Console: Sem erros
+Modal aparece quando loja está fechada
+Visitantes navegam normalmente
+Sorteio protegido (apenas admins)
+```
+
+---
+
+## 🎯 Impacto
+
+### ✅ Benefícios
+1. **Visitantes** podem ver se a loja está aberta
+2. **Modal** de loja fechada funciona para todos
+3. **Sorteio** permanece privado (apenas admins)
+4. **Segurança** mantida em todas as áreas sensíveis
+5. **Zero erros** no console
+
+### 📈 Performance
+- Sem impacto negativo
+- Menos tentativas de leitura falhadas
+- Melhor experiência do usuário
+
+---
+
+## 🔮 Manutenção Futura
+
+### Ao Adicionar Novo Admin
+
+1. **Obter UID:**
+   ```
+   Firebase Console → Authentication → Usuários → Copiar UID
+   ```
+
+2. **Atualizar Regras:**
+   ```javascript
+   // firestore.rules
+   request.auth.uid == "NOVO_UID_AQUI" ||
+   ```
+
+3. **Atualizar Config:**
+   ```javascript
+   // src/config/appConfig.js
+   ADMIN_UIDS: ["UID1", "UID2", "NOVO_UID_AQUI"]
+   ```
+
+4. **Deploy:**
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+---
+
+## ✅ Checklist de Verificação
+
+- [x] Regras compiladas sem erros
+- [x] Deploy realizado com sucesso
+- [x] Leitura pública da coleção `config`
+- [x] Escrita restrita a admins
+- [x] Sorteio protegido (apenas admins)
+- [x] Vencedores protegidos (apenas admins)
+- [x] Config do sorteio protegido (apenas admins)
+- [x] Erro de permissão resolvido
+
+---
+
+## 📞 Troubleshooting
+
+### Erro persiste após deploy?
+
+**Solução 1: Limpar cache**
+```bash
+Ctrl + Shift + R (hard reload)
+```
+
+**Solução 2: Verificar regras no console**
+```
+Firebase Console → Firestore Database → Regras
+Verificar se está atualizado
+```
+
+**Solução 3: Criar documento se não existe**
+```
+Firebase Console → Firestore Database → Criar coleção "config"
+Criar documento "storeStatus" com campo:
+{
+  isClosed: false,
+  updatedAt: "2024-01-01T00:00:00.000Z"
+}
+```
+
+---
+
+## 🎉 Problema Resolvido!
+
+Agora todos podem ver o status da loja sem erros de permissão! ✅

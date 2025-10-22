@@ -33,7 +33,7 @@ export default function SorteioPage() {
       setDataLoaded(true);
       
       if (data.length === 0) {
-        setError('Nenhum pedido elegível encontrado. Os pedidos precisam ter 10 ou mais itens.');
+        setError('Nenhum pedido elegível encontrado. Os pedidos precisam ter 5 ou mais itens.');
       }
     } catch (err) {
       console.error('Erro ao buscar dados:', err);
@@ -56,7 +56,7 @@ export default function SorteioPage() {
   const handleTogglePromocao = async () => {
     const novoStatus = !promocaoAtiva;
     const confirmMessage = novoStatus
-      ? 'Deseja ATIVAR a promoção de sorteio? Novos pedidos com 10+ itens serão salvos automaticamente.'
+      ? 'Deseja ATIVAR a promoção de sorteio? Novos pedidos com 5+ itens serão salvos automaticamente.'
       : 'Deseja PAUSAR a promoção de sorteio? Novos pedidos não serão mais salvos no banco de dados.';
     
     if (window.confirm(confirmMessage)) {
@@ -136,7 +136,7 @@ export default function SorteioPage() {
                 Sorteio de Clientes
               </h1>
               <p className="text-gray-600 mt-2">
-                Gerencie e realize sorteios entre clientes com pedidos de 10+ itens
+                Gerencie e realize sorteios entre clientes com pedidos de 5+ itens
               </p>
             </div>
 
@@ -206,7 +206,7 @@ export default function SorteioPage() {
               promocaoAtiva ? 'text-green-800' : 'text-red-800'
             }`}>
               {promocaoAtiva
-                ? '✅ Promoção ATIVA - Novos pedidos com 10+ itens estão sendo salvos automaticamente'
+                ? '✅ Promoção ATIVA - Novos pedidos com 5+ itens estão sendo salvos automaticamente'
                 : '⏸️ Promoção PAUSADA - Novos pedidos NÃO estão sendo salvos no banco de dados'}
             </p>
           </div>
@@ -244,7 +244,7 @@ export default function SorteioPage() {
             <ul className="space-y-2 text-gray-700">
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 font-bold">1.</span>
-                <span>Clique em <strong>"Buscar Dados"</strong> para carregar todos os pedidos elegíveis (10+ itens)</span>
+                <span>Clique em <strong>"Buscar Dados"</strong> para carregar todos os pedidos elegíveis (5+ itens)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 font-bold">2.</span>
@@ -271,7 +271,7 @@ export default function SorteioPage() {
                 Pedidos Elegíveis ({sorteioData.length})
               </h2>
               <p className="text-purple-100 text-sm mt-1">
-                Apenas pedidos com 10 ou mais itens
+                Apenas pedidos com 5 ou mais itens
               </p>
             </div>
 
@@ -379,7 +379,7 @@ export default function SorteioPage() {
               Nenhum pedido elegível
             </h3>
             <p className="text-gray-600 mb-6">
-              Não há pedidos com 10 ou mais itens para participar do sorteio.
+              Não há pedidos com 5 ou mais itens para participar do sorteio.
             </p>
             <button
               onClick={handleBuscarDados}

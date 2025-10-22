@@ -12,7 +12,7 @@ import {
 
 /**
  * Adiciona dados de compra elegível ao sorteio
- * Apenas salva se o pedido tiver 10 ou mais itens
+ * Apenas salva se o pedido tiver 5 ou mais itens
  * 
  * @param {Object} order - Objeto do pedido
  * @param {string} order.orderNumber - Número do pedido
@@ -48,12 +48,12 @@ export const addSorteioData = async (order) => {
       };
     }
 
-    // REGRA PRINCIPAL: Apenas pedidos com 10 ou mais itens são elegíveis
-    if (totalItems < 10) {
-      console.log(`⚠️ Pedido #${orderNumber} não elegível para sorteio (${totalItems} itens - mínimo 10)`);
+    // REGRA PRINCIPAL: Apenas pedidos com 5 ou mais itens são elegíveis
+    if (totalItems < 5) {
+      console.log(`⚠️ Pedido #${orderNumber} não elegível para sorteio (${totalItems} itens - mínimo 5)`);
       return {
         success: false,
-        message: 'Pedido não elegível para sorteio. Mínimo de 10 itens necessários.',
+        message: 'Pedido não elegível para sorteio. Mínimo de 5 itens necessários.',
         eligible: false
       };
     }
@@ -89,7 +89,7 @@ export const addSorteioData = async (order) => {
 
 /**
  * Busca todos os dados de sorteio
- * Retorna apenas pedidos com 10+ itens, ordenados por data
+ * Retorna apenas pedidos com 5+ itens, ordenados por data
  * 
  * @returns {Promise<Array>} - Lista de pedidos elegíveis
  */
@@ -103,8 +103,8 @@ export const getSorteioData = async () => {
     querySnapshot.forEach((doc) => {
       const docData = doc.data();
       
-      // Filtro adicional: apenas pedidos com 10+ itens
-      if (docData.totalItems >= 10) {
+      // Filtro adicional: apenas pedidos com 5+ itens
+      if (docData.totalItems >= 5) {
         data.push({
           id: doc.id,
           ...docData,

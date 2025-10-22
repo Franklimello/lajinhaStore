@@ -47,9 +47,35 @@ const Farmacia = memo(function Farmacia({ searchTerm = "", isPreview = false }) 
             console.log(`✅ Cache hit: Farmácia (${products.length} produtos)`);
             setAllProducts(products);
             setLoading(false);
+            setHasMore(products.length >= PRODUCTS_PER_PAGE);
+            
+            // ✅ CORREÇÃO: Busca em background para obter lastDoc
+            console.log('🔄 Buscando lastDoc em background...');
+            const catOptions = ["Farmácia", "farmacia"];
+            const bgQuery = query(
+              collection(db, "produtos"),
+              where("categoria", "in", catOptions),
+              orderBy("titulo"),
+              limit(PRODUCTS_PER_PAGE)
+            );
+            getDocs(bgQuery).then(qs => {
+              if (qs.docs.length > 0) {
+                setLastDoc(qs.docs[qs.docs.length - 1]);
+                console.log('✅ lastDoc obtido do background');
+              }
+            }).catch(err => {
+              console.error('❌ Erro ao obter lastDoc:', err);
+            });
+            
             return;
           }
         }
+      }
+      
+      if (isLoadMore && !lastDoc) {
+        console.log('⏳ Aguardando lastDoc...');
+        setLoadingMore(false);
+        return;
       }
 
       console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
