@@ -1,0 +1,342 @@
+/* Sorteio Animation Styles - React 19 Compatible */
+
+/* Overlay */
+.sorteio-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sorteio-overlay.show {
+  opacity: 1;
+}
+
+/* Modal Principal */
+.sorteio-modal {
+  background: linear-gradient(135deg, #9333ea 0%, #ec4899 50%, #dc2626 100%);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  max-width: 42rem;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  transform: scale(0.5) rotateY(-180deg);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sorteio-modal.show {
+  transform: scale(1) rotateY(0deg);
+  opacity: 1;
+}
+
+.sorteio-modal-empty {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 28rem;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transform: scale(0.5);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.sorteio-modal-empty.show {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Botão de fechar */
+.sorteio-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: white;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.sorteio-close-btn:hover {
+  color: #e5e7eb;
+}
+
+/* Header */
+.sorteio-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: slideDown 0.5s ease;
+}
+
+.sorteio-title {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.trophy-icon {
+  color: #fcd34d;
+}
+
+.sorteio-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+}
+
+/* Área de Conteúdo */
+.sorteio-content {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animação Girando */
+.sorteio-spinning {
+  text-align: center;
+  width: 100%;
+  animation: fadeIn 0.1s ease;
+}
+
+.sorteio-name {
+  font-size: 3rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.sorteio-details {
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Animação Pulse */
+.pulse {
+  animation: pulse 0.3s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Winner Display */
+.sorteio-winner {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  opacity: 0;
+  transform: scale(0) rotate(-180deg);
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sorteio-winner.show {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* Trophy Grande */
+.trophy-bounce {
+  animation: bounce 1s infinite;
+}
+
+.trophy-large {
+  font-size: 4.5rem;
+  color: #eab308;
+  margin: 0 auto 1rem;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Labels e Valores */
+.winner-label {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.winner-name {
+  font-size: 3rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #9333ea, #ec4899, #dc2626);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.5rem;
+  animation: fadeInUp 0.5s ease 0.3s both;
+}
+
+/* Detalhes do Vencedor */
+.winner-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: #374151;
+  animation: fadeInUp 0.5s ease 0.5s both;
+}
+
+.detail-card {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.detail-value-large {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #9333ea;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.detail-card-small {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.detail-label-small {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.detail-value-small {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.detail-card-value {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #86efac;
+}
+
+.value-label {
+  font-size: 0.75rem;
+  color: #15803d;
+  margin-bottom: 0.25rem;
+}
+
+.value-amount {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #16a34a;
+}
+
+/* Footer */
+.sorteio-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: white;
+  opacity: 0.8;
+  font-size: 0.875rem;
+  animation: fadeIn 0.5s ease 0.5s both;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .sorteio-modal {
+    padding: 1.5rem;
+  }
+
+  .sorteio-title {
+    font-size: 1.875rem;
+  }
+
+  .sorteio-name {
+    font-size: 2rem;
+  }
+
+  .winner-name {
+    font-size: 2rem;
+  }
+
+  .trophy-large {
+    font-size: 3.5rem;
+  }
+}
+

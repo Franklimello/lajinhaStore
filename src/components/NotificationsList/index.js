@@ -1,86 +1,66 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, query, where, orderBy, getDocs, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback } from 'react';
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import { FaBell, FaCheck, FaTrash } from 'react-icons/fa';
 import firestoreMonitor from '../../services/firestoreMonitor';
 
-// ⏱️ Intervalo de polling: 30 segundos
-const POLLING_INTERVAL = 30 * 1000;
-
 const NotificationsList = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(null);
   const { user } = useAuth();
-  const intervalRef = useRef(null);
 
-  // 🔄 Função para buscar notificações (polling)
-  const fetchNotifications = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Query do Firestore
-      const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      
-      // 📊 Monitorar leitura de notificações
-      firestoreMonitor.trackRead('notifications', snapshot.size, {
-        userId: user.uid,
-        type: 'full_list',
-        isPolling: true
-      });
-      
-      console.log('📬 Notificações carregadas:', snapshot.size);
-      
-      const notificationsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setNotifications(notificationsData);
-      setLastUpdate(new Date());
-      setLoading(false);
-    } catch (error) {
-      console.error('❌ Erro ao buscar notificações:', error);
-      setLoading(false);
-    }
-  }, [user]);
-
-  // ✅ POLLING: Busca inicial + intervalo de 30s
+  // ✅ LISTENER EM TEMPO REAL (onSnapshot)
+  // Para notificações, tempo real é importante!
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    console.log('⏱️ Configurando polling de notificações (30s)...');
+    console.log('👂 Configurando listener de notificações em tempo real...');
 
-    // Busca inicial
-    fetchNotifications();
-
-    // Configura polling
-    intervalRef.current = setInterval(() => {
-      console.log('🔄 Polling: Atualizando notificações...');
-      fetchNotifications();
-    }, POLLING_INTERVAL);
+    // Query do Firestore
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    // ✅ onSnapshot escuta mudanças em TEMPO REAL
+    // Sempre que uma notificação for adicionada/atualizada/removida, este callback é chamado
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log('📬 Notificações atualizadas em tempo real:', snapshot.size);
+        
+        // 📊 Monitorar leitura
+        firestoreMonitor.trackRead('notifications', snapshot.size, {
+          userId: user.uid,
+          type: 'full_list_realtime',
+          isRealtime: true
+        });
+        
+        const notificationsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setNotifications(notificationsData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('❌ Erro ao escutar notificações:', error);
+        setLoading(false);
+      }
+    );
 
     // ✅ IMPORTANTE: Cleanup ao desmontar componente
     return () => {
-      console.log('🧹 Removendo polling de notificações');
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      console.log('🧹 Removendo listener de notificações');
+      unsubscribe();
     };
-  }, [user, fetchNotifications]);
+  }, [user]);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -89,8 +69,8 @@ const NotificationsList = () => {
         readAt: new Date()
       });
       
-      // ✅ Buscar novamente após marcar como lida
-      await fetchNotifications();
+      // ❌ NÃO precisa buscar novamente!
+      // O listener onSnapshot vai atualizar automaticamente
       console.log('✅ Notificação marcada como lida');
     } catch (error) {
       console.error('❌ Erro ao marcar como lida:', error);
@@ -118,8 +98,7 @@ const NotificationsList = () => {
       
       await Promise.all(promises);
       
-      // ✅ Buscar novamente após marcar todas como lidas
-      await fetchNotifications();
+      // ❌ NÃO precisa buscar novamente - o listener faz isso automaticamente
       console.log('✅ Todas as notificações marcadas como lidas');
     } catch (error) {
       console.error('❌ Erro ao marcar todas como lidas:', error);
@@ -149,8 +128,7 @@ const NotificationsList = () => {
 
       await batch.commit();
       
-      // ✅ Buscar novamente após deletar
-      await fetchNotifications();
+      // ❌ NÃO precisa buscar novamente - o listener faz isso automaticamente
       console.log('✅ Todas as notificações foram apagadas');
     } catch (error) {
       console.error('❌ Erro ao apagar notificações:', error);
@@ -279,20 +257,15 @@ const NotificationsList = () => {
         )}
       </div>
 
-      {/* Indicador de última atualização */}
-      {notifications.length > 0 && lastUpdate && (
-        <div className="p-3 bg-gradient-to-r from-blue-50 to-gray-50 border-t border-gray-200">
+      {/* Indicador de atualização em tempo real */}
+      {notifications.length > 0 && (
+        <div className="p-3 bg-gradient-to-r from-green-50 to-blue-50 border-t border-gray-200">
           <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
             <span className="relative flex h-2 w-2">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span>Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}</span>
-            <button 
-              onClick={fetchNotifications}
-              className="ml-2 text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Atualizar agora
-            </button>
+            <span>Atualizando em tempo real ⚡</span>
           </div>
         </div>
       )}

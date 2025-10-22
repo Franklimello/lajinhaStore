@@ -28,6 +28,12 @@ export function AuthProvider({ children }) {
     console.log("🔐 AuthContext: Inicializando listener de autenticação...");
     const auth = getAuth();
     
+    // ⏱️ Timeout de segurança: libera loading após 3 segundos (iPhone/Safari pode demorar)
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️ AuthContext: Timeout de segurança ativado (3s) - liberando app');
+      setLoading(false);
+    }, 3000);
+    
     // Configurar persistência local com mais detalhes
     setPersistence(auth, browserLocalPersistence)
       .then(() => {
@@ -55,10 +61,12 @@ export function AuthProvider({ children }) {
         creationTime: currentUser.metadata?.creationTime
       });
       setUser(currentUser);
+      clearTimeout(timeoutId);
       setLoading(false);
     }
     
     const unsub = onAuthStateChanged(auth, (u) => {
+      clearTimeout(timeoutId); // Limpa timeout quando auth responde
       const timestamp = new Date().toLocaleTimeString();
       console.log(`🔐 AuthContext [${timestamp}]: Estado de autenticação mudou:`, u ? "Usuário logado" : "Usuário deslogado");
       
@@ -86,6 +94,7 @@ export function AuthProvider({ children }) {
     
     return () => {
       console.log("🔐 AuthContext: Removendo listener de autenticação");
+      clearTimeout(timeoutId);
       unsub();
     };
   }, []);

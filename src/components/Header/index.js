@@ -6,12 +6,9 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { useAdmin } from "../../hooks/useAdmin";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import firestoreMonitor from "../../services/firestoreMonitor";
-
-// ⏱️ Intervalo de polling para notificações: 30 segundos
-const NOTIFICATIONS_POLLING_INTERVAL = 30 * 1000;
 
 
 export default function Header() {
@@ -24,7 +21,6 @@ export default function Header() {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const location = useLocation();
-  const notificationsIntervalRef = useRef(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -181,63 +177,51 @@ export default function Header() {
   }, [updateCounts]);
 
   // ============================================================
-  // ✅ POLLING DE NOTIFICAÇÕES NÃO LIDAS (30s)
+  // ✅ LISTENER DE NOTIFICAÇÕES NÃO LIDAS EM TEMPO REAL
   // ============================================================
-  const fetchUnreadNotifications = useCallback(async () => {
-    if (!user) {
-      setUnreadNotifications(0);
-      return;
-    }
-
-    try {
-      // Query apenas das notificações NÃO LIDAS do usuário
-      const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', user.uid),
-        where('read', '==', false)
-      );
-
-      const snapshot = await getDocs(q);
-      const count = snapshot.size;
-      
-      // 📊 Monitorar leitura de notificações
-      firestoreMonitor.trackRead('notifications', snapshot.size, {
-        userId: user.uid,
-        type: 'unread_count',
-        isPolling: true
-      });
-      
-      console.log(`📬 [Header] Notificações não lidas: ${count}`);
-      setUnreadNotifications(count);
-    } catch (error) {
-      console.error('❌ [Header] Erro ao buscar notificações:', error);
-    }
-  }, [user]);
-
   useEffect(() => {
+    // Se não tem usuário, não precisa escutar
     if (!user) {
       setUnreadNotifications(0);
       return;
     }
 
-    console.log('⏱️ [Header] Configurando polling de notificações (30s)...');
+    console.log('👂 [Header] Configurando listener de notificações não lidas...');
 
-    // Busca inicial
-    fetchUnreadNotifications();
+    // Query apenas das notificações NÃO LIDAS do usuário
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      where('read', '==', false)
+    );
 
-    // Configura polling
-    notificationsIntervalRef.current = setInterval(() => {
-      fetchUnreadNotifications();
-    }, NOTIFICATIONS_POLLING_INTERVAL);
+    // ✅ Listener em tempo real - atualiza automaticamente quando notificações mudam
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const count = snapshot.size;
+        console.log(`📬 [Header] Notificações não lidas: ${count}`);
+        
+        // 📊 Monitorar leitura de notificações
+        firestoreMonitor.trackRead('notifications', snapshot.size, {
+          userId: user.uid,
+          type: 'unread_count_realtime',
+          isRealtime: true
+        });
+        
+        setUnreadNotifications(count);
+      },
+      (error) => {
+        console.error('❌ [Header] Erro ao escutar notificações:', error);
+      }
+    );
 
     // ✅ Cleanup ao desmontar ou quando user mudar
     return () => {
-      console.log('🧹 [Header] Removendo polling de notificações');
-      if (notificationsIntervalRef.current) {
-        clearInterval(notificationsIntervalRef.current);
-      }
+      console.log('🧹 [Header] Removendo listener de notificações');
+      unsubscribe();
     };
-  }, [user, fetchUnreadNotifications]);
+  }, [user]); // Só recria listener quando user mudar
 
   // Sistema de notificações removido
 

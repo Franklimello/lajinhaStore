@@ -57,6 +57,7 @@ const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 const Contato = lazy(() => import("./pages/Contato"));
 const Notificacoes = lazy(() => import("./pages/Notificacoes"));
 const FirestoreTest = lazy(() => import("./components/FirestoreTest"));
+const SorteioPage = lazy(() => import("./pages/SorteioPage"));
 // Lazy loading para componentes de debug
 const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
 const FirestoreRulesValidator = lazy(() => import("./components/FirestoreRulesValidator"));
@@ -173,6 +174,14 @@ function AppContent() {
             element={
               <AdminRoute>
                 <AdminOrders />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/sorteio"
+            element={
+              <AdminRoute>
+                <SorteioPage />
               </AdminRoute>
             }
           />

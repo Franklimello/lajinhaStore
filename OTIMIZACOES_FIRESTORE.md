@@ -305,3 +305,4 @@ location.reload();
 **Última atualização**: 21 de outubro de 2025
 **Versão**: 2.0
 
+

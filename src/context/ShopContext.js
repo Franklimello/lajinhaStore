@@ -8,7 +8,22 @@ export function ShopProvider({ children }) {
 
   // Carrega favoritos do localStorage
   useEffect(() => {
+    // ⏱️ Timeout de segurança: libera loading após 1 segundo mesmo se localStorage falhar
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️ ShopContext: Timeout de segurança ativado (iPhone/Safari?)');
+      setIsLoading(false);
+    }, 1000);
+
     try {
+      // Verificar se localStorage está disponível (pode falhar no Safari modo privado)
+      if (typeof localStorage === 'undefined') {
+        console.warn('⚠️ localStorage não disponível (modo privado?)');
+        setFavorites([]);
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+        return;
+      }
+
       const savedFavorites = JSON.parse(localStorage.getItem("favorites")) || [];
       
       if (process.env.NODE_ENV !== 'production') {
@@ -16,11 +31,21 @@ export function ShopProvider({ children }) {
       }
       
       setFavorites(savedFavorites.filter(Boolean));
+      clearTimeout(timeoutId);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Erro ao carregar favoritos do localStorage:', error);
+      console.error('❌ Erro ao carregar favoritos do localStorage:', error);
+      console.error('Detalhes:', {
+        message: error.message,
+        userAgent: navigator.userAgent,
+        isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      });
       setFavorites([]);
+      clearTimeout(timeoutId);
+      setIsLoading(false);
     }
-    setIsLoading(false);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Salva favoritos no localStorage

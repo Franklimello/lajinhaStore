@@ -214,14 +214,21 @@ exports.test = functions.https.onRequest((req, res) => {
 
 const axios = require("axios");
 
-// Configurações do Telegram
+// ========================================
+// ⚠️ ATENÇÃO: TOKEN TEMPORÁRIO - CORRIGIR URGENTE!
+// ========================================
+// TODO: Mover para variável de ambiente quando possível
+// GitHub detectou este token exposto - REVOGAR E RECONFIGURAR DEPOIS!
+// Ver arquivo: SEGURANCA_CORRECAO.md
 const TELEGRAM_TOKEN = "8393627901:AAGmDARJlrBeNU6h_nNu3EKEPxzqn_Id5Zw";
 
-// Adicione todos os chat_ids aqui:
+// Chat IDs
 const CHAT_IDS = [
   "1493334673", // Você (Franklim)
   "1430325412"  // ID do Nuke
 ];
+
+console.warn("⚠️ AVISO: Token do Telegram está hardcoded - corrigir depois!");
 
 /**
  * Função que dispara quando um novo pedido é criado no Firestore

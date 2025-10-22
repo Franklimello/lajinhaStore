@@ -4,6 +4,7 @@ import { CartContext } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { appConfig } from '../../config/appConfig';
+import { addSorteioData } from '../../services/sorteioService';
 // import { createOrder } from '../../firebase/orders'; // Removido - não usado
 
 const PixPayment = () => {
@@ -262,7 +263,41 @@ const PixPayment = () => {
       
       const orderResult = await saveOrderToFirestore(orderData);
       
+      // 🎉 INTEGRAÇÃO DO SISTEMA DE SORTEIO
       if (orderResult.success) {
+        // Calcular total de itens (soma das quantidades)
+        const totalItems = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+
+        // Preparar dados para o sorteio
+        const sorteioDataPayload = {
+          orderNumber: newOrderId,
+          clientName: clientName.trim(),
+          clientPhone: clientPhone.trim(),
+          totalItems: totalItems,
+          totalValue: total
+        };
+
+        // Tentar adicionar ao sorteio (só salva se totalItems >= 10)
+        try {
+          const sorteioResult = await addSorteioData(sorteioDataPayload);
+          
+          if (sorteioResult.eligible) {
+            console.log('🎉 Cliente elegível para sorteio!', sorteioResult);
+            // Mostrar mensagem ao cliente que ele está participando
+            if (totalItems >= 10) {
+              setTimeout(() => {
+                showToast('🎉 Parabéns! Você está participando do nosso sorteio!', 'success');
+              }, 2000);
+            }
+          } else {
+            console.log('⚠️ Pedido não elegível para sorteio (menos de 10 itens)');
+          }
+        } catch (sorteioError) {
+          console.error('❌ Erro ao adicionar ao sorteio:', sorteioError);
+          // Não interrompe o fluxo - o pedido já foi salvo com sucesso
+        }
+
+        // Continua o fluxo normal...
         if (paymentMethod === 'pix') {
           showToast('✅ Pedido criado! QR Code gerado com sucesso!', 'success');
         } else {

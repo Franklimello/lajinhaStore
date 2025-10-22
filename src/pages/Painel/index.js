@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser, FaStore, FaLock, FaUnlock } from "react-icons/fa";
+import { FaTimes, FaEdit, FaSave, FaSearch, FaSort, FaChevronLeft, FaChevronRight, FaSignOutAlt, FaUser, FaStore, FaLock, FaUnlock, FaTrophy } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useStoreStatus } from "../../context/StoreStatusContext";
@@ -186,6 +186,16 @@ export default function Painel() {
               </span>
             </div>
           )}
+          
+          {/* Botão Sorteio */}
+          <button
+            onClick={() => navigate('/sorteio')}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg w-full sm:w-auto"
+            title="Sorteio de Clientes"
+          >
+            <FaTrophy className="text-lg" />
+            <span>Sorteio</span>
+          </button>
           
           {/* Botão Abrir/Fechar Loja */}
           <button
