@@ -23,6 +23,7 @@ const OffersSection = lazy(() => import('../../components/Home/OffersSection'));
 const SearchResults = lazy(() => import('../../components/Home/SearchResults'));
 const LazyCategorySection = lazy(() => import('../../components/Home/LazyCategorySection'));
 const ScrollToTopButton = lazy(() => import('../../components/Home/ScrollToTopButton'));
+const WhatsAppButton = lazy(() => import('../../components/Home/WhatsAppButton'));
 
 /**
  * Home - Página principal ultra-otimizada
@@ -282,6 +283,15 @@ export default function Home() {
             </div>
           )}
           
+          {/* Botão WhatsApp - Não crítico, lazy hydration */}
+          {shouldHydrateNonCritical && (
+            <ErrorBoundary>
+              <Suspense fallback={null}>
+                <WhatsAppButton />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+
           {/* Botão Voltar ao Topo - Não crítico, lazy hydration */}
           {shouldHydrateNonCritical && (
             <ErrorBoundary>

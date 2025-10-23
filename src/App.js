@@ -6,6 +6,7 @@ import Footer from "./components/Footer";
 import CartToast from "./components/CartToast";
 import StoreClosedModal from "./components/StoreClosedModal";
 import WebViewBanner from "./components/WebViewBanner";
+import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/protectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import ImageMigration from "./components/ImageMigration";
@@ -262,6 +263,7 @@ function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <ThemeProvider>
           <AuthProvider>
             <StoreStatusProvider>

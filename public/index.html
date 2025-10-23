@@ -2,12 +2,14 @@
 <html lang="pt-BR" translate="no">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" sizes="16x16" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" sizes="32x32" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" sizes="48x48" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="shortcut icon" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="icon" sizes="16x16" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="icon" sizes="32x32" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="icon" sizes="48x48" href="https://compreaqui-324df.web.app/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://compreaqui-324df.web.app/logo192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://compreaqui-324df.web.app/logo512.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     
     <!-- Content Security Policy -->
@@ -24,10 +26,14 @@
       form-action 'self';
     " />
     <meta name="theme-color" content="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="msapplication-TileImage" content="https://compreaqui-324df.web.app/logo192.png" />
+    <meta name="msapplication-config" content="https://compreaqui-324df.web.app/browserconfig.xml" />
     <meta
       name="description"
       content="Supermercado Online Lajinha - Seu supermercado com os melhores produtos e preços. Faça suas compras online com praticidade e segurança."
     />
+    <meta name="image" content="https://compreaqui-324df.web.app/logo512.png" />
     <meta name="keywords" content="supermercado lajinha, supermercado online, delivery lajinha, compras online, alimentos, bebidas, produtos, entrega domicilio, ecommerce lajinha, minas gerais" />
     <meta name="robots" content="index, follow" />
     <meta name="googlebot" content="index, follow" />
@@ -37,7 +43,9 @@
     <!-- Open Graph Meta Tags para Google e Redes Sociais -->
     <meta property="og:title" content="Supermercado Online Lajinha" />
     <meta property="og:description" content="Seu supermercado com os melhores produtos e preços. Faça suas compras online com praticidade e segurança." />
-    <meta property="og:image" content="%PUBLIC_URL%/logo512.png" />
+    <meta property="og:image" content="https://compreaqui-324df.web.app/logo512.png" />
+    <meta property="og:image:secure_url" content="https://compreaqui-324df.web.app/logo512.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
     <meta property="og:image:alt" content="Logo do Supermercado Online Lajinha" />
@@ -50,7 +58,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Supermercado Online Lajinha" />
     <meta name="twitter:description" content="Seu supermercado com os melhores produtos e preços. Faça suas compras online com praticidade e segurança." />
-    <meta name="twitter:image" content="%PUBLIC_URL%/logo512.png" />
+    <meta name="twitter:image" content="https://compreaqui-324df.web.app/logo512.png" />
     <meta name="twitter:image:alt" content="Logo do Supermercado Online Lajinha" />
     
     <!-- Schema.org para SEO -->
@@ -85,14 +93,85 @@
             "@type": "Offer",
             "itemOffered": {
               "@type": "Product",
-              "name": "Produtos de Hortifruti"
+              "name": "Produtos de Hortifruti",
+              "description": "Frutas, verduras e legumes frescos",
+              "image": "https://compreaqui-324df.web.app/logo512.png",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "1.00",
+                "highPrice": "50.00",
+                "offerCount": "100",
+                "availability": "https://schema.org/InStock"
+              }
             }
           },
           {
             "@type": "Offer",
             "itemOffered": {
               "@type": "Product",
-              "name": "Produtos de Açougue"
+              "name": "Produtos de Açougue",
+              "description": "Carnes frescas e produtos de açougue",
+              "image": "https://compreaqui-324df.web.app/logo512.png",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "10.00",
+                "highPrice": "100.00",
+                "offerCount": "50",
+                "availability": "https://schema.org/InStock"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Produtos de Limpeza",
+              "description": "Produtos de limpeza para casa e higiene",
+              "image": "https://compreaqui-324df.web.app/logo512.png",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "2.00",
+                "highPrice": "80.00",
+                "offerCount": "80",
+                "availability": "https://schema.org/InStock"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Bebidas",
+              "description": "Bebidas, refrigerantes, sucos e água",
+              "image": "https://compreaqui-324df.web.app/logo512.png",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "1.50",
+                "highPrice": "60.00",
+                "offerCount": "120",
+                "availability": "https://schema.org/InStock"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Produtos Frescos",
+              "description": "Frios, laticínios e produtos frescos",
+              "image": "https://compreaqui-324df.web.app/logo512.png",
+              "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "3.00",
+                "highPrice": "70.00",
+                "offerCount": "90",
+                "availability": "https://schema.org/InStock"
+              }
             }
           }
         ]
@@ -108,20 +187,15 @@
     <meta name="application-name" content="Lajinha" />
     
     <!-- iOS Icons -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="%PUBLIC_URL%/logo192.png" />
-    
-    <!-- Android Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="%PUBLIC_URL%/logo512.png" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="https://compreaqui-324df.web.app/logo192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="https://compreaqui-324df.web.app/logo192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://compreaqui-324df.web.app/logo192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="https://compreaqui-324df.web.app/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="manifest" href="https://compreaqui-324df.web.app/manifest.json" />
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
