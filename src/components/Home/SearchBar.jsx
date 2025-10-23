@@ -45,20 +45,20 @@ const SearchBar = memo(({ termo, setTermo, onClearSearch }) => {
     <div className="w-full px-4 py-8">
       {/* Texto chamativo */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600 mb-2">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
           🔍 Encontre o que procura rapidamente!
         </h2>
-        <p className="text-gray-600 text-sm md:text-base">
+        <p className="text-slate-700 text-sm md:text-base">
           Digite o nome do produto e encontre em segundos
         </p>
-        <p className="text-orange-600 text-xs md:text-sm font-semibold mt-1">
+        <p className="text-slate-600 text-xs md:text-sm font-semibold mt-1">
           💡 Mínimo de 3 caracteres para buscar
         </p>
       </div>
 
       {/* Input de busca - destaque total */}
       <div className="relative max-w-5xl mx-auto">
-        <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500 text-2xl animate-pulse" />
+        <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-cyan-500 text-2xl" />
         <input
           ref={inputRef}
           type="text"
@@ -67,12 +67,12 @@ const SearchBar = memo(({ termo, setTermo, onClearSearch }) => {
           onChange={(e) => setTermo(e.target.value)}
           onKeyDown={handleKeyDown}
           className="w-full pl-16 pr-16 py-6 text-xl
-                    border-4 border-orange-500 rounded-2xl
-                    focus:outline-none focus:ring-4 focus:ring-orange-300 
-                    focus:border-orange-600
+                    border-2 border-cyan-500 rounded-2xl
+                    focus:outline-none focus:ring-4 focus:ring-cyan-500/30 
+                    focus:border-cyan-400
                     transition-all duration-300 
-                    bg-white shadow-2xl hover:shadow-orange-200
-                    placeholder:text-gray-400"
+                    bg-white shadow-2xl hover:shadow-cyan-500/20
+                    text-gray-800 placeholder:text-gray-400"
           aria-label="Pesquisar produtos"
           autoComplete="off"
           spellCheck="false"
@@ -92,12 +92,12 @@ const SearchBar = memo(({ termo, setTermo, onClearSearch }) => {
             className="absolute right-6 top-1/2 -translate-y-1/2 
                       flex items-center justify-center
                       w-10 h-10 rounded-full
-                      bg-red-500 hover:bg-red-600
+                      bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600
                       text-white font-bold text-xl
                       shadow-lg hover:shadow-xl
                       transition-all duration-200
                       hover:scale-110 active:scale-95
-                      ring-2 ring-red-200 hover:ring-red-300"
+                      ring-2 ring-red-500/20 hover:ring-red-400/30"
             aria-label="Limpar busca"
             title="Limpar busca"
           >

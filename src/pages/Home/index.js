@@ -10,7 +10,7 @@ import { useLazyHydration } from '../../hooks/useLazyHydration';
 // import { useProductImagePreloader } from '../../hooks/useProductImagePreloader';
 import ErrorBoundary from '../../components/Common/ErrorBoundary';
 import SkeletonCard from '../../components/Common/SkeletonCard';
-import SearchDebug from '../../components/Debug/SearchDebug';
+// import SearchDebug from '../../components/Debug/SearchDebug';
 import { imageCacheManager } from '../../utils/ImageCacheManager';
 
 // Componentes críticos - carregamento prioritário
@@ -23,7 +23,8 @@ const OffersSection = lazy(() => import('../../components/Home/OffersSection'));
 const SearchResults = lazy(() => import('../../components/Home/SearchResults'));
 const LazyCategorySection = lazy(() => import('../../components/Home/LazyCategorySection'));
 const ScrollToTopButton = lazy(() => import('../../components/Home/ScrollToTopButton'));
-const WhatsAppButton = lazy(() => import('../../components/Home/WhatsAppButton'));
+// const WhatsAppButton = lazy(() => import('../../components/Home/WhatsAppButton'));
+const Footer = lazy(() => import('../../components/Footer'));
 
 /**
  * Home - Página principal ultra-otimizada
@@ -198,14 +199,14 @@ export default function Home() {
       />
       
       <WebViewFallback>
+        {/* Hero Section - Crítico, carregamento prioritário - FULLWIDTH */}
+        <ErrorBoundary>
+          <Suspense fallback={<SkeletonCard variant="hero" className="w-full" />}>
+            <HeroSection />
+          </Suspense>
+        </ErrorBoundary>
+
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
-          
-          {/* Hero Section - Crítico, carregamento prioritário */}
-          <ErrorBoundary>
-            <Suspense fallback={<SkeletonCard variant="hero" className="w-full" />}>
-              <HeroSection />
-            </Suspense>
-          </ErrorBoundary>
 
           {/* Search Bar - Crítico, carregamento prioritário */}
           <ErrorBoundary>
@@ -283,14 +284,14 @@ export default function Home() {
             </div>
           )}
           
-          {/* Botão WhatsApp - Não crítico, lazy hydration */}
-          {shouldHydrateNonCritical && (
+          {/* Botão WhatsApp - Removido (movido para o Hero) */}
+          {/* {shouldHydrateNonCritical && (
             <ErrorBoundary>
               <Suspense fallback={null}>
                 <WhatsAppButton />
               </Suspense>
             </ErrorBoundary>
-          )}
+          )} */}
 
           {/* Botão Voltar ao Topo - Não crítico, lazy hydration */}
           {shouldHydrateNonCritical && (
@@ -301,15 +302,22 @@ export default function Home() {
             </ErrorBoundary>
           )}
 
-          {/* Debug da busca - apenas em desenvolvimento */}
-          <SearchDebug 
+          {/* Debug da busca - desabilitado */}
+          {/* <SearchDebug 
             searchTerm={debouncedTerm}
             products={filteredProducts}
             loading={searchLoading}
-          />
+          /> */}
           
           
                   </div>
+
+          {/* Footer - apenas na Home */}
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <Footer />
+            </Suspense>
+          </ErrorBoundary>
       </WebViewFallback>
     </>
   );

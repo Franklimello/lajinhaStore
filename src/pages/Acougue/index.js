@@ -486,7 +486,7 @@ const Acougue = memo(function Acougue({ searchTerm = "", isPreview = false }) {
                           aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
                           <FaShoppingCart className="text-sm" />
-                          <span>{product.esgotado ? 'Esgotado' : 'Adicionar ao Carrinho'}</span>
+                          <span>{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
                         </button>
                       </div>
 

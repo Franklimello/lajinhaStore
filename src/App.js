@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import React, { Suspense, lazy, useContext, useEffect } from "react";
 import Header from "./components/Header";
-import Footer from "./components/Footer";
 import CartToast from "./components/CartToast";
 import StoreClosedModal from "./components/StoreClosedModal";
 import WebViewBanner from "./components/WebViewBanner";
@@ -19,6 +18,7 @@ import { CartProvider } from "./context/CartContext";
 import { StoreStatusProvider } from "./context/StoreStatusContext";
 import { ProductsProvider } from "./context/ProductsContext";
 import { NotificationService } from "./services/notificationService";
+import ChatWindow from "./components/Chat/ChatWindow";
 
 // Lazy loading para melhor performance
 const Painel = lazy(() => import("./pages/Painel"));
@@ -63,8 +63,8 @@ const SorteioPage = lazy(() => import("./pages/SorteioPage"));
 const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
 const FirestoreRulesValidator = lazy(() => import("./components/FirestoreRulesValidator"));
 const FirestorePermissionsTest = lazy(() => import("./components/FirestorePermissionsTest"));
-const AuthDebug = lazy(() => import("./components/AuthDebug"));
-const LogoutDiagnostic = lazy(() => import("./components/LogoutDiagnostic"));
+// const AuthDebug = lazy(() => import("./components/AuthDebug"));
+// const LogoutDiagnostic = lazy(() => import("./components/LogoutDiagnostic"));
 
 // Componente Layout que lida com a navegação e o layout principal
 function Layout({ children }) {
@@ -77,7 +77,6 @@ function Layout({ children }) {
       <WebViewBanner />
       {!hideChrome && <Header />}
       <main className="flex-1 overflow-auto p-4 bg-gray-50">{children}</main>
-      {!hideChrome && <Footer />}
     </section>
   );
 }
@@ -240,11 +239,14 @@ function AppContent() {
       {/* Modal de loja fechada */}
       <StoreClosedModal />
       
+      {/* Chat de suporte em tempo real */}
+      <ChatWindow />
+      
       {/* Debug de autenticação - apenas em desenvolvimento */}
-      <AuthDebug />
+      {/* <AuthDebug /> */}
       
       {/* Diagnóstico de logout - apenas em desenvolvimento */}
-      <LogoutDiagnostic />
+      {/* <LogoutDiagnostic /> */}
     </>
   );
 }

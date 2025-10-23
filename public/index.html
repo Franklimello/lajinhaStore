@@ -10,21 +10,17 @@
     <link rel="icon" sizes="48x48" href="https://compreaqui-324df.web.app/favicon.ico" />
     <link rel="icon" type="image/png" sizes="192x192" href="https://compreaqui-324df.web.app/logo192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="https://compreaqui-324df.web.app/logo512.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://apis.google.com https://accounts.google.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' data: https://fonts.gstatic.com;
-      img-src 'self' data: https: blob:;
-      connect-src 'self' https://*.firebaseio.com https://firestore.googleapis.com https://www.googleapis.com https://*.googleapis.com https://www.google-analytics.com https://firebaseapp.com https://firebasestorage.googleapis.com https://accounts.google.com https://apis.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.cloudfunctions.net;
-      frame-src 'self' https://www.google.com https://accounts.google.com https://compreaqui-324df.firebaseapp.com;
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-    " />
+    <!-- Meta tags para compatibilidade com iOS e Instagram -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Content Security Policy - Relaxado para compatibilidade com Instagram In-App Browser -->
+    <!-- CSP removido temporariamente para permitir funcionamento no Instagram/iOS -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="..." /> -->
     <meta name="theme-color" content="#3b82f6" />
     <meta name="msapplication-TileColor" content="#3b82f6" />
     <meta name="msapplication-TileImage" content="https://compreaqui-324df.web.app/logo192.png" />

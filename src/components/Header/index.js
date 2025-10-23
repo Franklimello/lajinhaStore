@@ -1,7 +1,7 @@
 import Logo from "../../assets/ideal.png";
 import { BsList, BsX } from "react-icons/bs";
 import { FaShoppingCart, FaUser, FaHeart, FaSearch, FaWhatsapp, FaDownload, FaChartBar, FaSignInAlt, FaSignOutAlt, FaBox, FaBell } from "react-icons/fa";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import ThemeToggle from "../ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
@@ -297,30 +297,39 @@ export default function Header() {
   return (
     <>
       {/* Header principal */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
-          : 'bg-white shadow-md'
-      }`}>
+      <header 
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white shadow-lg shadow-gray-200/50 border-b border-gray-200' 
+            : 'bg-white shadow-lg shadow-gray-200/50'
+        }`}
+        style={{ 
+          willChange: 'transform', 
+          transform: 'translateZ(0)',
+          isolation: 'isolate',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
+        }}
+      >
         
         
         {/* Barra superior com contato */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4">
+        <div className="bg-gray-50 text-gray-800 py-2.5 px-4 border-b border-gray-200">
           <div className="container mx-auto flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
-              <span className="hidden sm:inline">📞 (19) 99705-0303</span>
-              <span className="hidden md:inline">✉️ contato@suaempresa.com</span>
+              <span className="hidden sm:inline text-gray-700 font-medium">📞 (19) 99705-0303</span>
+              <span className="hidden md:inline text-gray-600">✉️ contato@suaempresa.com</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Entrega somente R$ 5</span>
+              <span className="text-xs bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-1 rounded-full font-semibold shadow-lg">Entrega somente R$ 5</span>
               <a 
                 href="https://wa.me/5519997050303"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:bg-white/10 px-2 py-1 rounded transition-colors"
+                className="flex items-center gap-1.5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors backdrop-blur-sm"
               >
-                <FaWhatsapp className="text-green-300" />
-                <span className="hidden sm:inline text-xs">WhatsApp</span>
+                <FaWhatsapp className="text-emerald-400" />
+                <span className="hidden sm:inline text-xs font-medium text-gray-300">WhatsApp</span>
               </a>
             </div>
           </div>
@@ -335,24 +344,28 @@ export default function Header() {
               onClick={toggleMenu}
               className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative"
             >
-              <BsList size={24} className="text-gray-700" />
+              {isMenuOpen ? (
+                <BsX size={28} className="text-gray-700" />
+              ) : (
+                <BsList size={24} className="text-gray-700" />
+              )}
             </button>
             
             {/* Logo */}
             <div className="flex items-center">
               <NavLink to="/" className="flex items-center gap-3 group">
-                <div className="w-[100px] h-17 lg:w-16 lg:h-16 rounded-xl overflow-hidden ring-2 ring-transparent group-hover:ring-blue-500 transition-all duration-300 transform group-hover:scale-105">
+                <div className="w-[100px] h-17 lg:w-16 lg:h-16 rounded-xl overflow-hidden ring-2 ring-gray-300 group-hover:ring-cyan-500 transition-all duration-300 transform group-hover:scale-105 shadow-2xl shadow-gray-400/50">
                   <img 
                     src={Logo} 
                     alt="Logo da empresa" 
-                    className="w-full h-full object-contain bg-gradient-to-br from-blue-50 to-purple-50 p-1"
+                    className="w-full h-full object-contain bg-white/5 backdrop-blur-sm p-1"
                   />
                 </div>
                 <div className="hidden md:block">
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
                     Supermercado online lajinha
                   </h1>
-                  <p className="text-xs text-gray-500">Qualidade e confiança</p>
+                  <p className="text-xs text-gray-600">Qualidade e confiança</p>
                 </div>
               </NavLink>
               
@@ -383,8 +396,8 @@ export default function Header() {
                     
                     return `${baseClasses} ${
                       isActive 
-                        ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 transform scale-105' 
+                        : 'text-gray-300 hover:bg-white/10 hover:text-cyan-400'
                     }`;
                   }}
                 >
@@ -413,17 +426,17 @@ export default function Header() {
               
 
               {/* Favoritos */}
-              <Link to="/favoritos" className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative">
-                <FaHeart size={20} className="text-gray-700 hover:text-red-500" />
+              <Link to="/favoritos" className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative group">
+                <FaHeart size={20} className="text-gray-600 group-hover:text-pink-500 transition-colors" />
                 {favoritesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg font-semibold">
                     {favoritesCount > 99 ? '99+' : favoritesCount}
                   </span>
                 )}
               </Link>
 
               {/* Contato */}
-              <Link to="/contato" className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200" title="Entre em contato">
+              <Link to="/contato" className="hidden sm:flex p-2 rounded-xl hover:bg-white/10 transition-colors duration-200 backdrop-blur-sm" title="Entre em contato">
                 <span className="text-xl">📧</span>
               </Link>
 
@@ -460,7 +473,7 @@ export default function Header() {
               {/* Notificações - apenas para usuários logados */}
               {user && (
                 <Link to="/notificacoes" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
-                  <FaBell size={22} className="text-gray-700 group-hover:text-blue-600" />
+                  <FaBell size={22} className="text-gray-600 group-hover:text-cyan-500 transition-colors" />
                   {unreadNotifications > 0 && (
                     <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ">
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
@@ -471,7 +484,7 @@ export default function Header() {
 
               {/* Carrinho */}
               <Link to="/carrinho" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
-                <FaShoppingCart size={22} className="text-gray-700 group-hover:text-blue-600" />
+                <FaShoppingCart size={22} className="text-gray-600 group-hover:text-cyan-500 transition-colors" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
                     {cartCount > 99 ? '99+' : cartCount}
@@ -483,10 +496,10 @@ export default function Header() {
               {/* Login/Logout */}
               {user ? (
                 <div className="hidden lg:flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Olá, {user.email?.split('@')[0]}</span>
+                  <span className="text-sm text-gray-700 font-medium">Olá, {user.email?.split('@')[0]}</span>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-red-100 text-red-600 hover:bg-red-200"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
                   >
                     <FaSignOutAlt size={16} />
                     <span className="text-sm">Sair</span>
@@ -495,7 +508,7 @@ export default function Header() {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-cyan-500/20"
                 >
                   <FaSignInAlt size={16} />
                   <span className="text-sm">Entrar</span>
@@ -577,23 +590,23 @@ export default function Header() {
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 z-[105] lg:hidden"
             onClick={toggleMenu}
           />
           
           {/* Menu lateral */}
-          <nav className="fixed top-0 left-0 w-80 h-full bg-white z-50 lg:hidden transform transition-transform duration-300 shadow-2xl overflow-y-auto">
+          <nav className="fixed top-0 left-0 w-80 h-full bg-white z-[110] lg:hidden transform transition-transform duration-300 shadow-2xl border-r border-gray-200 overflow-y-auto">
             <div className="p-6 pb-20">
               
               {/* Header do menu */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-blue-500">
-                    <img src={Logo} alt="Logo" className="w-full h-full object-contain bg-blue-50 p-1" />
+                  <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-cyan-500 shadow-2xl shadow-cyan-400/50">
+                    <img src={Logo} alt="Logo" className="w-full h-full object-contain bg-white/5 backdrop-blur-sm p-1" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-gray-800">Menu</h2>
-                    <p className="text-xs text-gray-500">Navegação rápida</p>
+                    <h2 className="font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">Menu</h2>
+                    <p className="text-xs text-gray-600">Navegação rápida</p>
                   </div>
                 </div>
                 <button 
@@ -625,7 +638,7 @@ export default function Header() {
                         
                         return `${baseClasses} ${
                           isActive 
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-105' 
+                            ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-500/30 transform scale-105' 
                             : 'text-gray-700 hover:bg-gray-100'
                         }`;
                       }}
@@ -652,12 +665,12 @@ export default function Header() {
                 {user ? (
                   <>
                     <li className="pt-4 border-t border-gray-200 mt-6">
-                      <div className="flex items-center gap-4 p-4 bg-green-50 rounded-2xl">
-                        <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-2xl border border-emerald-200">
+                        <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
                           <FaUser className="text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">Olá, {user.email?.split('@')[0]}</p>
+                          <p className="font-medium text-gray-900">Olá, {user.email?.split('@')[0]}</p>
                           <p className="text-sm text-gray-600">Bem-vindo de volta!</p>
                         </div>
                       </div>
@@ -667,12 +680,12 @@ export default function Header() {
                       <Link
                         to="/notificacoes"
                         onClick={handleNavClick}
-                        className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-yellow-100 text-yellow-600 hover:bg-yellow-200 relative"
+                        className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 relative border border-yellow-200"
                       >
                         <FaBell className="text-xl" />
                         <span className="font-medium">Notificações</span>
                         {unreadNotifications > 0 && (
-                          <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                          <span className="ml-auto bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-1 shadow-lg font-semibold">
                             {unreadNotifications > 99 ? '99+' : unreadNotifications}
                           </span>
                         )}
@@ -683,7 +696,7 @@ export default function Header() {
                     <Link
                       to="/meus-pedidos"
                       onClick={handleNavClick}
-                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-50 text-cyan-700 hover:bg-blue-100 border border-blue-200"
                     >
                       <FaBox className="text-xl" />
                       <span className="font-medium">Meus Pedidos</span>
@@ -692,7 +705,7 @@ export default function Header() {
                     <li>
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-red-100 text-red-600 hover:bg-red-200"
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
                       >
                         <FaSignOutAlt className="text-xl" />
                         <span className="font-medium">Sair</span>
@@ -700,11 +713,11 @@ export default function Header() {
                     </li>
                   </>
                 ) : (
-                  <li className="pt-4 border-t border-gray-200 mt-6">
+                  <li className="pt-4 border-t border-white/10 mt-6">
                     <Link
                       to="/login"
                       onClick={handleNavClick}
-                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-cyan-500/20"
                     >
                       <FaSignInAlt className="text-xl" />
                       <span className="font-medium">Entrar</span>
@@ -715,7 +728,7 @@ export default function Header() {
                 {/* Seção administrativa - apenas para administradores */}
                 {isAdmin && (
                   <>
-                    <li className="pt-3 border-t border-gray-200 mt-4">
+                    <li className="pt-3 border-t border-white/10 mt-4">
                       <NavLink
                         to="/painel"
                         onClick={handleNavClick}
@@ -768,29 +781,29 @@ export default function Header() {
               </ul>
 
               {/* Theme Toggle Mobile */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <div className="mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Tema</h3>
+                  <h3 className="font-semibold text-white text-sm">Tema</h3>
                   <ThemeToggle />
                 </div>
               </div>
 
               {/* Seção de contato no menu mobile */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Fale Conosco</h3>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <h3 className="font-semibold text-white mb-3 text-sm">Fale Conosco</h3>
                 <div className="space-y-2">
                   <a 
                     href="https://wa.me/5519997050303"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors"
+                    className="flex items-center gap-3 p-2 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors backdrop-blur-sm border border-emerald-500/20"
                   >
                     <FaWhatsapp />
                     <span className="text-sm font-medium">WhatsApp</span>
                   </a>
                   <a 
                     href="tel:19997050303"
-                    className="flex items-center gap-3 p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-3 p-2 bg-cyan-500/20 text-cyan-400 rounded-xl hover:bg-cyan-500/30 transition-colors backdrop-blur-sm border border-cyan-500/20"
                   >
                     📞
                     <span className="text-sm font-medium">(19) 99705-0303</span>
