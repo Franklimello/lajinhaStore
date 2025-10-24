@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste WebViewFallback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Teste WebViewFallback</h1>
+        
+        <div id="userAgent" class="status info">
+            <strong>User Agent:</strong> <span id="ua-text"></span>
+        </div>
+        
+        <div id="detection" class="status">
+            <strong>Detecção:</strong> <span id="detection-result"></span>
+        </div>
+        
+        <div id="explanation" class="status info">
+            <strong>Explicação:</strong> <span id="explanation-text"></span>
+        </div>
+        
+        <button onclick="simulateInstagram()">Simular Instagram WebView</button>
+        <button onclick="simulateNormal()">Simular Navegador Normal</button>
+        <button onclick="checkDetection()">Verificar Detecção</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        let originalUserAgent = navigator.userAgent;
+        
+        function updateDisplay() {
+            const userAgent = navigator.userAgent;
+            document.getElementById('ua-text').textContent = userAgent;
+            
+            // Detectar Instagram WebView em iOS
+            const isIOS = /iPhone|iPad/.test(userAgent);
+            const isInstagram = /Instagram/.test(userAgent);
+            const isInstagramWebView = isIOS && isInstagram;
+            
+            const detectionEl = document.getElementById('detection-result');
+            const explanationEl = document.getElementById('explanation-text');
+            
+            if (isInstagramWebView) {
+                detectionEl.textContent = '✅ Instagram WebView detectado!';
+                detectionEl.parentElement.className = 'status success';
+                explanationEl.textContent = 'WebViewFallback deve aparecer com tela informativa.';
+            } else if (isIOS) {
+                detectionEl.textContent = '⚠️ iOS detectado, mas não é Instagram';
+                detectionEl.parentElement.className = 'status warning';
+                explanationEl.textContent = 'WebViewFallback não aparece - não é Instagram WebView.';
+            } else {
+                detectionEl.textContent = 'ℹ️ Navegador normal detectado';
+                detectionEl.parentElement.className = 'status info';
+                explanationEl.textContent = 'WebViewFallback não aparece - é navegador normal.';
+            }
+        }
+        
+        function simulateInstagram() {
+            // Simular User Agent do Instagram no iPhone
+            Object.defineProperty(navigator, 'userAgent', {
+                writable: true,
+                value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 155.0.0.37.107'
+            });
+            updateDisplay();
+            document.getElementById('test-results').innerHTML = '<div class="status success">✅ Simulação ativa! Recarregue a página para ver o WebViewFallback.</div>';
+        }
+        
+        function simulateNormal() {
+            // Restaurar User Agent original
+            Object.defineProperty(navigator, 'userAgent', {
+                writable: true,
+                value: originalUserAgent
+            });
+            updateDisplay();
+            document.getElementById('test-results').innerHTML = '<div class="status info">ℹ️ User Agent restaurado para navegador normal.</div>';
+        }
+        
+        function checkDetection() {
+            const userAgent = navigator.userAgent;
+            const isIOS = /iPhone|iPad/.test(userAgent);
+            const isInstagram = /Instagram/.test(userAgent);
+            const isInstagramWebView = isIOS && isInstagram;
+            
+            let result = `
+                <div class="status info">
+                    <strong>Análise detalhada:</strong><br>
+                    • iOS: ${isIOS ? '✅' : '❌'}<br>
+                    • Instagram: ${isInstagram ? '✅' : '❌'}<br>
+                    • Instagram WebView: ${isInstagramWebView ? '✅' : '❌'}<br>
+                    • WebViewFallback deve aparecer: ${isInstagramWebView ? '✅ SIM' : '❌ NÃO'}
+                </div>
+            `;
+            
+            document.getElementById('test-results').innerHTML = result;
+        }
+        
+        // Inicializar
+        updateDisplay();
+    </script>
+</body>
+</html>

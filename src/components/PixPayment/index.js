@@ -18,6 +18,7 @@ const PixPayment = () => {
   const [clientRua, setClientRua] = useState('');
   const [clientNumero, setClientNumero] = useState('');
   const [clientBairro, setClientBairro] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [clientCidade, setClientCidade] = useState('');
   const [clientReferencia, setClientReferencia] = useState('');
   const [horarioEntrega, setHorarioEntrega] = useState('');
@@ -100,6 +101,14 @@ const PixPayment = () => {
       navigate('/login');
       return;
     }
+
+    // 🔒 PROTEÇÃO CONTRA MÚLTIPLAS EXECUÇÕES
+    if (isProcessing) {
+      console.log('⚠️ Processamento já em andamento - ignorando chamada duplicada');
+      return;
+    }
+
+    setIsProcessing(true);
 
     if (!user.uid) {
       showToast('Erro de autenticação. Faça login novamente.', 'error');
@@ -312,6 +321,7 @@ const PixPayment = () => {
       showToast('❌ Erro ao gerar QR Code. Tente novamente.', 'error');
     } finally {
       setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 

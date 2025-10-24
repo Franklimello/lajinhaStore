@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Notificações - Supermercado Lajinha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Teste de Sistema de Notificações</h1>
+        <p>Este teste verifica se o sistema de notificações está funcionando corretamente.</p>
+
+        <!-- Teste 1: Permissão do Navegador -->
+        <div class="test-section">
+            <h3>1. Permissão do Navegador</h3>
+            <p>Status atual: <span id="permission-status">Verificando...</span></p>
+            <button onclick="checkPermission()">Verificar Permissão</button>
+            <button onclick="requestPermission()">Solicitar Permissão</button>
+            <div id="permission-result" class="status"></div>
+        </div>
+
+        <!-- Teste 2: Service Worker -->
+        <div class="test-section">
+            <h3>2. Service Worker</h3>
+            <p>Status: <span id="sw-status">Verificando...</span></p>
+            <button onclick="checkServiceWorker()">Verificar Service Worker</button>
+            <div id="sw-result" class="status"></div>
+        </div>
+
+        <!-- Teste 3: Token FCM -->
+        <div class="test-section">
+            <h3>3. Token FCM</h3>
+            <p>Status: <span id="token-status">Verificando...</span></p>
+            <button onclick="checkFCMToken()">Verificar Token FCM</button>
+            <div id="token-result" class="status"></div>
+        </div>
+
+        <!-- Teste 4: Notificação Local -->
+        <div class="test-section">
+            <h3>4. Notificação Local</h3>
+            <button onclick="testLocalNotification()">Testar Notificação Local</button>
+            <div id="local-result" class="status"></div>
+        </div>
+
+        <!-- Teste 5: Cloud Function -->
+        <div class="test-section">
+            <h3>5. Cloud Function (Telegram)</h3>
+            <button onclick="testCloudFunction()">Testar Função Cloud</button>
+            <div id="cloud-result" class="status"></div>
+        </div>
+
+        <!-- Logs -->
+        <div class="test-section">
+            <h3>📋 Logs</h3>
+            <pre id="logs"></pre>
+            <button onclick="clearLogs()">Limpar Logs</button>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            document.getElementById('logs').textContent = logs.join('\n');
+            console.log(logEntry);
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('logs').textContent = '';
+        }
+
+        // Teste 1: Permissão do Navegador
+        function checkPermission() {
+            const permission = Notification.permission;
+            document.getElementById('permission-status').textContent = permission;
+            
+            const result = document.getElementById('permission-result');
+            result.className = 'status';
+            
+            if (permission === 'granted') {
+                result.className += ' success';
+                result.textContent = '✅ Permissão concedida!';
+                log('✅ Permissão de notificação: GRANTED');
+            } else if (permission === 'denied') {
+                result.className += ' error';
+                result.textContent = '❌ Permissão negada. Clique em "Solicitar Permissão" para tentar novamente.';
+                log('❌ Permissão de notificação: DENIED');
+            } else {
+                result.className += ' warning';
+                result.textContent = '⚠️ Permissão não solicitada ainda.';
+                log('⚠️ Permissão de notificação: DEFAULT');
+            }
+        }
+
+        async function requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                document.getElementById('permission-status').textContent = permission;
+                log(`🔔 Solicitação de permissão: ${permission}`);
+                checkPermission();
+            } catch (error) {
+                log(`❌ Erro ao solicitar permissão: ${error.message}`);
+            }
+        }
+
+        // Teste 2: Service Worker
+        async function checkServiceWorker() {
+            const result = document.getElementById('sw-result');
+            result.className = 'status';
+            
+            if (!('serviceWorker' in navigator)) {
+                result.className += ' error';
+                result.textContent = '❌ Service Worker não suportado neste navegador';
+                log('❌ Service Worker não suportado');
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    result.className += ' success';
+                    result.textContent = '✅ Service Worker registrado';
+                    log('✅ Service Worker encontrado');
+                } else {
+                    result.className += ' warning';
+                    result.textContent = '⚠️ Service Worker não registrado';
+                    log('⚠️ Service Worker não encontrado');
+                }
+            } catch (error) {
+                result.className += ' error';
+                result.textContent = `❌ Erro: ${error.message}`;
+                log(`❌ Erro ao verificar Service Worker: ${error.message}`);
+            }
+        }
+
+        // Teste 3: Token FCM
+        async function checkFCMToken() {
+            const result = document.getElementById('token-result');
+            result.className = 'status';
+            
+            try {
+                // Verifica se Firebase está disponível
+                if (typeof firebase === 'undefined') {
+                    result.className += ' warning';
+                    result.textContent = '⚠️ Firebase não carregado (normal em teste local)';
+                    log('⚠️ Firebase não disponível em teste local');
+                    return;
+                }
+
+                const token = localStorage.getItem('fcm_token');
+                if (token) {
+                    result.className += ' success';
+                    result.textContent = `✅ Token FCM encontrado: ${token.substring(0, 20)}...`;
+                    log('✅ Token FCM encontrado no localStorage');
+                } else {
+                    result.className += ' warning';
+                    result.textContent = '⚠️ Token FCM não encontrado no localStorage';
+                    log('⚠️ Token FCM não encontrado');
+                }
+            } catch (error) {
+                result.className += ' error';
+                result.textContent = `❌ Erro: ${error.message}`;
+                log(`❌ Erro ao verificar token FCM: ${error.message}`);
+            }
+        }
+
+        // Teste 4: Notificação Local
+        function testLocalNotification() {
+            const result = document.getElementById('local-result');
+            result.className = 'status';
+            
+            if (Notification.permission !== 'granted') {
+                result.className += ' error';
+                result.textContent = '❌ Permissão de notificação não concedida';
+                log('❌ Não é possível testar notificação local - permissão negada');
+                return;
+            }
+
+            try {
+                const notification = new Notification('🔔 Teste de Notificação', {
+                    body: 'Esta é uma notificação de teste do Supermercado Lajinha!',
+                    icon: '/logo192.png',
+                    tag: 'test-notification'
+                });
+
+                result.className += ' success';
+                result.textContent = '✅ Notificação local enviada com sucesso!';
+                log('✅ Notificação local criada');
+
+                notification.onclick = () => {
+                    log('👆 Notificação clicada');
+                    notification.close();
+                };
+
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+
+            } catch (error) {
+                result.className += ' error';
+                result.textContent = `❌ Erro: ${error.message}`;
+                log(`❌ Erro ao criar notificação local: ${error.message}`);
+            }
+        }
+
+        // Teste 5: Cloud Function
+        async function testCloudFunction() {
+            const result = document.getElementById('cloud-result');
+            result.className = 'status';
+            
+            try {
+                const response = await fetch('https://us-central1-compreaqui-324df.cloudfunctions.net/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        test: true,
+                        message: 'Teste de notificação do site'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    result.className += ' success';
+                    result.textContent = '✅ Cloud Function respondeu com sucesso!';
+                    log(`✅ Cloud Function testada: ${JSON.stringify(data)}`);
+                } else {
+                    result.className += ' error';
+                    result.textContent = `❌ Erro na Cloud Function: ${response.status}`;
+                    log(`❌ Erro na Cloud Function: ${response.status}`);
+                }
+            } catch (error) {
+                result.className += ' error';
+                result.textContent = `❌ Erro de conexão: ${error.message}`;
+                log(`❌ Erro ao testar Cloud Function: ${error.message}`);
+            }
+        }
+
+        // Inicialização
+        window.onload = function() {
+            log('🚀 Iniciando teste de notificações...');
+            checkPermission();
+            checkServiceWorker();
+            checkFCMToken();
+        };
+    </script>
+</body>
+</html>

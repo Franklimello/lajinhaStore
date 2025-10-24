@@ -5,6 +5,7 @@ import {
   getDocs, 
   query, 
   orderBy, 
+  where,
   Timestamp,
   updateDoc,
   deleteDoc
@@ -36,6 +37,39 @@ export const addSorteioData = async (order) => {
       throw new Error('Campos obrigatórios não preenchidos');
     }
 
+    // 🔍 VERIFICAR SE JÁ EXISTE PARTICIPANTE COM ESTE PEDIDO
+    const sorteioRef = collection(db, 'sorteio');
+    const existingQuery = query(sorteioRef, where('orderNumber', '==', String(orderNumber)));
+    const existingSnapshot = await getDocs(existingQuery);
+    
+    if (!existingSnapshot.empty) {
+      console.log(`⚠️ Pedido #${orderNumber} já existe no sorteio - evitando duplicata`);
+      return {
+        success: false,
+        message: 'Pedido já participa do sorteio.',
+        eligible: false,
+        alreadyExists: true
+      };
+    }
+
+    // 🛡️ PROTEÇÃO ADICIONAL: Verificar se há muitos documentos recentes
+    const recentQuery = query(
+      sorteioRef, 
+      where('createdAt', '>=', new Date(Date.now() - 60000)), // Últimos 60 segundos
+      orderBy('createdAt', 'desc')
+    );
+    const recentSnapshot = await getDocs(recentQuery);
+    
+    if (recentSnapshot.size > 10) {
+      console.log(`🚨 ALERTA: ${recentSnapshot.size} documentos criados nos últimos 60 segundos - possível loop detectado!`);
+      return {
+        success: false,
+        message: 'Sistema temporariamente pausado para evitar loop.',
+        eligible: false,
+        loopDetected: true
+      };
+    }
+
     // VERIFICAR SE A PROMOÇÃO ESTÁ ATIVA
     const promocaoAtiva = await isPromocaoAtiva();
     if (!promocaoAtiva) {
@@ -59,7 +93,6 @@ export const addSorteioData = async (order) => {
     }
 
     // Salvar no Firestore
-    const sorteioRef = collection(db, 'sorteio');
     const docRef = await addDoc(sorteioRef, {
       orderNumber: String(orderNumber),
       clientName: String(clientName),

@@ -8,6 +8,9 @@
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+
+// Importar funções de limpeza do sorteio
+const { limparSorteio, verificarSorteio } = require('./limparSorteio');
 // Resend removido - usando apenas Telegram
 // const {Resend} = require("resend");
 const config = require("./config"); 
@@ -314,3 +317,7 @@ ${pedido.observacoes ? `📝 *Observações:* ${pedido.observacoes}` : ""}
       console.error("❌ Detalhes do erro:", error.response?.data || error.stack);
     }
   });
+
+// Exportar funções de limpeza do sorteio
+exports.limparSorteio = limparSorteio;
+exports.verificarSorteio = verificarSorteio;

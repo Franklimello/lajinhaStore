@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Coleção Sorteio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpeza da Coleção Sorteio</h1>
+        
+        <div class="warning">
+            <strong>⚠️ ATENÇÃO:</strong> Esta operação irá deletar TODOS os documentos da coleção 'sorteio' no Firebase. 
+            Esta ação é irreversível!
+        </div>
+        
+        <div id="status" class="info">
+            Clique no botão abaixo para verificar o estado atual da coleção.
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processando...</p>
+        </div>
+        
+        <button onclick="verificarColecao()" id="btnVerificar">🔍 Verificar Coleção</button>
+        <button onclick="limparColecao()" id="btnLimpar" disabled>🧹 Limpar Coleção</button>
+        <button onclick="voltar()" id="btnVoltar">← Voltar</button>
+        
+        <div id="resultado"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ",
+            authDomain: "compreaqui-324df.firebaseapp.com",
+            projectId: "compreaqui-324df",
+            storageBucket: "compreaqui-324df.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdefghijklmnop"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let documentosEncontrados = 0;
+
+        async function verificarColecao() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            const btnLimpar = document.getElementById('btnLimpar');
+            const resultado = document.getElementById('resultado');
+            
+            loading.style.display = 'block';
+            status.innerHTML = '🔍 Verificando coleção sorteio...';
+            
+            try {
+                const sorteioRef = collection(db, 'sorteio');
+                const snapshot = await getDocs(sorteioRef);
+                
+                documentosEncontrados = snapshot.size;
+                
+                if (snapshot.empty) {
+                    status.innerHTML = '✅ Coleção sorteio está vazia';
+                    btnLimpar.disabled = true;
+                    resultado.innerHTML = '<div class="success">Nenhum documento encontrado na coleção sorteio.</div>';
+                } else {
+                    status.innerHTML = `📊 Encontrados ${snapshot.size} documentos na coleção sorteio`;
+                    btnLimpar.disabled = false;
+                    
+                    let html = '<div class="info"><h3>📋 Primeiros documentos encontrados:</h3><ul>';
+                    snapshot.docs.slice(0, 10).forEach((docSnapshot, index) => {
+                        const data = docSnapshot.data();
+                        html += `<li><strong>${index + 1}.</strong> ID: ${docSnapshot.id}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Pedido: ${data.orderNumber}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Cliente: ${data.clientName}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Data: ${data.createdAt?.toDate?.() || 'N/A'}</li>`;
+                    });
+                    html += '</ul></div>';
+                    
+                    if (snapshot.size > 10) {
+                        html += `<div class="warning">... e mais ${snapshot.size - 10} documentos.</div>`;
+                    }
+                    
+                    resultado.innerHTML = html;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar coleção:', error);
+                status.innerHTML = '❌ Erro ao verificar coleção';
+                resultado.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function limparColecao() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            const resultado = document.getElementById('resultado');
+            
+            // Confirmar ação
+            if (!confirm(`⚠️ ATENÇÃO: Você está prestes a deletar ${documentosEncontrados} documentos da coleção sorteio. Esta ação é irreversível!\n\nDeseja continuar?`)) {
+                return;
+            }
+            
+            loading.style.display = 'block';
+            status.innerHTML = '🧹 Limpando coleção sorteio...';
+            
+            try {
+                const sorteioRef = collection(db, 'sorteio');
+                const snapshot = await getDocs(sorteioRef);
+                
+                if (snapshot.empty) {
+                    status.innerHTML = '✅ Coleção já está vazia';
+                    resultado.innerHTML = '<div class="success">Coleção sorteio já estava vazia.</div>';
+                    return;
+                }
+                
+                // Deletar em lotes de 500
+                const batch = writeBatch(db);
+                let deletedCount = 0;
+                let batchCount = 0;
+                
+                for (const docSnapshot of snapshot.docs) {
+                    batch.delete(docSnapshot.ref);
+                    deletedCount++;
+                    
+                    // Commit a cada 500 documentos
+                    if (deletedCount % 500 === 0) {
+                        await batch.commit();
+                        batchCount++;
+                        status.innerHTML = `🧹 Processando lote ${batchCount}: ${deletedCount} documentos deletados...`;
+                    }
+                }
+                
+                // Commit documentos restantes
+                if (deletedCount % 500 !== 0) {
+                    await batch.commit();
+                }
+                
+                status.innerHTML = `✅ ${deletedCount} documentos deletados com sucesso!`;
+                resultado.innerHTML = `<div class="success"><h3>🎉 Limpeza concluída!</h3><p>Total de documentos deletados: ${deletedCount}</p></div>`;
+                
+                // Desabilitar botão de limpeza
+                document.getElementById('btnLimpar').disabled = true;
+                
+            } catch (error) {
+                console.error('Erro ao limpar coleção:', error);
+                status.innerHTML = '❌ Erro ao limpar coleção';
+                resultado.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function voltar() {
+            window.location.href = '/';
+        }
+
+        // Tornar funções globais
+        window.verificarColecao = verificarColecao;
+        window.limparColecao = limparColecao;
+        window.voltar = voltar;
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Coleção Sorteio - Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #0066cc;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpeza da Coleção Sorteio - Admin</h1>
+        
+        <div class="warning">
+            <strong>⚠️ ATENÇÃO:</strong> Esta operação irá deletar TODOS os documentos da coleção 'sorteio' no Firebase. 
+            Esta ação é irreversível!
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instruções para Limpeza Manual:</h3>
+            <div class="step">
+                <strong>1.</strong> Acesse o <a href="https://console.firebase.google.com/project/compreaqui-324df/firestore/data" target="_blank">Firebase Console</a>
+            </div>
+            <div class="step">
+                <strong>2.</strong> Navegue até a coleção <code>sorteio</code>
+            </div>
+            <div class="step">
+                <strong>3.</strong> Selecione todos os documentos (Ctrl+A ou Cmd+A)
+            </div>
+            <div class="step">
+                <strong>4.</strong> Clique no botão "Excluir" (ícone de lixeira)
+            </div>
+            <div class="step">
+                <strong>5.</strong> Confirme a exclusão
+            </div>
+        </div>
+        
+        <div class="info">
+            <h3>🔧 Alternativa - Usar Cloud Function:</h3>
+            <p>Se preferir, você pode usar uma Cloud Function para limpar a coleção automaticamente.</p>
+        </div>
+        
+        <button onclick="abrirFirebaseConsole()">🔗 Abrir Firebase Console</button>
+        <button onclick="voltar()">← Voltar</button>
+        
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function abrirFirebaseConsole() {
+            window.open('https://console.firebase.google.com/project/compreaqui-324df/firestore/data', '_blank');
+        }
+        
+        function voltar() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

@@ -1,71 +1,65 @@
 import { useState, useEffect } from 'react';
-import { isSocialMediaWebView } from '../../utils/instagramWebView';
 
-const WebViewFallback = ({ children, fallback }) => {
-  const [showFallback, setShowFallback] = useState(false);
-  const [isWebView, setIsWebView] = useState(false);
+const WebViewFallback = ({ children }) => {
+  const [showInstagramFallback, setShowInstagramFallback] = useState(false);
+  const [isInstagramWebView, setIsInstagramWebView] = useState(false);
+
+  // Detectar Instagram WebView em iOS
+  const detectInstagramWebView = () => {
+    const userAgent = navigator.userAgent;
+    const isIOS = /iPhone|iPad/.test(userAgent);
+    const isInstagram = /Instagram/.test(userAgent);
+    
+    return isIOS && isInstagram;
+  };
 
   useEffect(() => {
-    const webView = isSocialMediaWebView();
-    setIsWebView(webView);
+    const isInstagram = detectInstagramWebView();
+    setIsInstagramWebView(isInstagram);
     
-    if (webView) {
-      // Aguardar 5 segundos para verificar se os produtos carregaram
-      const timer = setTimeout(() => {
-        const hasProducts = document.querySelectorAll('[data-testid="product-card"], .swiper-slide, .produto-card').length > 0;
-        if (!hasProducts) {
-          setShowFallback(true);
-        }
-      }, 5000);
-      
-      return () => clearTimeout(timer);
+    if (isInstagram) {
+      // Mostrar fallback imediatamente para Instagram WebView em iOS
+      setShowInstagramFallback(true);
     }
   }, []);
 
-  if (isWebView && showFallback) {
+  // Se for Instagram WebView em iOS, mostrar tela informativa
+  if (isInstagramWebView && showInstagramFallback) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 animate-fade-in">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">📱</div>
+          <div className="text-6xl mb-6 animate-bounce">📱</div>
+          
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Abra no seu navegador
+            Parece que você está abrindo pelo Instagram.
           </h2>
-          <p className="text-gray-600 mb-6">
-            Para uma melhor experiência e visualizar todos os produtos, 
-            abra este link no seu navegador padrão (Chrome, Safari, etc.)
+          
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Para uma melhor experiência de navegação e visualização completa dos produtos, 
+            recomendamos abrir no seu navegador externo (Safari).
           </p>
           
-          <div className="space-y-3">
-            <button
-              onClick={() => window.open(window.location.href, '_blank')}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
-              Abrir no Navegador
-            </button>
-            
-            <button
-              onClick={() => setShowFallback(false)}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all"
-            >
-              Tentar Novamente
-            </button>
-          </div>
+          <button
+            onClick={() => window.open('https://compreaqui-324df.web.app/abrir.html', '_blank')}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 px-8 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          >
+            Abrir no Safari
+          </button>
           
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-blue-800 mb-2">Como abrir:</h3>
-            <ol className="text-sm text-blue-700 text-left space-y-1">
-              <li>1. Toque no botão "Abrir no Navegador"</li>
-              <li>2. Ou copie o link e cole no seu navegador</li>
-              <li>3. Ou compartilhe com você mesmo no WhatsApp</li>
-            </ol>
+          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-semibold text-blue-800 mb-3">💡 Dica:</h3>
+            <p className="text-sm text-blue-700">
+              No Safari você terá acesso completo a todos os produtos, 
+              carrinho de compras e funcionalidades do site.
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
+  // Renderizar conteúdo normal se não for Instagram WebView
   return children;
 };
 
 export default WebViewFallback;
-

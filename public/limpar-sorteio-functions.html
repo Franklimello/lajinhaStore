@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Coleção Sorteio - Cloud Functions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .login-section {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #0066cc;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .login-form input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .login-form button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpeza da Coleção Sorteio - Cloud Functions</h1>
+        
+        <div class="warning">
+            <strong>⚠️ ATENÇÃO:</strong> Esta operação irá deletar TODOS os documentos da coleção 'sorteio' no Firebase. 
+            Esta ação é irreversível!
+        </div>
+        
+        <div id="loginSection" class="login-section">
+            <h3>🔐 Login Necessário</h3>
+            <p>Você precisa estar logado como administrador para usar esta ferramenta.</p>
+            <div class="login-form">
+                <input type="email" id="email" placeholder="Email" />
+                <input type="password" id="password" placeholder="Senha" />
+                <button onclick="fazerLogin()">Entrar</button>
+            </div>
+        </div>
+        
+        <div id="adminSection" style="display: none;">
+            <div id="status" class="info">
+                Faça login para acessar as funções de administração.
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processando...</p>
+            </div>
+            
+            <button onclick="verificarColecao()" id="btnVerificar">🔍 Verificar Coleção</button>
+            <button onclick="limparColecao()" id="btnLimpar" disabled>🧹 Limpar Coleção</button>
+            <button onclick="fazerLogout()" id="btnLogout">🚪 Sair</button>
+            
+            <div id="resultado"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ",
+            authDomain: "compreaqui-324df.firebaseapp.com",
+            projectId: "compreaqui-324df",
+            storageBucket: "compreaqui-324df.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdefghijklmnop"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const functions = getFunctions(app);
+
+        let documentosEncontrados = 0;
+
+        // Verificar se usuário está logado
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminSection').style.display = 'block';
+                document.getElementById('status').innerHTML = `✅ Logado como: ${user.email}`;
+            } else {
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('adminSection').style.display = 'none';
+            }
+        });
+
+        async function fazerLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                alert('Por favor, preencha email e senha');
+                return;
+            }
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                console.log('Login realizado com sucesso');
+            } catch (error) {
+                console.error('Erro no login:', error);
+                alert('Erro no login: ' + error.message);
+            }
+        }
+
+        async function fazerLogout() {
+            try {
+                await signOut(auth);
+                console.log('Logout realizado com sucesso');
+            } catch (error) {
+                console.error('Erro no logout:', error);
+            }
+        }
+
+        async function verificarColecao() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            const btnLimpar = document.getElementById('btnLimpar');
+            const resultado = document.getElementById('resultado');
+            
+            loading.style.display = 'block';
+            status.innerHTML = '🔍 Verificando coleção sorteio...';
+            
+            try {
+                const verificarSorteio = httpsCallable(functions, 'verificarSorteio');
+                const result = await verificarSorteio();
+                
+                documentosEncontrados = result.data.totalCount;
+                
+                if (result.data.totalCount === 0) {
+                    status.innerHTML = '✅ Coleção sorteio está vazia';
+                    btnLimpar.disabled = true;
+                    resultado.innerHTML = '<div class="success">Nenhum documento encontrado na coleção sorteio.</div>';
+                } else {
+                    status.innerHTML = `📊 Encontrados ${result.data.totalCount} documentos na coleção sorteio`;
+                    btnLimpar.disabled = false;
+                    
+                    let html = '<div class="info"><h3>📋 Documentos encontrados:</h3><ul>';
+                    result.data.documentos.forEach((doc, index) => {
+                        html += `<li><strong>${index + 1}.</strong> ID: ${doc.id}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Pedido: ${doc.orderNumber}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Cliente: ${doc.clientName}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;Data: ${doc.createdAt || 'N/A'}</li>`;
+                    });
+                    html += '</ul></div>';
+                    
+                    if (result.data.totalCount > 10) {
+                        html += `<div class="warning">... e mais ${result.data.totalCount - 10} documentos.</div>`;
+                    }
+                    
+                    resultado.innerHTML = html;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar coleção:', error);
+                status.innerHTML = '❌ Erro ao verificar coleção';
+                resultado.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function limparColecao() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            const resultado = document.getElementById('resultado');
+            
+            // Confirmar ação
+            if (!confirm(`⚠️ ATENÇÃO: Você está prestes a deletar ${documentosEncontrados} documentos da coleção sorteio. Esta ação é irreversível!\n\nDeseja continuar?`)) {
+                return;
+            }
+            
+            loading.style.display = 'block';
+            status.innerHTML = '🧹 Limpando coleção sorteio...';
+            
+            try {
+                const limparSorteio = httpsCallable(functions, 'limparSorteio');
+                const result = await limparSorteio();
+                
+                status.innerHTML = `✅ ${result.data.deletedCount} documentos deletados com sucesso!`;
+                resultado.innerHTML = `<div class="success"><h3>🎉 Limpeza concluída!</h3><p>Total de documentos deletados: ${result.data.deletedCount}</p></div>`;
+                
+                // Desabilitar botão de limpeza
+                document.getElementById('btnLimpar').disabled = true;
+                
+            } catch (error) {
+                console.error('Erro ao limpar coleção:', error);
+                status.innerHTML = '❌ Erro ao limpar coleção';
+                resultado.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Tornar funções globais
+        window.fazerLogin = fazerLogin;
+        window.fazerLogout = fazerLogout;
+        window.verificarColecao = verificarColecao;
+        window.limparColecao = limparColecao;
+    </script>
+</body>
+</html>
