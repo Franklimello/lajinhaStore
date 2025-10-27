@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-@import 'swiper/css';
-@import 'swiper/css/navigation';
-@import 'swiper/css/pagination';
 @import './styles/animations.css';
 
 /* Animações customizadas para Toast */

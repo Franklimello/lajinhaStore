@@ -7,6 +7,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useSimpleSearch } from '../../hooks/useSimpleSearch';
 import { useAdvancedCache } from '../../hooks/useAdvancedCache';
 import { useLazyHydration } from '../../hooks/useLazyHydration';
+import { useLazyScroll } from '../../hooks/useLazyScroll';
 // import { useProductImagePreloader } from '../../hooks/useProductImagePreloader';
 import ErrorBoundary from '../../components/Common/ErrorBoundary';
 import SkeletonCard from '../../components/Common/SkeletonCard';
@@ -27,7 +28,7 @@ const ScrollToTopButton = lazy(() => import('../../components/Home/ScrollToTopBu
 const Footer = lazy(() => import('../../components/Footer'));
 
 /**
- * Home - Página principal ultra-otimizada
+ * Home - Página principal ultra-otimizada com Lazy Rendering por Scroll
  * 
  * MELHORIAS AVANÇADAS IMPLEMENTADAS:
  * ✅ Lazy hydration para componentes não críticos
@@ -38,6 +39,10 @@ const Footer = lazy(() => import('../../components/Footer'));
  * ✅ SEO otimizado (Open Graph, Twitter Cards)
  * ✅ Animações suaves e feedback visual
  * ✅ Performance 90+ Lighthouse
+ * ✅ LAZY RENDERING POR SCROLL - Hook useLazyScroll personalizado
+ * ✅ Intersection Observer otimizado para carregamento progressivo
+ * ✅ Carrega apenas 2 categorias iniciais (Mercearia e Limpeza)
+ * ✅ Carregamento automático conforme scroll do usuário
  */
 export default function Home() {
   useWebViewOptimization();
@@ -50,6 +55,27 @@ export default function Home() {
   // Hooks avançados
   const { isReady: cacheReady, preloadPopularProducts } = useAdvancedCache();
   const { shouldHydrate: shouldHydrateNonCritical } = useLazyHydration(2000); // 2s delay
+  
+  // Lista de categorias para lazy loading (preview na home)
+  const categories = useMemo(() => [
+    'Mercearia',
+    'Limpeza', 
+    'Frios e laticínios',
+    'Guloseimas e snacks',
+    'Bebidas',
+    'Bebidas Geladas',
+    'Higiene pessoal',
+    'Cosméticos',
+    'Farmácia',
+    'Utilidades domésticas',
+    'Pet shop',
+    'Infantil',
+    'Hortifruti',
+    'Açougue'
+  ], []);
+  
+  // Hook para lazy rendering por scroll
+  const visibleCategoryCount = useLazyScroll(2, categories.length);
   
   // Debounce para busca
   const debouncedTerm = useDebouncedValue(termo, 350);
@@ -94,6 +120,8 @@ export default function Home() {
 
   // Função para navegar para a página da categoria
   const handleCategoryClick = useCallback((categoryName) => {
+    console.log('🔍 Categoria clicada:', categoryName);
+    
     // Mapeamento de nomes de categorias para rotas
     const categoryRoutes = {
       'Mercearia': '/mercearia',
@@ -113,8 +141,14 @@ export default function Home() {
     };
     
     const route = categoryRoutes[categoryName];
+    console.log('📍 Rota encontrada:', route);
+    
     if (route) {
+      console.log('✅ Navegando para:', route);
       navigate(route);
+    } else {
+      console.log('❌ Rota não encontrada para categoria:', categoryName);
+      console.log('📋 Categorias disponíveis:', Object.keys(categoryRoutes));
     }
   }, [navigate]);
 
@@ -168,24 +202,6 @@ export default function Home() {
     }
   }), []);
 
-  // Lista de categorias para lazy loading (preview na home)
-  const categories = useMemo(() => [
-    'Mercearia',
-    'Limpeza', 
-    'Frios e laticínios',
-    'Guloseimas e snacks',
-    'Bebidas',
-    'Bebidas Geladas',
-    'Higiene pessoal',
-    'Cosméticos',
-    'Farmácia',
-    'Utilidades domésticas',
-    'Pet shop',
-    'Infantil',
-    'Hortifruti',
-    'Açougue'
-  ], []);
-
   return (
     <>
       <AdvancedSEO
@@ -198,6 +214,7 @@ export default function Home() {
         canonical="https://compreaqui.com.br"
       />
       
+
       <WebViewFallback>
         {/* Hero Section - Crítico, carregamento prioritário - FULLWIDTH */}
         <ErrorBoundary>
@@ -208,17 +225,16 @@ export default function Home() {
 
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
 
-          {/* Search Bar - Crítico, carregamento prioritário */}
-          <ErrorBoundary>
-            <Suspense fallback={<SkeletonCard variant="search" className="w-full" />}>
-              <SearchBar 
-                termo={termo} 
-                setTermo={setTermo} 
-                onClearSearch={handleClearSearch} 
-              />
-            </Suspense>
-          </ErrorBoundary>
-
+          {/* Ofertas do Dia - Não crítico, lazy hydration */}
+          {!termo.trim() && shouldHydrateNonCritical && (
+            <ErrorBoundary>
+              <Suspense fallback={<SkeletonCard variant="offers" className="w-full" />}>
+                <div className="mt-16">
+                  <OffersSection />
+                </div>
+              </Suspense>
+            </ErrorBoundary>
+          )}
 
           {/* Grid de Categorias - Não crítico, lazy hydration */}
           {!termo.trim() && shouldHydrateNonCritical && (
@@ -238,17 +254,8 @@ export default function Home() {
             </ErrorBoundary>
           )}
 
-          {/* Ofertas do Dia - Não crítico, lazy hydration */}
-          {!termo.trim() && shouldHydrateNonCritical && (
-            <ErrorBoundary>
-              <Suspense fallback={<SkeletonCard variant="offers" className="w-full" />}>
-                <OffersSection />
-              </Suspense>
-            </ErrorBoundary>
-          )}
-
-          {/* Segunda Barra de Busca - Após ofertas para facilitar acesso */}
-          {!termo.trim() && shouldHydrateNonCritical && (
+          {/* Barra de Busca - Sempre visível */}
+          {shouldHydrateNonCritical && (
             <ErrorBoundary>
               <Suspense fallback={<SkeletonCard variant="search" className="w-full" />}>
                 <SearchBar 
@@ -271,14 +278,18 @@ export default function Home() {
               </Suspense>
             </ErrorBoundary>
           ) : (
-            /* Preview das Categorias - mostra 10 produtos de cada */
+            /* Preview das Categorias com Lazy Loading por Scroll */
             <div className="container mx-auto pb-4 space-y-10">
-              {categories.map((categoryName) => (
+              {categories.slice(0, visibleCategoryCount).map((categoryName, index) => (
                 <ErrorBoundary key={categoryName}>
-                  <LazyCategorySection
-                    categoryName={categoryName}
-                    searchTerm={termo}
-                  />
+                  <div className="lazy-category-anchor" id={`category-${index}`}>
+                    <Suspense fallback={<SkeletonCard variant="category" count={1} />}>
+                      <LazyCategorySection
+                        categoryName={categoryName}
+                        searchTerm={termo}
+                      />
+                    </Suspense>
+                  </div>
                 </ErrorBoundary>
               ))}
             </div>
@@ -318,6 +329,7 @@ export default function Home() {
               <Footer />
             </Suspense>
           </ErrorBoundary>
+
       </WebViewFallback>
     </>
   );

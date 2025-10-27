@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaSearch, FaDice, FaTrophy, FaTicketAlt, FaCalendar, FaShoppingCart, FaDollarSign, FaUser, FaPhone, FaPause, FaPlay, FaTrash } from 'react-icons/fa';
-import { getSorteioData, togglePromocao, limparParticipantes, isPromocaoAtiva } from '../../services/sorteioService';
+import { getSorteioData, togglePromocao, limparParticipantes, isPromocaoAtiva, adicionarClienteManual } from '../../services/sorteioService';
 import SorteioAnimation from '../../components/SorteioAnimation';
 
 export default function SorteioPage() {
@@ -12,6 +12,15 @@ export default function SorteioPage() {
   const [promocaoAtiva, setPromocaoAtiva] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [loadingLimpar, setLoadingLimpar] = useState(false);
+  const [showAdicionarManual, setShowAdicionarManual] = useState(false);
+  const [loadingAdicionar, setLoadingAdicionar] = useState(false);
+  const [clienteManual, setClienteManual] = useState({
+    orderNumber: '',
+    clientName: '',
+    clientPhone: '',
+    totalItems: '',
+    totalValue: ''
+  });
 
   // Buscar status da promoção ao carregar
   useEffect(() => {
@@ -106,6 +115,52 @@ export default function SorteioPage() {
     }
   };
 
+  // Função para adicionar cliente manualmente
+  const handleAdicionarCliente = async () => {
+    if (!clienteManual.orderNumber || !clienteManual.clientName || !clienteManual.clientPhone || !clienteManual.totalItems || !clienteManual.totalValue) {
+      alert('❌ Todos os campos são obrigatórios!');
+      return;
+    }
+
+    if (parseInt(clienteManual.totalItems) < 5) {
+      alert('❌ O cliente deve ter pelo menos 5 itens para participar do sorteio!');
+      return;
+    }
+
+    setLoadingAdicionar(true);
+    try {
+      const dadosCliente = {
+        orderNumber: clienteManual.orderNumber,
+        clientName: clienteManual.clientName,
+        clientPhone: clienteManual.clientPhone,
+        totalItems: parseInt(clienteManual.totalItems),
+        totalValue: parseFloat(clienteManual.totalValue)
+      };
+
+      const resultado = await adicionarClienteManual(dadosCliente);
+      
+      if (resultado.success) {
+        alert('✅ Cliente adicionado ao sorteio com sucesso!');
+        setClienteManual({
+          orderNumber: '',
+          clientName: '',
+          clientPhone: '',
+          totalItems: '',
+          totalValue: ''
+        });
+        setShowAdicionarManual(false);
+        // Recarregar dados
+        handleBuscarDados();
+      } else {
+        alert(`❌ Erro ao adicionar cliente: ${resultado.message}`);
+      }
+    } catch (error) {
+      alert(`❌ Erro inesperado: ${error.message}`);
+    } finally {
+      setLoadingAdicionar(false);
+    }
+  };
+
   // Formatar data
   const formatDate = (date) => {
     if (!date) return '-';
@@ -159,7 +214,7 @@ export default function SorteioPage() {
             Controles da Promoção
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Status da Promoção */}
             <button
               onClick={handleTogglePromocao}
@@ -193,6 +248,15 @@ export default function SorteioPage() {
             >
               <FaSearch className="text-xl" />
               {loading ? 'Buscando...' : 'Atualizar Lista'}
+            </button>
+
+            {/* Adicionar Cliente Manualmente */}
+            <button
+              onClick={() => setShowAdicionarManual(true)}
+              className="flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <FaUser className="text-xl" />
+              Adicionar Cliente
             </button>
           </div>
 
@@ -406,6 +470,103 @@ export default function SorteioPage() {
           <p className="text-gray-600">Em breve...</p>
         </div> */}
       </div>
+
+      {/* Modal para adicionar cliente manualmente */}
+      {showAdicionarManual && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <FaUser className="text-purple-600" />
+              Adicionar Cliente ao Sorteio
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Número do Pedido *
+                </label>
+                <input
+                  type="text"
+                  value={clienteManual.orderNumber}
+                  onChange={(e) => setClienteManual({...clienteManual, orderNumber: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ex: PEDIDO-123"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nome do Cliente *
+                </label>
+                <input
+                  type="text"
+                  value={clienteManual.clientName}
+                  onChange={(e) => setClienteManual({...clienteManual, clientName: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Telefone *
+                </label>
+                <input
+                  type="text"
+                  value={clienteManual.clientPhone}
+                  onChange={(e) => setClienteManual({...clienteManual, clientPhone: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ex: 11999999999"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Total de Itens * (mínimo 5)
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  value={clienteManual.totalItems}
+                  onChange={(e) => setClienteManual({...clienteManual, totalItems: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ex: 12"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Valor Total (R$) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={clienteManual.totalValue}
+                  onChange={(e) => setClienteManual({...clienteManual, totalValue: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ex: 120.00"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowAdicionarManual(false)}
+                className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAdicionarCliente}
+                disabled={loadingAdicionar}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:opacity-50"
+              >
+                {loadingAdicionar ? 'Adicionando...' : 'Adicionar Cliente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de animação do sorteio */}
       {showAnimation && (

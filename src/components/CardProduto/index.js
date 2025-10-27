@@ -5,7 +5,6 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { useContext, memo, useCallback } from "react";
-import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
 import CachedFirebaseImage from "../Common/CachedFirebaseImage";
 
@@ -34,7 +33,7 @@ const CardProduto = memo(function CardProduto({ fotosUrl = [], titulo, descricao
             Esgotado
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 text-xs font-semibold shadow-lg">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 text-xs font-semibold shadow-lg">
             Oferta
           </div>
         )}
@@ -125,7 +124,7 @@ const CardProduto = memo(function CardProduto({ fotosUrl = [], titulo, descricao
         {/* Preço */}
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <div className="flex flex-col">
-            <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+            <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
               R$ {preco}
             </span>
             
@@ -146,7 +145,7 @@ const CardProduto = memo(function CardProduto({ fotosUrl = [], titulo, descricao
             className={`w-full flex items-center justify-center rounded-md gap-3 text-white py-3 font-semibold transition-all duration-200 ${
               esgotado
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl'
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
             }`}
           >
             <FaShoppingCart className="text-lg" />

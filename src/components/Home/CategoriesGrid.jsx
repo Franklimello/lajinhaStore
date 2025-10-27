@@ -1,9 +1,5 @@
 import React, { memo, useCallback } from 'react';
 
-/**
- * CategoriesGrid - Grade de categorias otimizada
- * Usa memo e useCallback para performance
- */
 const CategoriesGrid = memo(({ onCategoryClick }) => {
   const categories = [
     { 
@@ -75,17 +71,18 @@ const CategoriesGrid = memo(({ onCategoryClick }) => {
       name: 'Açougue', 
       icon: '🥩',
       color: 'from-red-500 to-rose-600'
-    },
+    }
   ];
 
   const handleCategoryClick = useCallback((categoryName) => {
-    onCategoryClick(categoryName);
+    if (onCategoryClick) {
+      onCategoryClick(categoryName);
+    }
   }, [onCategoryClick]);
 
   return (
     <div className="container mx-auto px-4 pb-8">
       <div className="bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl shadow-cyan-500/10 p-6 border border-white/10 relative overflow-hidden">
-        {/* Background Effects */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_70%)]"></div>
         
         <div className="relative">
@@ -100,18 +97,15 @@ const CategoriesGrid = memo(({ onCategoryClick }) => {
                 className={`group relative flex flex-col items-center p-3 md:p-4 bg-gradient-to-br ${category.color} rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 ring-1 ring-white/10`}
                 aria-label={`Ir para categoria ${category.name}`}
               >
-                {/* Icon */}
                 <div className="text-3xl md:text-4xl mb-2 group-hover:scale-110 transition-transform duration-300">
                   {category.icon}
                 </div>
                 
-                {/* Name */}
                 <span className="text-xs md:text-sm font-bold text-white text-center leading-tight drop-shadow-lg">
                   {category.name}
                 </span>
 
-                {/* Hover shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none rounded-2xl"></div>
+                
               </button>
             ))}
           </div>
@@ -124,11 +118,3 @@ const CategoriesGrid = memo(({ onCategoryClick }) => {
 CategoriesGrid.displayName = 'CategoriesGrid';
 
 export default CategoriesGrid;
-
-
-
-
-
-
-
-

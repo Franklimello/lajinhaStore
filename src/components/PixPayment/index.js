@@ -288,7 +288,13 @@ const PixPayment = () => {
 
         // Tentar adicionar ao sorteio (só salva se totalItems >= 5)
         try {
+          console.log('🎯 INICIANDO PROCESSO DE SORTEIO...');
+          console.log('📊 Dados do pedido para sorteio:', sorteioDataPayload);
+          console.log('📈 Total de itens calculado:', totalItems);
+          
           const sorteioResult = await addSorteioData(sorteioDataPayload);
+          
+          console.log('📋 Resultado do sorteio:', sorteioResult);
           
           if (sorteioResult.eligible) {
             console.log('🎉 Cliente elegível para sorteio!', sorteioResult);
@@ -299,10 +305,17 @@ const PixPayment = () => {
               }, 2000);
             }
           } else {
-            console.log('⚠️ Pedido não elegível para sorteio (menos de 5 itens ou promoção pausada)');
+            console.log('⚠️ Pedido não elegível para sorteio:', sorteioResult.message);
+            console.log('🔍 Motivo específico:', {
+              eligible: sorteioResult.eligible,
+              promocaoPausada: sorteioResult.promocaoPausada,
+              alreadyExists: sorteioResult.alreadyExists,
+              loopDetected: sorteioResult.loopDetected
+            });
           }
         } catch (sorteioError) {
           console.error('❌ Erro ao adicionar ao sorteio:', sorteioError);
+          console.error('📊 Dados que causaram o erro:', sorteioDataPayload);
           // Não interrompe o fluxo - o pedido já foi salvo com sucesso
         }
 

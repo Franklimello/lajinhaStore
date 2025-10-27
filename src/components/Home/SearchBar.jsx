@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useRef } from 'react';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch,FaChevronDown } from 'react-icons/fa';
+;
 
 /**
  * SearchBar - Campo de busca otimizado com acessibilidade
@@ -45,15 +46,18 @@ const SearchBar = memo(({ termo, setTermo, onClearSearch }) => {
     <div className="w-full px-4 py-8">
       {/* Texto chamativo */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-          🔍 Encontre o que procura rapidamente!
+        <h2 className="text-2xl md:text-3xl font-bold text-blue-700 mb-2">
+          Encontre o que procura rapidamente!
         </h2>
-        <p className="text-slate-700 text-sm md:text-base">
+        <p className="text-blue-600 text-sm md:text-base">
           Digite o nome do produto e encontre em segundos
         </p>
         <p className="text-slate-600 text-xs md:text-sm font-semibold mt-1">
           💡 Mínimo de 3 caracteres para buscar
         </p>
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <FaChevronDown className="text-blue-600 text-2xl animate-bounce" />
+        </div>
       </div>
 
       {/* Input de busca - destaque total */}

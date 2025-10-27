@@ -1,29 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FaTruck, FaShieldAlt, FaHeart, FaClock, FaComments, FaWhatsapp } from 'react-icons/fa';
 
 const HeroSection = () => {
-  const [showChatMessage, setShowChatMessage] = useState(false);
-
-  const handleChatClick = () => {
-    window.dispatchEvent(new CustomEvent('openChat'));
-    setShowChatMessage(true);
-    setTimeout(() => setShowChatMessage(false), 3000);
-  };
 
   return (
     <>
       {/* Hero Desktop */}
       <div className="hidden md:block relative overflow-hidden bg-white w-screen -ml-[50vw] left-1/2 right-1/2 -mr-[50vw]">
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"></div>
         
         {/* Content */}
-        <div className="relative w-full max-w-7xl mx-auto px-4 py-12 text-center">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-12 text-center">
           <div className="mb-8">
             {/* Title */}
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight tracking-tight">
-              
               <br />
               <span className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
                 Entregamos
@@ -57,37 +49,35 @@ const HeroSection = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Chat and WhatsApp Buttons */}
-            <div className="mt-6 mb-4 flex flex-col items-center gap-3">
-              <button
-                onClick={handleChatClick}
-                className="group relative inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium text-base px-8 py-3 rounded-full shadow-lg hover:shadow-cyan-500/30 transform hover:scale-105 transition-all duration-300"
-              >
-                <FaComments className="text-lg group-hover:rotate-12 transition-transform" />
-                <span>Fale com Nossa Equipe</span>
-                <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-md">
-                  Online
-                </span>
-              </button>
-              
-              {/* WhatsApp Button */}
-              <a
-                href="https://wa.me/5519997050303"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium text-base px-8 py-3 rounded-full shadow-lg hover:shadow-emerald-500/30 transform hover:scale-105 transition-all duration-300"
-              >
-                <FaWhatsapp className="text-lg group-hover:rotate-12 transition-transform" />
-                <span>WhatsApp</span>
-              </a>
-              
-              {showChatMessage && (
-                <p className="text-gray-600 text-sm mt-1 font-light">
-                  Conectando...
-                </p>
-              )}
-            </div>
+          {/* Chat and WhatsApp Buttons - CORRIGIDO */}
+          <div className="relative z-50 flex flex-col gap-3 items-center mt-6 mb-6">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ Botão "Fale com Nossa Equipe" clicado!');
+                window.dispatchEvent(new CustomEvent('openChat'));
+              }}
+              className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium text-base transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl cursor-pointer"
+            >
+              <FaComments className="text-lg" />
+              Fale com Nossa Equipe
+            </button>
+            
+            <a
+              href="https://wa.me/5519997050303"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                console.log('🖱️ Botão WhatsApp clicado!');
+              }}
+              className="inline-flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-medium text-base transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl cursor-pointer"
+            >
+              <FaWhatsapp className="text-lg" />
+              WhatsApp
+            </a>
           </div>
 
           {/* Benefits */}
@@ -114,13 +104,12 @@ const HeroSection = () => {
       {/* Hero Mobile */}
       <div className="bg-white w-screen -ml-[50vw] left-1/2 right-1/2 -mr-[50vw] py-2 shadow-lg text-center md:hidden relative overflow-hidden">
         {/* Background Effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)] pointer-events-none"></div>
         
         {/* Content */}
-        <div className="relative px-4">
+        <div className="relative z-10 px-4">
           {/* Title */}
-          <h1 className="text-4xl  font-bold text-gray-900 mb-4 leading-tight">
-            
+          <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
             <br />
             <span className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
               Entregamos
@@ -128,7 +117,7 @@ const HeroSection = () => {
             <br />
             <span className="text-gray-700 font-light">na sua casa</span>
           </h1>
-          
+
           {/* Horário Card Mobile */}
           <div className="mt-6 bg-gray-50 px-6 py-5 rounded-3xl border border-gray-200 shadow-lg transform hover:scale-105 transition-all duration-300">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -154,46 +143,40 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* Chat and WhatsApp Buttons Mobile */}
-            <div className="mt-6 space-y-3">
+            {/* Chat and WhatsApp Buttons Mobile - CORRIGIDO */}
+            <div className="relative z-50 flex flex-col gap-3 mt-6 mb-4">
               <button
-                onClick={handleChatClick}
-                className="group w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium text-base px-6 py-4 rounded-full shadow-lg hover:shadow-cyan-500/30 transform hover:scale-105 transition-all duration-300 relative"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🖱️ Botão "Fale com Nossa Equipe" clicado (Mobile)!');
+                  window.dispatchEvent(new CustomEvent('openChat'));
+                }}
+                className="flex items-center justify-center gap-3 bg-blue-600 active:bg-blue-700 text-white px-6 py-4 rounded-full font-medium text-base transition-all duration-200 active:scale-95 shadow-lg cursor-pointer w-full"
               >
-                <FaComments className="text-lg group-hover:rotate-12 transition-transform" />
-                <span>Fale Conosco</span>
-                <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-md">
-                  Online
-                </span>
+                <FaComments className="text-lg" />
+                Fale Conosco
               </button>
               
-              {/* WhatsApp Button Mobile */}
               <a
                 href="https://wa.me/5519997050303"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium text-base px-6 py-4 rounded-full shadow-lg hover:shadow-emerald-500/30 transform hover:scale-105 transition-all duration-300"
+                onClick={(e) => {
+                  console.log('🖱️ Botão WhatsApp clicado (Mobile)!');
+                }}
+                className="flex items-center justify-center gap-3 bg-green-600 active:bg-green-700 text-white px-6 py-4 rounded-full font-medium text-base transition-all duration-200 active:scale-95 shadow-lg cursor-pointer w-full"
               >
-                <FaWhatsapp className="text-lg group-hover:rotate-12 transition-transform" />
-                <span>WhatsApp</span>
+                <FaWhatsapp className="text-lg" />
+                WhatsApp
               </a>
-              
-              {showChatMessage && (
-                <p className="text-gray-600 text-sm mt-1 text-center font-light">
-                  Conectando...
-                </p>
-              )}
             </div>
           </div>
         </div>
       </div>
+
     </>
   );
 };
 
 export default HeroSection;
-
-
-
-
-

@@ -92,6 +92,14 @@ export const addSorteioData = async (order) => {
       };
     }
 
+    // 🔍 LOG DETALHADO PARA DEBUG
+    console.log(`🔍 DEBUG SORTEIO - Pedido #${orderNumber}:`);
+    console.log(`   📊 Total de itens: ${totalItems}`);
+    console.log(`   👤 Cliente: ${clientName}`);
+    console.log(`   📱 Telefone: ${clientPhone}`);
+    console.log(`   💰 Valor: R$ ${totalValue}`);
+    console.log(`   ✅ Elegível: ${totalItems >= 5 ? 'SIM' : 'NÃO'}`);
+
     // Salvar no Firestore
     const docRef = await addDoc(sorteioRef, {
       orderNumber: String(orderNumber),
@@ -299,6 +307,35 @@ export const limparParticipantes = async () => {
     return {
       success: false,
       message: `Erro ao limpar participantes: ${error.message}`,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Adiciona manualmente um cliente ao sorteio (para casos especiais)
+ * @param {Object} cliente - Dados do cliente
+ * @returns {Promise<Object>}
+ */
+export const adicionarClienteManual = async (cliente) => {
+  try {
+    console.log('🔧 ADICIONANDO CLIENTE MANUALMENTE AO SORTEIO...');
+    console.log('📊 Dados do cliente:', cliente);
+    
+    const resultado = await addSorteioData(cliente);
+    
+    if (resultado.success) {
+      console.log('✅ Cliente adicionado manualmente com sucesso!');
+    } else {
+      console.log('❌ Falha ao adicionar cliente manualmente:', resultado.message);
+    }
+    
+    return resultado;
+  } catch (error) {
+    console.error('❌ Erro ao adicionar cliente manualmente:', error);
+    return {
+      success: false,
+      message: `Erro: ${error.message}`,
       error: error.message
     };
   }
