@@ -24,6 +24,8 @@ const OffersSection = lazy(() => import('../../components/Home/OffersSection'));
 const SearchResults = lazy(() => import('../../components/Home/SearchResults'));
 const LazyCategorySection = lazy(() => import('../../components/Home/LazyCategorySection'));
 const ScrollToTopButton = lazy(() => import('../../components/Home/ScrollToTopButton'));
+const MotoboyCityBanner = lazy(() => import('../../components/Home/MotoboyCityBanner'));
+// const DynamicBanner = lazy(() => import('../../components/Home/DynamicBanner'));
 // const WhatsAppButton = lazy(() => import('../../components/Home/WhatsAppButton'));
 const Footer = lazy(() => import('../../components/Footer'));
 
@@ -58,6 +60,7 @@ export default function Home() {
   
   // Lista de categorias para lazy loading (preview na home)
   const categories = useMemo(() => [
+    'Salgados do Joazinho',
     'Mercearia',
     'Limpeza', 
     'Frios e laticínios',
@@ -71,7 +74,8 @@ export default function Home() {
     'Pet shop',
     'Infantil',
     'Hortifruti',
-    'Açougue'
+    'Açougue',
+    'Cesta Básica'
   ], []);
   
   // Hook para lazy rendering por scroll
@@ -124,6 +128,7 @@ export default function Home() {
     
     // Mapeamento de nomes de categorias para rotas
     const categoryRoutes = {
+      'Salgados do Joazinho': '/salgados-do-joazinho',
       'Mercearia': '/mercearia',
       'Limpeza': '/limpeza',
       'Frios e laticínios': '/frios-laticinios',
@@ -137,7 +142,8 @@ export default function Home() {
       'Pet shop': '/pet-shop',
       'Infantil': '/infantil',
       'Hortifruti': '/hortifruti',
-      'Açougue': '/acougue'
+      'Açougue': '/acougue',
+      'Cesta Básica': '/cesta-basica'
     };
     
     const route = categoryRoutes[categoryName];
@@ -225,16 +231,39 @@ export default function Home() {
 
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
 
+          {/* Banner Motoboy City - Não crítico, lazy hydration */}
+          {!termo.trim() && shouldHydrateNonCritical && (
+            <ErrorBoundary>
+              <Suspense fallback={<div className="h-16 bg-gradient-to-r from-yellow-900 to-black animate-pulse" />}>
+                <MotoboyCityBanner />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+
           {/* Ofertas do Dia - Não crítico, lazy hydration */}
           {!termo.trim() && shouldHydrateNonCritical && (
             <ErrorBoundary>
               <Suspense fallback={<SkeletonCard variant="offers" className="w-full" />}>
-                <div className="mt-16">
+                <div className="mt-6">
                   <OffersSection />
                 </div>
               </Suspense>
             </ErrorBoundary>
           )}
+
+          {/* Exemplo de como adicionar banners dinâmicos:
+              1. Crie um anúncio no painel com a palavra-chave no texto
+              2. Adicione o banner onde quiser usando: <DynamicBanner keyword="palavra-chave" excludeImage={false} />
+              
+              Exemplo real:
+              <ErrorBoundary>
+                <Suspense fallback={null}>
+                  <div className="container mx-auto px-4 mt-6">
+                    <DynamicBanner keyword="promocao" excludeImage={false} />
+                  </div>
+                </Suspense>
+              </ErrorBoundary>
+          */}
 
           {/* Grid de Categorias - Não crítico, lazy hydration */}
           {!termo.trim() && shouldHydrateNonCritical && (

@@ -26,7 +26,12 @@ export const useSimpleSearch = (searchTerm = '', category = '') => {
         const { products, timestamp } = JSON.parse(cached);
         // Cache válido por 10 minutos
         if (Date.now() - timestamp < 10 * 60 * 1000) {
-          setAllProducts(products);
+          // Garante que todos os produtos tenham o campo esgotado
+          const productsWithEsgotado = products.map(product => ({
+            ...product,
+            esgotado: product.esgotado !== undefined ? product.esgotado : false
+          }));
+          setAllProducts(productsWithEsgotado);
           setHasLoaded(true);
           setLoading(false);
           return;
@@ -47,6 +52,7 @@ export const useSimpleSearch = (searchTerm = '', category = '') => {
         fotosUrl: doc.data().fotosUrl,
         categoria: doc.data().categoria,
         descricao: doc.data().descricao,
+        esgotado: doc.data().esgotado || false,
       }));
 
       setAllProducts(products);

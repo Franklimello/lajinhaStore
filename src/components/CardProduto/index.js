@@ -60,6 +60,10 @@ const CardProduto = memo(function CardProduto({ fotosUrl = [], titulo, descricao
       {/* Slider de imagens */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10 pointer-events-none" />
+        {/* Overlay quando esgotado */}
+        {esgotado && (
+          <div className="absolute inset-0 bg-black/50 z-15 pointer-events-none" />
+        )}
         
         <Swiper
           modules={[Navigation, Pagination]}

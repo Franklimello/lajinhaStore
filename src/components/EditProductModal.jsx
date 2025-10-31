@@ -247,10 +247,14 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
       
       console.log('✅ Produto atualizado com sucesso!');
       
-      // 4. Mostra mensagem de sucesso
+      // 4. Limpar cache de produtos para que as mudanças apareçam imediatamente
+      sessionStorage.removeItem('all_products');
+      console.log('🔄 Cache de produtos limpo - produto atualizado aparecerá na próxima busca');
+      
+      // 5. Mostra mensagem de sucesso
       alert('✅ Produto atualizado com sucesso!');
       
-      // 5. Chama callback de sucesso e fecha o modal
+      // 6. Chama callback de sucesso e fecha o modal
       if (onSuccess) {
         onSuccess();
       }
@@ -386,6 +390,7 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
             >
               <option value="">Selecione uma categoria</option>
               <option value="Oferta">Oferta</option>
+              <option value="Salgados do Joazinho">Salgados do Joazinho</option>
               <option value="Hortifruti">Hortifruti</option>
               <option value="Açougue">Açougue</option>
               <option value="Frios e laticínios">Frios e laticínios</option>
@@ -400,6 +405,7 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
               <option value="Pet shop">Pet shop</option>
               <option value="Infantil">Infantil</option>
               <option value="Farmácia">Farmácia</option>
+              <option value="Cesta Básica">Cesta Básica</option>
             </select>
           </div>
 

@@ -36,36 +36,36 @@ export function CartProvider({ children }) {
     }
 
     const productId = product.id || uuidv4();
+    let productExists = false;
+    let toastMessage = '';
 
     setCart((prev) => {
       const exists = prev.find((item) => item.id === productId);
 
       if (exists) {
+        productExists = true;
+        toastMessage = `Quantidade de "${product.titulo || product.nome || 'Produto'}" atualizada!`;
         // Se já existe, incrementa quantidade
-        const newCart = prev.map((item) =>
+        return prev.map((item) =>
           item.id === productId ? { ...item, qty: (item.qty || 1) + 1 } : item
         );
-        
-        setToast({ 
-          isVisible: true, 
-          message: `Quantidade de "${product.titulo || product.nome || 'Produto'}" atualizada!`, 
-          type: "success" 
-        });
-        
-        return newCart;
       }
 
+      productExists = false;
+      toastMessage = `"${product.titulo || product.nome || 'Produto'}" adicionado ao carrinho!`;
       // Se não existe, adiciona como novo
-      const newCart = [...prev, { ...product, id: productId, qty: 1 }];
-      
+      return [...prev, { ...product, id: productId, qty: 1 }];
+    });
+
+    // Atualiza toast após atualizar o carrinho - usando setTimeout para garantir execução
+    setTimeout(() => {
+      console.log('🔥 Mostrando toast:', toastMessage);
       setToast({ 
         isVisible: true, 
-        message: `"${product.titulo || product.nome || 'Produto'}" adicionado ao carrinho!`, 
+        message: toastMessage, 
         type: "success" 
       });
-      
-      return newCart;
-    });
+    }, 10);
   }, []);
 
   // Remove produto do carrinho - MEMOIZADO

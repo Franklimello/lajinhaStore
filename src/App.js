@@ -36,6 +36,8 @@ const Cosmeticos = lazy(() => import("./pages/Cosmeticos"));
 const UtilidadesDomesticas = lazy(() => import("./pages/UtilidadesDomesticas"));
 const PetShop = lazy(() => import("./pages/PetShop"));
 const Infantil = lazy(() => import("./pages/Infantil"));
+const CestaBasica = lazy(() => import("./pages/CestaBasica"));
+const SalgadosDoJoazinho = lazy(() => import("./pages/SalgadosDoJoazinho"));
 // Lazy loading para páginas principais
 const Ofertas = lazy(() => import("./pages/Ofertas"));
 const Favoritos = lazy(() => import("./pages/Favoritos"));
@@ -47,6 +49,7 @@ const Detalhes = lazy(() => import("./pages/Detalhes"));
 const Farmacia = lazy(() => import("./pages/farmacia"));
 const Home = lazy(() => import("./pages/Home"));
 const PagamentoPix = lazy(() => import("./pages/PagamentoPix"));
+const MotoboyCity = lazy(() => import("./pages/MotoboyCity"));
 const StatusPedido = lazy(() => import("./pages/StatusPedido"));
 // Lazy loading para páginas administrativas
 const ConsultaPedidos = lazy(() => import("./pages/ConsultaPedidos"));
@@ -125,6 +128,8 @@ function AppContent() {
           <Route path="/utilidades-domesticas" element={<UtilidadesDomesticas />} />
           <Route path="/pet-shop" element={<PetShop />} />
           <Route path="/infantil" element={<Infantil />} />
+          <Route path="/cesta-basica" element={<CestaBasica />} />
+          <Route path="/salgados-do-joazinho" element={<SalgadosDoJoazinho />} />
           <Route path="/ofertas" element={<Ofertas />} />
           <Route path="/favoritos" element={<Favoritos />} />
           <Route path="/contato" element={<Contato />} />
@@ -142,6 +147,7 @@ function AppContent() {
           <Route path="/produtos" element={<ProductList />} />
           <Route path="/carrinho" element={<Cart />} />
           <Route path="/pagamento-pix" element={<PagamentoPix />} />
+          <Route path="/motoboy-city" element={<MotoboyCity />} />
           <Route path="/consulta-pedidos" element={<ConsultaPedidos />} />
           <Route path="/status-pedido/:orderId" element={<StatusPedido />} />
           <Route path="/notificacoes" element={<Notificacoes />} />

@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaTag } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
+import CartAddAnimation from "../../components/CartAddAnimation";
 
 const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
   const { favorites, toggleFavorite } = useContext(ShopContext);
@@ -19,6 +20,8 @@ const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredProduct, setHoveredProduct] = useState(null);
+  const [productClickCounts, setProductClickCounts] = useState({});
+  const [animatingProducts, setAnimatingProducts] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,7 +84,7 @@ const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
   const resultsCount = carousels.reduce((acc, g) => acc + g.length, 0);
 
   return (
-    <section className="min-h-screen mt-10 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 p-4 md:p-8">
+    <section className="min-h-screen  bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 bg-gradient-to-r from-red-500 to-orange-500 text-white px-6 py-3 rounded-full shadow-lg mb-6 relative overflow-hidden">
@@ -152,7 +155,7 @@ const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
                 }}
                 autoplay={false}
                 spaceBetween={8}
-                slidesPerView={2}
+                slidesPerView={1}
                 breakpoints={{
                   640: { slidesPerView: 2, spaceBetween: 20 },
                   768: { slidesPerView: 3, spaceBetween: 24 },
@@ -249,8 +252,32 @@ const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
                         </div>
 
                         <button
-                          onClick={() => !product.esgotado && addToCart(product)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!product.esgotado) {
+                              addToCart(product);
+                              // Incrementa contador de cliques para este produto
+                              const currentCount = productClickCounts[product.id] || 0;
+                              const newCount = currentCount + 1;
+                              setProductClickCounts(prev => ({ ...prev, [product.id]: newCount }));
+                              // Só mostra animação a partir da segunda vez (newCount >= 2)
+                              if (newCount >= 2) {
+                                setAnimatingProducts(prev => ({ ...prev, [product.id]: newCount }));
+                                // Limpa após animação
+                                setTimeout(() => {
+                                  setAnimatingProducts(prev => {
+                                    const updated = { ...prev };
+                                    delete updated[product.id];
+                                    return updated;
+                                  });
+                                }, 1600);
+                              }
+                            }
+                          }}
                           disabled={product.esgotado}
+                          style={{ touchAction: 'manipulation' }}
                           className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform relative overflow-hidden ${
                             product.esgotado
                               ? 'bg-gray-400 cursor-not-allowed'
@@ -260,6 +287,10 @@ const Ofertas = memo(function Ofertas({ searchTerm = "" }) {
                           } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
                           aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
+                          <CartAddAnimation 
+                            count={productClickCounts[product.id] || 1} 
+                            show={!!animatingProducts[product.id]} 
+                          />
                           {!product.esgotado && (
                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-red-500 to-orange-500 opacity-30 animate-pulse"></div>
                           )}

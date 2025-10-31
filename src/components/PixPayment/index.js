@@ -1,10 +1,11 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import QRCode from 'qrcode';
 import { CartContext } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { appConfig } from '../../config/appConfig';
 import { addSorteioData } from '../../services/sorteioService';
+import { FaTruck } from 'react-icons/fa';
 // import { createOrder } from '../../firebase/orders'; // Removido - não usado
 
 const PixPayment = () => {
@@ -48,12 +49,38 @@ const PixPayment = () => {
   const MERCHANT_NAME = 'Sua Loja';
   const CITY = 'LAJINHA';
 
+  // Cupom aplicado (do carrinho)
+  const appliedCoupon = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('appliedCoupon');
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) {
+      return null;
+    }
+  }, []);
+
+  const subtotal = useMemo(() => (
+    cart.reduce((acc, item) => acc + (parseFloat(item.preco || 0) * (item.qty || 1)), 0)
+  ), [cart]);
+
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    const min = Number(appliedCoupon.minSubtotal || 0);
+    if (subtotal < min) return 0;
+    const value = Number(appliedCoupon.valor || 0);
+    if (!(value > 0)) return 0;
+    if (appliedCoupon.tipo === 'percentual') {
+      const pct = Math.min(value, 100);
+      return Number(((subtotal * pct) / 100).toFixed(2));
+    }
+    return Math.min(Number(value.toFixed(2)), subtotal);
+  }, [appliedCoupon, subtotal]);
+
+  const delivery = 5;
+
   const calculateCartTotal = () => {
-    const subtotal = cart.reduce(
-      (acc, item) => acc + (parseFloat(item.preco || 0) * (item.qty || 1)),
-      0
-    );
-    return subtotal + 5; // taxa de entrega
+    const afterDiscount = Math.max(subtotal - discount, 0);
+    return afterDiscount + delivery;
   };
 
   const formatCurrency = (value) =>
@@ -230,8 +257,9 @@ const PixPayment = () => {
       const orderData = {
         userId: user.uid,
         total,
-        subtotal: total - 5,
-        frete: 5,
+        subtotal: subtotal,
+        desconto: discount,
+        frete: delivery,
         items: cart.map((item) => ({
           id: item.id,
           nome: item.titulo || item.nome,
@@ -263,7 +291,13 @@ const PixPayment = () => {
         metadata: {
           pixKey: PIX_KEY,
           merchantName: MERCHANT_NAME,
-          originalOrderId: newOrderId
+          originalOrderId: newOrderId,
+          appliedCoupon: appliedCoupon ? {
+            codigo: appliedCoupon.codigo,
+            tipo: appliedCoupon.tipo,
+            valor: appliedCoupon.valor,
+            minSubtotal: appliedCoupon.minSubtotal || 0,
+          } : null
         }
       };
 
@@ -362,6 +396,19 @@ const PixPayment = () => {
         <h1 className="text-3xl font-bold text-gray-800 mb-2">💳 Finalizar Pedido</h1>
         <p className="text-gray-600 mb-6">Escolha seu método de pagamento e finalize seu pedido</p>
 
+        {/* Chip de Cupom Aplicado */}
+        {appliedCoupon && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-200">
+              🎟️ Cupom aplicado: <span className="uppercase">{appliedCoupon.codigo}</span>
+              {appliedCoupon.tipo === 'percentual' ? ` (${Number(appliedCoupon.valor)}%)` : ` (R$ ${Number(appliedCoupon.valor).toFixed(2)})`}
+              {Number(appliedCoupon.minSubtotal || 0) > 0 && subtotal < Number(appliedCoupon.minSubtotal) && (
+                <span className="ml-2 text-red-600 font-semibold">Subtotal abaixo do mínimo</span>
+              )}
+            </span>
+          </div>
+        )}
+
         {/* Resumo do Pedido */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-left">
           <h3 className="text-green-800 font-semibold mb-3">🛒 Resumo do Pedido</h3>
@@ -383,11 +430,22 @@ const PixPayment = () => {
           <div className="border-t border-green-300 pt-2 mt-2">
             <div className="flex justify-between text-sm mb-1">
               <span>Subtotal:</span>
-              <span>{formatCurrency(cartTotal - 5)}</span>
+              <span>{formatCurrency(subtotal)}</span>
             </div>
+            {appliedCoupon && discount > 0 && (
+              <div className="flex justify-between text-sm mb-2 text-green-700">
+                <span>
+                  Desconto ({appliedCoupon.codigo}
+                  {appliedCoupon.tipo === 'percentual' ? ` - ${Number(appliedCoupon.valor)}%` : ''}
+                  {Number(appliedCoupon.minSubtotal || 0) > 0 ? ` | min. ${formatCurrency(Number(appliedCoupon.minSubtotal))}` : ''}
+                  )
+                </span>
+                <span className="font-semibold">- {formatCurrency(discount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm mb-2">
               <span>Entrega:</span>
-              <span>{formatCurrency(5)}</span>
+              <span>{formatCurrency(delivery)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg text-green-800">
               <span>Total:</span>
@@ -569,6 +627,11 @@ const PixPayment = () => {
           <p className="text-xs text-purple-700 mt-2">
             💡 Digite o melhor horário para receber sua entrega
           </p>
+          <div className="mt-3 pt-3 border-t border-purple-200 flex items-center justify-center gap-2">
+            <FaTruck className="text-cyan-600" />
+            <span className="text-sm font-semibold text-gray-900">Entrega:</span>
+            <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
+          </div>
         </div>
 
         {/* Campo de Valor Pago - Apenas para Dinheiro */}
@@ -674,7 +737,7 @@ const PixPayment = () => {
               </div>
             )}
 
-            <a
+        <a
               href={`https://wa.me/5519997050303?text=${encodeURIComponent(
                 `Olá! Realizei o pagamento do pedido ${orderId} no valor de ${formatCurrency(cartTotal)}.`
               )}`}
@@ -698,61 +761,30 @@ const PixPayment = () => {
           </div>
         )}
 
-        {/* Informações do Pedido - Pagamento em Dinheiro */}
+        {/* Modal de Confirmação - Pagamento em Dinheiro */}
         {orderId && paymentMethod === 'dinheiro' && (
-          <div className="mt-6 space-y-4">
-            <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6 rounded-xl border-2 border-green-200">
-              <div className="text-center">
-                <div className="text-4xl mb-3">💵</div>
-                <h3 className="text-xl font-bold text-green-800 mb-2">
-                  Pedido Confirmado!
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  Pedido feito com sucesso!
                 </h3>
-                <p className="text-green-700 mb-4">
-                  Seu pedido foi criado com sucesso. O pagamento será feito em dinheiro na entrega.
-                </p>
-                
-                <div className="bg-white rounded-lg p-4 mb-4">
-                  <div className="text-sm text-gray-600 mb-2">Número do Pedido:</div>
-                  <div className="text-lg font-bold text-gray-800">#{orderId}</div>
-                </div>
-                
-                <div className="bg-white rounded-lg p-4 mb-4">
-                  <div className="text-sm text-gray-600 mb-2">Valor Total:</div>
-                  <div className="text-2xl font-bold text-green-600">{formatCurrency(cartTotal)}</div>
-                </div>
-                
-                <div className="bg-white rounded-lg p-4 mb-4">
-                  <div className="text-sm text-gray-600 mb-2">Valor Pago:</div>
-                  <div className="text-xl font-bold text-blue-600">{formatCurrency(parseFloat(valorPago) || 0)}</div>
-                </div>
-                
-                <div className="bg-white rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-2">Troco:</div>
-                  <div className={`text-2xl font-bold ${calcularTroco() > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(calcularTroco())}
-                  </div>
-                </div>
               </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <span className="text-yellow-600 mr-2">⚠️</span>
-                <div className="text-sm text-yellow-800">
-                  <strong>Importante:</strong> 
-                  {calcularTroco() > 0 ? (
-                    <>
-                      O entregador terá troco de {formatCurrency(calcularTroco())} disponível. 
-                      Confirme o valor pago de {formatCurrency(parseFloat(valorPago) || 0)}.
-                    </>
-                  ) : (
-                    <>
-                      Tenha o valor exato em dinheiro para facilitar a entrega. 
-                      O entregador não terá troco disponível.
-                    </>
-                  )}
-                </div>
-              </div>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-lg rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
+              >
+                <span>OK</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </div>
         )}

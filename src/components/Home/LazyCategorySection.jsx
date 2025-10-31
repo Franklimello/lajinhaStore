@@ -19,6 +19,7 @@ const CategorySkeleton = memo(function CategorySkeleton() {
 });
 
 // Lazy load dos componentes de categoria - FORA do componente para evitar recriação
+const SalgadosDoJoazinho = lazy(() => import('../../pages/SalgadosDoJoazinho'));
 const Mercearia = lazy(() => import('../../pages/Mercearia'));
 const Limpeza = lazy(() => import('../../pages/Limpeza'));
 const FriosLaticinios = lazy(() => import('../../pages/FriosLaticinios'));
@@ -33,9 +34,11 @@ const PetShop = lazy(() => import('../../pages/PetShop'));
 const Infantil = lazy(() => import('../../pages/Infantil'));
 const Hortifruti = lazy(() => import('../../pages/Hortifruti'));
 const Acougue = lazy(() => import('../../pages/Acougue'));
+const CestaBasica = lazy(() => import('../../pages/CestaBasica'));
 
 // Mapa de categorias
 const categoryMap = {
+  'Salgados do Joazinho': SalgadosDoJoazinho,
   'Mercearia': Mercearia,
   'Limpeza': Limpeza,
   'Frios e laticínios': FriosLaticinios,
@@ -50,6 +53,7 @@ const categoryMap = {
   'Infantil': Infantil,
   'Hortifruti': Hortifruti,
   'Açougue': Acougue,
+  'Cesta Básica': CestaBasica,
 };
 
 // Categorias prioritárias que devem carregar imediatamente

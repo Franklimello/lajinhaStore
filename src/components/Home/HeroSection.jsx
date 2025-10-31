@@ -37,7 +37,7 @@ const HeroSection = () => {
                   Horário de Atendimento
                 </h3>
               </div>
-              <div className="flex gap-8 text-gray-900">
+              <div className="flex gap-8 text-gray-900 mb-4">
                 <div className="flex flex-col items-center">
                   <span className="text-xs font-medium text-gray-600 mb-1">Segunda a Sábado</span>
                   <span className="text-xl font-bold">8h às 19h</span>
@@ -47,6 +47,11 @@ const HeroSection = () => {
                   <span className="text-xs font-medium text-gray-600 mb-1">Domingo</span>
                   <span className="text-xl font-bold">8h às 11h</span>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-200 w-full justify-center">
+                <FaTruck className="text-cyan-600" />
+                <span className="text-sm font-semibold text-gray-900">Entrega:</span>
+                <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
               </div>
             </div>
           </div>
@@ -86,6 +91,7 @@ const HeroSection = () => {
               <FaTruck className="text-3xl text-cyan-600 mx-auto mb-3" />
               <h3 className="text-gray-900 font-semibold mb-2 text-sm">Entrega a domicílio</h3>
               <p className="text-gray-600 text-xs font-light">Somente R$ 5</p>
+              <p className="text-cyan-600 text-xs font-semibold mt-2">30 a 60 minutos</p>
             </div>
             <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 hover:bg-gray-100 transition-all duration-300 shadow-sm">
               <FaShieldAlt className="text-3xl text-emerald-600 mx-auto mb-3" />
@@ -126,7 +132,7 @@ const HeroSection = () => {
                 Horário de Atendimento
               </h3>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 mb-4">
               <div className="bg-white px-4 py-3 rounded-xl border border-gray-200">
                 <p className="text-gray-900 font-medium text-sm">
                   <span className="text-gray-600">Segunda a Sábado</span>
@@ -141,6 +147,11 @@ const HeroSection = () => {
                   <span className="text-lg font-bold">8h às 11h</span>
                 </p>
               </div>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-3 border-t border-gray-200">
+              <FaTruck className="text-cyan-600" />
+              <span className="text-sm font-semibold text-gray-900">Entrega:</span>
+              <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
             </div>
 
             {/* Chat and WhatsApp Buttons Mobile - CORRIGIDO */}
@@ -170,6 +181,16 @@ const HeroSection = () => {
                 <FaWhatsapp className="text-lg" />
                 WhatsApp
               </a>
+            </div>
+
+            {/* Card de Entrega Mobile */}
+            <div className="mt-4 bg-gradient-to-r from-cyan-50 to-blue-50 px-6 py-4 rounded-2xl border border-cyan-200 shadow-md">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <FaTruck className="text-xl text-cyan-600" />
+                <h3 className="text-sm font-semibold text-gray-900">Entrega Rápida</h3>
+              </div>
+              <p className="text-gray-700 font-bold text-base">30 a 60 minutos</p>
+              <p className="text-gray-600 text-xs mt-1">Frete: R$ 5,00</p>
             </div>
           </div>
         </div>

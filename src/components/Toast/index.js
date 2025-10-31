@@ -4,15 +4,18 @@ import { FaCheck, FaTimes, FaShoppingCart } from "react-icons/fa";
 export default function Toast({ message, type = "success", isVisible, onClose }) {
   useEffect(() => {
     if (isVisible) {
+      console.log('✅ Toast visível com mensagem:', message);
       const timer = setTimeout(() => {
         onClose();
       }, 3000); // Auto-fecha após 3 segundos
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, onClose]);
+  }, [isVisible, onClose, message]);
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return null;
+  }
 
   const getToastStyles = () => {
     switch (type) {
@@ -41,7 +44,7 @@ export default function Toast({ message, type = "success", isVisible, onClose })
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slide-in">
+    <div className="fixed top-4 right-4 z-[9999] animate-slide-in">
       <div className={`${getToastStyles()} px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
         <div className="flex-shrink-0">
           {getIcon()}

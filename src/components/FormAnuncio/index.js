@@ -18,6 +18,7 @@ export default function FormAnuncio() {
 
   const categorias = [
     "Oferta",
+    "Salgados do Joazinho",
     "Hortifruti",
     "Açougue",
     "Frios e laticínios",
@@ -31,7 +32,8 @@ export default function FormAnuncio() {
     "Utilidades domésticas",
     "Pet shop",
     "Infantil",
-    "Farmácia"
+    "Farmácia",
+    "Cesta Básica"
   ];
 
   const handleFileChange = (e) => {
@@ -190,6 +192,10 @@ export default function FormAnuncio() {
       // Sucesso
       setMensagem("🎉 Anúncio criado com sucesso!");
       setTipoMensagem("sucesso");
+      
+      // Limpar cache de produtos para que o novo produto apareça imediatamente
+      sessionStorage.removeItem('all_products');
+      console.log('🔄 Cache de produtos limpo - novo produto aparecerá na próxima busca');
       
       // Limpar formulário
       setTitulo("");

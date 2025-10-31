@@ -1,6 +1,6 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Thumbs, Zoom } from "swiper/modules";
-import { FaWhatsapp, FaArrowLeft, FaHeart, FaShare, FaStar, FaShoppingCart } from "react-icons/fa";
+import { FaArrowLeft, FaHeart, FaShare, FaStar, FaShoppingCart } from "react-icons/fa";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import { useFetchDocument } from "../../hooks/useGetDocument";
@@ -161,7 +161,7 @@ export default function Detalhes() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen mt-10 bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header com navegação */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -327,18 +327,6 @@ export default function Detalhes() {
                 <FaShoppingCart className="text-2xl" />
                 Adicionar ao Carrinho
               </button>
-              
-              {/* Botão do WhatsApp (mantido) */}
-              <a
-                href={`https://wa.me/5519997050303?text=Olá! Tenho interesse no produto "${produto.titulo}" anunciado por R$ ${produto.preco}. Poderia me enviar mais informações e condições de pagamento?`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-2xl font-bold text-lg hover:from-green-600 hover:to-green-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl w-full relative overflow-hidden group"
-              >
-                <FaWhatsapp className="text-2xl" />
-                Comprar pelo WhatsApp
-                <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] skew-x-12 transition-transform duration-700" />
-              </a>
             </div>
           </div>
         </div>

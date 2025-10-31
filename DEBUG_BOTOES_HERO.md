@@ -202,3 +202,12 @@ Logs de debug detalhados foram adicionados para identificar problemas com os bot
 
 
 
+
+
+
+
+
+
+
+
+

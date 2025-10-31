@@ -11,6 +11,7 @@ import { buildFormatSources, defaultSizes } from "../../utils/imageSources";
 import { FaHeart, FaShoppingCart, FaStar, FaEye, FaMagic, FaSearch } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
+import CartAddAnimation from "../../components/CartAddAnimation";
 
 // ✅ CONSTANTES para otimização
 const CACHE_KEY = "products_cosmeticos";
@@ -24,11 +25,14 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
   const [carousels, setCarousels] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false); // ✅ Estado separado para busca (evita conflitos)
   const [loadingMore, setLoadingMore] = useState(false); // ✅ Estado para "Carregar Mais"
   const [hasMore, setHasMore] = useState(true); // ✅ Indica se há mais produtos
   const [lastDoc, setLastDoc] = useState(null); // ✅ Último documento para paginação
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
+  const [productClickCounts, setProductClickCounts] = useState({});
+  const [animatingProducts, setAnimatingProducts] = useState({});
 
   // ✅ NOVA FUNÇÃO: Busca produtos com LIMIT e paginação
   const fetchProducts = async (isLoadMore = false) => {
@@ -158,45 +162,85 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
     }
   };
 
-  // ✅ NOVA: Função para buscar produtos por termo (busca no DB)
-  const searchProducts = async (searchTerm) => {
+  // ✅ Função para normalizar texto (remove acentos e caracteres especiais)
+  const normalize = useCallback((str) => {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }, []);
+
+  // ✅ Função MELHORADA: Buscar produtos por termo com normalização
+  const searchProducts = useCallback(async (searchTerm) => {
     try {
-      setLoading(true);
+      setSearching(true); // Usa estado separado para busca
       console.log(`🔍 Buscando produtos com termo: "${searchTerm}"...`);
 
+      // Busca TODOS os produtos da categoria (sem limite)
       const catOptions = ["Cosméticos", "cosmeticos", "Cosmeticos"];
       const q = query(
         collection(db, "produtos"),
         where("categoria", "in", catOptions),
-        limit(100) // Aumenta limite para busca mais abrangente
+        orderBy("titulo") // Ordena no Firestore
       );
 
       const qs = await getDocs(q);
       let products = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Filtrar por termo de busca
-      const searchLower = searchTerm.toLowerCase();
-      products = products.filter(p => 
-        (p.titulo || "").toLowerCase().includes(searchLower) ||
-        (p.descricao || "").toLowerCase().includes(searchLower)
-      );
+      // Normaliza o termo de busca
+      const searchLower = searchTerm.toLowerCase().trim();
+      const normalizedSearch = normalize(searchLower);
+      const searchWords = normalizedSearch.split(' ').filter(w => w.length > 0);
+      
+      // Filtra produtos com busca inteligente
+      products = products.filter(p => {
+        const titulo = normalize((p.titulo || "").toLowerCase());
+        const descricao = normalize((p.descricao || "").toLowerCase());
+        const categoria = normalize((p.categoria || "").toLowerCase());
+        
+        // Busca exata (mais rápida)
+        if (titulo.includes(normalizedSearch) || 
+            descricao.includes(normalizedSearch) || 
+            categoria.includes(normalizedSearch)) {
+          return true;
+        }
+        
+        // Busca por palavras
+        if (searchWords.length > 0) {
+          const allWordsMatch = searchWords.every(word => 
+            titulo.includes(word) || 
+            descricao.includes(word) || 
+            categoria.includes(word)
+          );
+          
+          if (allWordsMatch) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
 
-      // Ordenar localmente
+      // Ordena alfabeticamente
       products.sort((a, b) => {
-        const titleA = (a.titulo || a.nome || "").toLowerCase();
-        const titleB = (b.titulo || b.nome || "").toLowerCase();
-        return titleA.localeCompare(titleB);
+        const titleA = normalize((a.titulo || a.nome || "").toLowerCase());
+        const titleB = normalize((b.titulo || b.nome || "").toLowerCase());
+        return titleA.localeCompare(titleB, 'pt-BR');
       });
 
       console.log(`✅ Encontrados ${products.length} produtos com "${searchTerm}"`);
       setAllProducts(products);
       setHasMore(false); // Desabilita "Carregar Mais" durante busca
-      setLoading(false);
+      setSearching(false); // Finaliza busca
     } catch (error) {
       console.error("❌ Erro ao buscar produtos:", error);
-      setLoading(false);
+      setSearching(false); // Finaliza busca mesmo em erro
+      setAllProducts([]);
+      setHasMore(false);
     }
-  };
+  }, [normalize]);
 
   // ✅ useEffect para busca (dispara quando localSearchTerm muda)
   useEffect(() => {
@@ -204,9 +248,10 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
     if (!isPreview) {
       if (localSearchTerm.trim() && localSearchTerm.trim().length >= 3) {
         // Se tem termo de busca com mínimo 3 caracteres, busca no banco
+        const searchValue = localSearchTerm.trim();
         const timer = setTimeout(() => {
-          searchProducts(localSearchTerm.trim());
-        }, 500); // Debounce de 500ms
+          searchProducts(searchValue);
+        }, 400); // Debounce de 400ms (mais rápido)
         return () => clearTimeout(timer);
       } else if (localSearchTerm.trim().length === 0) {
         // Se não tem termo, recarrega produtos normais
@@ -217,7 +262,8 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
       }
       // Se tiver menos de 3 caracteres, não faz nada (aguarda digitar mais)
     }
-  }, [localSearchTerm, isPreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearchTerm, isPreview]); // Removido searchProducts e fetchProducts das dependências para evitar loops
 
   useEffect(() => {
     // Processar produtos para exibição (carrosséis)
@@ -239,7 +285,8 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
-  if (loading) {
+  // ✅ Só mostra loading full screen na primeira carga (não durante busca)
+  if (loading && allProducts.length === 0 && !localSearchTerm) {
     return (
       <section className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
@@ -263,41 +310,95 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
     <section className="min-h-screen mt-10 bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         
-        {/* SearchBar - apenas quando não for preview */}
+        {/* SearchBar MELHORADA - apenas quando não for preview */}
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 w-full max-w-2xl">
-              <div className="flex flex-col items-center justify-center">
+            <div className="bg-gradient-to-br from-white to-pink-50/30 rounded-2xl shadow-xl border-2 border-pink-100 p-6 w-full max-w-3xl">
+              <div className="flex flex-col items-center justify-center gap-3">
                 <div className="w-full relative">
-                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                    {searching ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-pink-500 border-t-transparent"></div>
+                    ) : (
+                      <FaSearch className="text-pink-500 text-xl" />
+                    )}
+                  </div>
                   <input
                     type="text"
-                    placeholder="Pesquisar produtos de cosméticos..."
+                    placeholder="Buscar cosméticos... (ex: batom, creme, maquiagem)"
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl 
-                              focus:outline-none focus:ring-2 focus:ring-pink-300 
-                              focus:border-pink-400 text-lg transition-all duration-300 
-                              bg-gray-50 hover:bg-white shadow-sm hover:shadow-md"
+                    className={`w-full pl-12 pr-12 py-4 border-2 rounded-xl 
+                              focus:outline-none focus:ring-4 focus:ring-pink-200 
+                              text-lg transition-all duration-300 
+                              ${
+                                searching 
+                                  ? 'border-pink-400 bg-pink-50' 
+                                  : localSearchTerm.length >= 3
+                                    ? 'border-green-400 bg-green-50/50 shadow-md'
+                                    : 'border-gray-300 bg-white hover:border-pink-300 hover:bg-pink-50/30'
+                              } 
+                              shadow-sm hover:shadow-lg`}
                     aria-label="Pesquisar produtos de cosméticos"
                     autoComplete="off"
                     spellCheck="false"
+                    disabled={searching}
                   />
-                  {localSearchTerm && (
+                  {localSearchTerm && !searching && (
                     <button
-                      onClick={() => setLocalSearchTerm("")}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => {
+                        setLocalSearchTerm("");
+                        setAllProducts([]);
+                        setLastDoc(null);
+                        setHasMore(true);
+                        fetchProducts(false);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-full p-1.5"
                       aria-label="Limpar busca"
+                      type="button"
                     >
-                      ✕
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   )}
                 </div>
-                {localSearchTerm && localSearchTerm.length < 3 && (
-                  <p className="text-orange-600 text-sm font-semibold mt-2">
-                    💡 Digite pelo menos 3 caracteres para buscar ({localSearchTerm.length}/3)
-                  </p>
-                )}
+                
+                {/* Indicadores visuais melhorados */}
+                <div className="w-full flex items-center justify-between text-sm">
+                  {localSearchTerm && localSearchTerm.length < 3 && (
+                    <div className="flex items-center gap-2 text-amber-600 font-medium animate-pulse">
+                      <span>💡</span>
+                      <span>Digite pelo menos 3 caracteres ({localSearchTerm.length}/3)</span>
+                    </div>
+                  )}
+                  
+                  {/* Indicador de busca - só mostra quando está buscando E tem 3+ caracteres */}
+                  {localSearchTerm && localSearchTerm.length >= 3 && searching && (
+                    <div className="flex items-center gap-2 text-pink-600 font-medium">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+                      <span>Pesquisando...</span>
+                    </div>
+                  )}
+                  
+                  {/* Resultado encontrado - só mostra quando terminou de buscar */}
+                  {localSearchTerm && localSearchTerm.length >= 3 && !searching && allProducts.length > 0 && (
+                    <div className="flex items-center gap-2 text-green-600 font-medium">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Produtos encontrados!</span>
+                    </div>
+                  )}
+                  
+                  <div className="ml-auto text-gray-500">
+                    {localSearchTerm && localSearchTerm.length >= 3 && allProducts.length > 0 && (
+                      <span className="font-semibold text-pink-600">
+                        {allProducts.length} resultado{allProducts.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -333,12 +434,48 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
             </p>
           )}
           
-          {!isPreview && localSearchTerm && (
+          {!isPreview && localSearchTerm && localSearchTerm.length >= 3 && !searching && (
             <p className="mt-4 text-sm text-gray-600">
-              Resultados para "{localSearchTerm}": {resultsCount} produto(s)
+              {resultsCount > 0 ? (
+                <span>Resultados para "<strong className="text-pink-600">{localSearchTerm}</strong>": {resultsCount} produto{resultsCount !== 1 ? 's' : ''}</span>
+              ) : (
+                <span className="text-amber-600">Nenhum produto encontrado para "<strong>{localSearchTerm}</strong>"</span>
+              )}
             </p>
           )}
         </div>
+
+        {/* Mensagem quando não há resultados */}
+        {!isPreview && localSearchTerm && localSearchTerm.length >= 3 && !searching && carousels.length === 0 && (
+          <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-2xl shadow-lg">
+            <div className="flex flex-col items-center gap-4">
+              <svg className="w-20 h-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">Nenhum produto encontrado</h3>
+                <p className="text-gray-500 mb-4">
+                  Não encontramos produtos que correspondam à busca "<strong className="text-gray-700">{localSearchTerm}</strong>"
+                </p>
+                <button
+                  onClick={() => {
+                    setLocalSearchTerm("");
+                    setAllProducts([]);
+                    setLastDoc(null);
+                    setHasMore(true);
+                    fetchProducts(false);
+                  }}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                >
+                  <span>Limpar busca</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Carousels */}
         {carousels.map((group, index) => (
@@ -475,9 +612,30 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
 
                         {/* Botão de adicionar ao carrinho */}
                         <button
-                          onClick={() => !product.esgotado && addToCart(product)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!product.esgotado) {
+                              addToCart(product);
+                              const currentCount = productClickCounts[product.id] || 0;
+                              const newCount = currentCount + 1;
+                              setProductClickCounts(prev => ({ ...prev, [product.id]: newCount }));
+                              if (newCount >= 2) {
+                                setAnimatingProducts(prev => ({ ...prev, [product.id]: newCount }));
+                                setTimeout(() => {
+                                  setAnimatingProducts(prev => {
+                                    const updated = { ...prev };
+                                    delete updated[product.id];
+                                    return updated;
+                                  });
+                                }, 1600);
+                              }
+                            }
+                          }}
                           disabled={product.esgotado}
-                          className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform ${
+                          style={{ touchAction: 'manipulation' }}
+                          className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 transform relative overflow-hidden ${
                             product.esgotado
                               ? 'bg-gray-400 cursor-not-allowed'
                               : hoveredProduct === product.id
@@ -486,8 +644,12 @@ const Cosmeticos = memo(function Cosmeticos({ searchTerm = "", isPreview = false
                           } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
                           aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
-                          <FaShoppingCart className="text-sm" />
-                          <span>{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
+                          <CartAddAnimation 
+                            count={productClickCounts[product.id] || 1} 
+                            show={!!animatingProducts[product.id]} 
+                          />
+                          <FaShoppingCart className="text-sm relative z-10" />
+                          <span className="relative z-10">{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
                         </button>
                       </div>
 

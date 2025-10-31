@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -21,6 +22,16 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Analytics (browser only)
+let analytics = null;
+try {
+  if (typeof window !== "undefined") {
+    analytics = getAnalytics(app);
+  }
+} catch (e) {
+  console.warn("⚠️ Analytics não inicializado:", e?.message || e);
+}
 
 // Initialize Firestore (usando API estável)
 const db = getFirestore(app);
@@ -45,4 +56,4 @@ try {
   console.warn("⚠️ Persistência IndexedDB não disponível:", e.message);
 }
 
-export { app, db, storage, messaging };
+export { app, db, storage, messaging, analytics };

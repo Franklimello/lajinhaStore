@@ -65,6 +65,7 @@ const SearchResults = memo(({
               descricao={produto.descricao}
               preco={produto.preco}
               id={produto.id}
+              esgotado={produto.esgotado || false}
             />
           </div>
         ))}

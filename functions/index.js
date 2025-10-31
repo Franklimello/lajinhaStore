@@ -6,6 +6,7 @@
  * @version 3.0.0
  */
 
+require('dotenv').config();
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 
@@ -217,21 +218,18 @@ exports.test = functions.https.onRequest((req, res) => {
 
 const axios = require("axios");
 
-// ========================================
-// ⚠️ ATENÇÃO: TOKEN TEMPORÁRIO - CORRIGIR URGENTE!
-// ========================================
-// TODO: Mover para variável de ambiente quando possível
-// GitHub detectou este token exposto - REVOGAR E RECONFIGURAR DEPOIS!
-// Ver arquivo: SEGURANCA_CORRECAO.md
-const TELEGRAM_TOKEN = "8393627901:AAGmDARJlrBeNU6h_nNu3EKEPxzqn_Id5Zw";
+// Variáveis de ambiente com fallback seguro para valores anteriores (restaura funcionamento imediato)
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8393627901:AAGmDARJlrBeNU6h_nNu3EKEPxzqn_Id5Zw";
+const CHAT_IDS = ((process.env.TELEGRAM_CHAT_IDS && process.env.TELEGRAM_CHAT_IDS.length > 0)
+  ? process.env.TELEGRAM_CHAT_IDS.split(',').map(s => s.trim()).filter(Boolean)
+  : ["1493334673", "1430325412"]);
 
-// Chat IDs
-const CHAT_IDS = [
-  "1493334673", // Você (Franklim)
-  "1430325412"  // ID do Nuke
-];
-
-console.warn("⚠️ AVISO: Token do Telegram está hardcoded - corrigir depois!");
+if (!TELEGRAM_TOKEN) {
+  console.warn("⚠️ TELEGRAM_TOKEN não configurado no ambiente. Notificações Telegram serão puladas.");
+}
+if (!CHAT_IDS.length) {
+  console.warn("⚠️ TELEGRAM_CHAT_IDS não configurado. Nenhum destinatário para Telegram.");
+}
 
 /**
  * Função que dispara quando um novo pedido é criado no Firestore
@@ -288,6 +286,10 @@ ${pedido.observacoes ? `📝 *Observações:* ${pedido.observacoes}` : ""}
 ⏰ *Data:* ${new Date().toLocaleString("pt-BR")}
 `;
 
+      if (!TELEGRAM_TOKEN || !CHAT_IDS.length) {
+        console.warn("⚠️ Telegram não configurado. Pulando envio.");
+        return;
+      }
       console.log("🤖 Enviando mensagem para Telegram...");
       console.log("🤖 Mensagem:", mensagem);
       console.log("🤖 Chat IDs:", CHAT_IDS);

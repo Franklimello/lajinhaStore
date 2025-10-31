@@ -9,6 +9,7 @@ import { useAdmin } from "../../hooks/useAdmin";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import firestoreMonitor from "../../services/firestoreMonitor";
+import MarqueeAds from "../MarqueeAds";
 
 
 export default function Header() {
@@ -584,6 +585,9 @@ export default function Header() {
           )}
         </div>
       </header>
+
+      {/* Letreiro de anúncios (marquee) */}
+      <MarqueeAds />
 
       {/* Menu mobile overlay */}
       {isMenuOpen && (

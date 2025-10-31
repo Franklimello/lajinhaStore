@@ -8,19 +8,21 @@ import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
 import { collection, getDocs, query, where, orderBy, limit, startAfter } from "firebase/firestore";
 import { buildFormatSources, defaultSizes } from "../../utils/imageSources";
-import { FaHeart, FaShoppingCart, FaStar, FaEye, FaGlassWhiskey, FaSearch } from "react-icons/fa";
+import { FaHeart, FaShoppingCart, FaStar, FaEye, FaShoppingBasket, FaSearch } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
+import { useNavigate } from "react-router-dom";
 import CartAddAnimation from "../../components/CartAddAnimation";
 
 // ✅ CONSTANTES para otimização
-const CACHE_KEY = "products_bebidas";
+const CACHE_KEY = "products_cesta_basica";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const PRODUCTS_PER_PAGE = 20; // Limitar a 20 produtos por vez
 
-const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
+const CestaBasica = memo(function CestaBasica({ searchTerm = "", isPreview = false }) {
   const { favorites, toggleFavorite } = useContext(ShopContext);
   const { addToCart } = useContext(CartContext);
+  const navigate = useNavigate();
 
   const [carousels, setCarousels] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -35,7 +37,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
   const [animatingProducts, setAnimatingProducts] = useState({});
 
   // ✅ NOVA FUNÇÃO: Busca produtos com LIMIT e paginação
-  const fetchProducts = async (isLoadMore = false) => {
+  const fetchProducts = useCallback(async (isLoadMore = false) => {
     try {
       if (isLoadMore) {
         setLoadingMore(true);
@@ -49,14 +51,15 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
         if (cached) {
           const { products, timestamp } = JSON.parse(cached);
           if (Date.now() - timestamp < CACHE_TTL) {
-            console.log(`✅ Cache hit: Bebidas (${products.length} produtos)`);
+            console.log(`✅ Cache hit: Cesta Básica (${products.length} produtos)`);
             setAllProducts(products);
             setLoading(false);
             setHasMore(products.length >= PRODUCTS_PER_PAGE);
             
             // ✅ CORREÇÃO: Busca em background para obter lastDoc
+            // Isso permite que o botão "Carregar Mais" funcione no primeiro clique
             console.log('🔄 Buscando lastDoc em background...');
-            const catOptions = ["Bebidas", "bebidas"];
+            const catOptions = ["Cesta Básica", "cesta-basica"];
             const bgQuery = query(
               collection(db, "produtos"),
               where("categoria", "in", catOptions),
@@ -77,6 +80,8 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
         }
       }
       
+      // Se for "carregar mais" mas não tem lastDoc ainda (background não terminou),
+      // aguarda um pouco e tenta novamente
       if (isLoadMore && !lastDoc) {
         console.log('⏳ Aguardando lastDoc...');
         setLoadingMore(false);
@@ -86,7 +91,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       console.log(`🔍 Buscando produtos do Firestore${isLoadMore ? ' (carregar mais)' : ''}...`);
 
       // ✅ Query com LIMIT e orderBy (requer índice composto)
-      const catOptions = ["Bebidas", "bebidas", "Bebida", "bebida"];
+      const catOptions = ["Cesta Básica", "cesta-basica"];
       let q = query(
         collection(db, "produtos"),
         where("categoria", "in", catOptions),
@@ -106,17 +111,17 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       }
 
       const qs = await getDocs(q);
-
+      
       // ✅ Salvar lastDoc para paginação
       if (qs.docs.length > 0) {
         setLastDoc(qs.docs[qs.docs.length - 1]);
       }
 
       const newProducts = qs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+      
       // ✅ Produtos já vêm ordenados do Firestore!
 
-      console.log(`✅ Carregados ${newProducts.length} produtos de Bebidas`);
+      console.log(`✅ Carregados ${newProducts.length} produtos de Cesta Básica`);
 
       // ✅ Verifica se há mais produtos
       setHasMore(qs.docs.length === PRODUCTS_PER_PAGE);
@@ -127,7 +132,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       } else {
         // Substitui produtos (primeira carga)
         setAllProducts(newProducts);
-
+        
         // ✅ Salva no cache apenas na primeira carga
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({
           products: newProducts,
@@ -136,19 +141,19 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       }
 
     } catch (error) {
-      console.error("❌ Erro ao buscar produtos de bebidas:", error);
+      console.error("❌ Erro ao buscar produtos da cesta básica:", error);
       setAllProducts([]);
       setHasMore(false);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [lastDoc]);
 
   // ✅ useEffect: Busca produtos na montagem
   useEffect(() => {
     fetchProducts(false);
-  }, []);
+  }, [fetchProducts]);
 
   // ✅ Função para carregar mais produtos
   const handleLoadMore = (e) => {
@@ -179,7 +184,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       console.log(`🔍 Buscando produtos com termo: "${searchTerm}"...`);
 
       // Busca TODOS os produtos da categoria (sem limite)
-      const catOptions = ["Bebidas", "bebidas", "Bebida", "bebida"];
+      const catOptions = ["Cesta Básica", "cesta-basica"];
       const q = query(
         collection(db, "produtos"),
         where("categoria", "in", catOptions),
@@ -194,7 +199,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       const normalizedSearch = normalize(searchLower);
       const searchWords = normalizedSearch.split(' ').filter(w => w.length > 0);
       
-      // Filtra produtos com busca inteligente
+      // Filtra produtos com busca inteligente (igual useSimpleSearch)
       products = products.filter(p => {
         const titulo = normalize((p.titulo || "").toLowerCase());
         const descricao = normalize((p.descricao || "").toLowerCase());
@@ -207,7 +212,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
           return true;
         }
         
-        // Busca por palavras
+        // Busca por palavras (encontra "ovomaltine 190g" mesmo se buscar apenas "ovomaltine")
         if (searchWords.length > 0) {
           const allWordsMatch = searchWords.every(word => 
             titulo.includes(word) || 
@@ -266,8 +271,8 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
   }, [localSearchTerm, isPreview]); // Removido searchProducts e fetchProducts das dependências para evitar loops
 
   useEffect(() => {
-    // Usar termo local quando não for preview, senão usar searchTerm da home
-    const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
+    // Processar produtos para exibição (carrosséis)
+    const term = isPreview ? searchTerm.trim().toLowerCase() : "";
     const source = term
       ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
       : allProducts;
@@ -281,18 +286,23 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
       grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm, isPreview, localSearchTerm]);
+  }, [allProducts, searchTerm, isPreview]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
+
+  // Função para navegar para detalhes do produto
+  const handleViewDetails = useCallback((productId) => {
+    navigate(`/detalhes/${productId}`);
+  }, [navigate]);
 
   // ✅ Só mostra loading full screen na primeira carga (não durante busca)
   if (loading && allProducts.length === 0 && !localSearchTerm) {
     return (
-      <section className="min-h-screen bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 p-4 md:p-8">
+      <section className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-500"></div>
-            <p className="mt-4 text-gray-600 text-lg">Carregando bebidas...</p>
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-green-500"></div>
+            <p className="mt-4 text-gray-600 text-lg">Carregando produtos...</p>
           </div>
         </div>
       </section>
@@ -307,39 +317,39 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
   const resultsCount = carousels.reduce((acc, g) => acc + g.length, 0);
 
   return (
-    <section className="min-h-screen mt-10 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 p-4 md:p-8">
+    <section className="min-h-screen mt-10 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         
         {/* SearchBar MELHORADA - apenas quando não for preview */}
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">
-            <div className="bg-gradient-to-br from-white to-cyan-50/30 rounded-2xl shadow-xl border-2 border-cyan-100 p-6 w-full max-w-3xl">
+            <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl shadow-xl border-2 border-green-100 p-6 w-full max-w-3xl">
               <div className="flex flex-col items-center justify-center gap-3">
                 <div className="w-full relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                     {searching ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-500 border-t-transparent"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent"></div>
                     ) : (
-                      <FaSearch className="text-cyan-500 text-xl" />
+                      <FaSearch className="text-green-500 text-xl" />
                     )}
                   </div>
                   <input
                     type="text"
-                    placeholder="Buscar bebidas... (ex: coca, suco, água, refrigerante)"
+                    placeholder="Buscar produtos da cesta básica... (ex: arroz, feijão, óleo)"
                     value={localSearchTerm}
                     onChange={(e) => setLocalSearchTerm(e.target.value)}
                     className={`w-full pl-12 pr-12 py-4 border-2 rounded-xl 
-                              focus:outline-none focus:ring-4 focus:ring-cyan-200 
+                              focus:outline-none focus:ring-4 focus:ring-green-200 
                               text-lg transition-all duration-300 
                               ${
                                 searching 
-                                  ? 'border-cyan-400 bg-cyan-50' 
+                                  ? 'border-green-400 bg-green-50' 
                                   : localSearchTerm.length >= 3
                                     ? 'border-green-400 bg-green-50/50 shadow-md'
-                                    : 'border-gray-300 bg-white hover:border-cyan-300 hover:bg-cyan-50/30'
+                                    : 'border-gray-300 bg-white hover:border-green-300 hover:bg-green-50/30'
                               } 
                               shadow-sm hover:shadow-lg`}
-                    aria-label="Pesquisar bebidas"
+                    aria-label="Pesquisar produtos da cesta básica"
                     autoComplete="off"
                     spellCheck="false"
                     disabled={searching}
@@ -375,8 +385,8 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                   
                   {/* Indicador de busca - só mostra quando está buscando E tem 3+ caracteres */}
                   {localSearchTerm && localSearchTerm.length >= 3 && searching && (
-                    <div className="flex items-center gap-2 text-cyan-600 font-medium">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-500 border-t-transparent"></div>
+                    <div className="flex items-center gap-2 text-green-600 font-medium">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent"></div>
                       <span>Pesquisando...</span>
                     </div>
                   )}
@@ -393,7 +403,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                   
                   <div className="ml-auto text-gray-500">
                     {localSearchTerm && localSearchTerm.length >= 3 && allProducts.length > 0 && (
-                      <span className="font-semibold text-cyan-600">
+                      <span className="font-semibold text-green-600">
                         {allProducts.length} resultado{allProducts.length !== 1 ? 's' : ''}
                       </span>
                     )}
@@ -403,21 +413,20 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
             </div>
           </div>
         )}
-        
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg mb-6">
-            <FaGlassWhiskey className="text-cyan-500 text-xl animate-pulse" />
+            <FaShoppingBasket className="text-green-500 text-xl animate-pulse" />
             <span className="text-sm font-medium text-gray-600 uppercase tracking-wider">
-              Bebidas Refrescantes
+              Produtos Essenciais
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 bg-clip-text text-transparent mb-4">
-            Bebidas
+          <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4">
+            Cesta Básica
           </h1>
 
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Bebidas refrescantes, sucos e refrigerantes para todas as ocasiões
+            Produtos essenciais para o seu dia a dia com preços especiais
           </p>
 
           <div className="flex items-center justify-center gap-2 mt-6">
@@ -426,7 +435,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                 <FaStar key={i} className="text-yellow-400 text-lg" />
               ))}
             </div>
-            <span className="text-gray-600 ml-2">Bebidas de qualidade</span>
+            <span className="text-gray-600 ml-2">Produtos de qualidade</span>
           </div>
 
           {hasSearch && (
@@ -438,7 +447,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
           {!isPreview && localSearchTerm && localSearchTerm.length >= 3 && !searching && (
             <p className="mt-4 text-sm text-gray-600">
               {resultsCount > 0 ? (
-                <span>Resultados para "<strong className="text-cyan-600">{localSearchTerm}</strong>": {resultsCount} produto{resultsCount !== 1 ? 's' : ''}</span>
+                <span>Resultados para "<strong className="text-green-600">{localSearchTerm}</strong>": {resultsCount} produto{resultsCount !== 1 ? 's' : ''}</span>
               ) : (
                 <span className="text-amber-600">Nenhum produto encontrado para "<strong>{localSearchTerm}</strong>"</span>
               )}
@@ -466,7 +475,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                     setHasMore(true);
                     fetchProducts(false);
                   }}
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 hover:scale-105 shadow-lg"
                 >
                   <span>Limpar busca</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,19 +526,15 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                             Esgotado
                           </div>
                         ) : (
-                          <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                            Refrescante
+                          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            Essencial
                           </div>
                         )}
                       </div>
 
                       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleFavorite(product);
-                          }}
+                          onClick={() => toggleFavorite(product)}
                           className={`p-2 rounded-full shadow-lg transition-all duration-200 ${
                             isFavorited(product.id)
                               ? 'bg-red-500 text-white'
@@ -541,16 +546,15 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                         </button>
 
                         <button 
-                          type="button"
-                          onClick={(e) => e.preventDefault()}
-                          className="p-2 bg-white/90 text-gray-600 rounded-full shadow-lg hover:bg-blue-500 hover:text-white transition-all duration-200" 
+                          onClick={() => handleViewDetails(product.id)}
+                          className="p-2 bg-white/90 text-gray-600 rounded-full shadow-lg hover:bg-green-500 hover:text-white transition-all duration-200" 
                           aria-label="Visualizar produto"
                         >
                           <FaEye className="text-sm" />
                         </button>
                       </div>
 
-                      <div className="relative overflow-hidden bg-gradient-to-br from-cyan-100 to-blue-100 aspect-square">
+                      <div className="relative overflow-hidden bg-gradient-to-br from-green-100 to-emerald-100 aspect-square">
                         {(() => {
                           const src = product.fotosUrl?.[0] || product.imagem || '/placeholder.jpg';
                           const { avif, webp, fallback } = buildFormatSources(src);
@@ -561,7 +565,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                               <img
                                 src={fallback}
                                 alt={product.titulo || product.nome}
-                                className="w-full h-full "
+                                className="w-full h-full"
                                 loading="lazy"
                                 decoding="async"
                                 sizes={defaultSizes}
@@ -590,7 +594,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                           <span className="text-xs text-gray-500 ml-1">({product.reviews || '12'})</span>
                         </div>
 
-                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-cyan-600 transition-colors duration-200 uppercase">
+                        <h3 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 group-hover:text-green-600 transition-colors duration-200 uppercase">
                           {product.titulo || product.nome}
                         </h3>
 
@@ -601,7 +605,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                         )}
 
                         <div className="flex items-center gap-2 mb-4">
-                          <span className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                          <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                             R$ {parseFloat(product.preco || product.price || 0).toFixed(2)}
                           </span>
                           {product.precoOriginal && (
@@ -639,8 +643,8 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                             product.esgotado
                               ? 'bg-gray-400 cursor-not-allowed'
                               : hoveredProduct === product.id
-                                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 shadow-lg scale-105'
-                                : 'bg-gradient-to-r from-cyan-400 to-blue-400'
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg scale-105'
+                                : 'bg-gradient-to-r from-green-400 to-emerald-400'
                           } ${!product.esgotado && 'hover:shadow-xl active:scale-95'} flex items-center justify-center gap-2`}
                           aria-label={product.esgotado ? "Produto esgotado" : "Adicionar ao carrinho"}
                         >
@@ -650,6 +654,14 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                           />
                           <FaShoppingCart className="text-sm relative z-10" />
                           <span className="relative z-10">{product.esgotado ? 'Esgotado' : 'Carrinho'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleViewDetails(product.id)}
+                          className="w-full py-2 rounded-lg font-medium text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 hover:text-green-700 transition-all duration-300 flex items-center justify-center gap-2 mt-2"
+                          aria-label="Ver itens da cesta"
+                        >
+                          <span>Itens</span>
                         </button>
                       </div>
 
@@ -670,12 +682,8 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
         {isPreview && allProducts.length > 10 && (
           <div className="text-center mt-8">
             <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = '/bebidas';
-              }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+              onClick={() => window.location.href = '/cesta-basica'}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
             >
               <span>Ver todos os produtos</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -695,14 +703,14 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
               type="button"
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 
                         text-white px-8 py-4 rounded-xl font-semibold text-lg
                         transition-all duration-200 
                         hover:scale-105 active:scale-95
                         shadow-lg hover:shadow-xl 
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 
                         flex items-center gap-3
-                        focus:outline-none focus:ring-4 focus:ring-cyan-300
+                        focus:outline-none focus:ring-4 focus:ring-green-300
                         touch-manipulation select-none"
               aria-label="Carregar mais produtos"
             >
@@ -716,7 +724,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
                 </>
               ) : (
                 <>
-                  <FaGlassWhiskey className="text-xl pointer-events-none" />
+                  <FaShoppingBasket className="text-xl pointer-events-none" />
                   <span>Carregar Mais Produtos</span>
                 </>
               )}
@@ -734,7 +742,7 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
               <span>Todos os produtos foram carregados!</span>
             </div>
             <p className="text-sm text-gray-600 mt-2">
-              Total: <span className="font-bold text-cyan-600">{allProducts.length}</span> produtos
+              Total: <span className="font-bold text-green-600">{allProducts.length}</span> produtos
             </p>
           </div>
         )}
@@ -744,4 +752,4 @@ const Bebidas = memo(function Bebidas({ searchTerm = "", isPreview = false }) {
   );
 });
 
-export default Bebidas;
+export default CestaBasica;
