@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaArrowLeft, FaWhatsapp, FaCopy, FaCheckCircle } from 'react-icons/fa';
+import AlertModal from '../../components/AlertModal';
 
 const ConsultaPedidos = () => {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ const ConsultaPedidos = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
 
   useEffect(() => {
     loadRecentOrders();
@@ -28,7 +30,7 @@ const ConsultaPedidos = () => {
 
   const handleSearch = () => {
     if (!searchId.trim()) {
-      alert('Digite o ID do pedido para consultar.');
+      setAlert({ isOpen: true, message: 'Digite o ID do pedido para consultar.', type: "warning" });
       return;
     }
     
@@ -42,7 +44,7 @@ const ConsultaPedidos = () => {
       if (orderExists) {
         navigate(`/status-pedido/${searchId.trim()}`);
       } else {
-        alert('Pedido não encontrado. Verifique o ID e tente novamente.');
+        setAlert({ isOpen: true, message: 'Pedido não encontrado. Verifique o ID e tente novamente.', type: "error" });
       }
       setLoading(false);
     }, 500);
@@ -345,6 +347,15 @@ const ConsultaPedidos = () => {
           </div>
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : alert.type === "warning" ? "Atenção" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import firestoreMonitor from "../../services/firestoreMonitor";
 import MarqueeAds from "../MarqueeAds";
+import { appConfig } from "../../config/appConfig";
 
 
 export default function Header() {
@@ -87,7 +88,7 @@ export default function Header() {
           
           // Mostrar notificação de sucesso
           if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Lajinha Instalado!', {
+            new Notification(`${appConfig.APP.NAME} Instalado!`, {
               body: 'O app foi instalado com sucesso!',
               icon: '/logo192.png',
               badge: '/logo192.png'
@@ -295,10 +296,44 @@ export default function Header() {
     { path: "/contato", label: "Contato", icon: "📞" },
   ];
 
+  // Navegação por teclado - atalho 'S' para busca
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Pressionar 'S' para focar na busca (se não estiver digitando em input)
+      if (e.key === 's' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="text"][placeholder*="Buscar"]');
+        if (searchInput) {
+          searchInput.focus();
+          setIsSearchOpen(true);
+        }
+      }
+      // ESC para fechar menu
+      if (e.key === 'Escape') {
+        setIsMenuOpen(false);
+        setIsSearchOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   return (
     <>
+      {/* Skip Link - Acessibilidade */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[200] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:font-semibold focus:shadow-lg"
+        aria-label="Pular para conteúdo principal"
+      >
+        Pular para conteúdo principal
+      </a>
+
       {/* Header principal */}
       <header 
+        role="banner"
+        aria-label="Cabeçalho principal"
         className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
           isScrolled 
             ? 'bg-white shadow-lg shadow-gray-200/50 border-b border-gray-200' 
@@ -327,7 +362,8 @@ export default function Header() {
                 href="https://wa.me/5519997050303"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors backdrop-blur-sm"
+                aria-label="Contato via WhatsApp"
+                className="flex items-center gap-1.5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
               >
                 <FaWhatsapp className="text-emerald-400" />
                 <span className="hidden sm:inline text-xs font-medium text-gray-300">WhatsApp</span>
@@ -343,7 +379,10 @@ export default function Header() {
             {/* Menu hamburguer mobile */}
             <button 
               onClick={toggleMenu}
-              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative"
+              aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               {isMenuOpen ? (
                 <BsX size={28} className="text-gray-700" />
@@ -364,9 +403,9 @@ export default function Header() {
                 </div>
                 <div className="hidden md:block">
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
-                    Supermercado online lajinha
+                    {appConfig.APP.NAME}
                   </h1>
-                  <p className="text-xs text-gray-600">Qualidade e confiança</p>
+                  <p className="text-xs text-gray-600">{appConfig.APP.SUBTITLE || 'Qualidade e confiança'}</p>
                 </div>
               </NavLink>
               
@@ -378,7 +417,11 @@ export default function Header() {
             
 
             {/* Menu desktop */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav 
+              role="navigation" 
+              aria-label="Navegação principal"
+              className="hidden lg:flex items-center gap-1"
+            >
               {navItems.map((item) => (
                 <NavLink
                   key={item.path}
@@ -427,18 +470,29 @@ export default function Header() {
               
 
               {/* Favoritos */}
-              <Link to="/favoritos" className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative group">
+              <Link 
+                to="/favoritos" 
+                aria-label={`Favoritos${favoritesCount > 0 ? ` (${favoritesCount} itens)` : ''}`}
+                className="hidden sm:flex p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative group focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+              >
                 <FaHeart size={20} className="text-gray-600 group-hover:text-pink-500 transition-colors" />
                 {favoritesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg font-semibold">
+                  <span 
+                    className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg font-semibold"
+                    aria-label={`${favoritesCount} favoritos`}
+                  >
                     {favoritesCount > 99 ? '99+' : favoritesCount}
                   </span>
                 )}
               </Link>
 
               {/* Contato */}
-              <Link to="/contato" className="hidden sm:flex p-2 rounded-xl hover:bg-white/10 transition-colors duration-200 backdrop-blur-sm" title="Entre em contato">
-                <span className="text-xl">📧</span>
+              <Link 
+                to="/contato" 
+                aria-label="Entre em contato"
+                className="hidden sm:flex p-2 rounded-xl hover:bg-white/10 transition-colors duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <span className="text-xl" aria-hidden="true">📧</span>
               </Link>
 
 
@@ -473,10 +527,17 @@ export default function Header() {
 
               {/* Notificações - apenas para usuários logados */}
               {user && (
-                <Link to="/notificacoes" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
+                <Link 
+                  to="/notificacoes" 
+                  aria-label={`Notificações${unreadNotifications > 0 ? ` (${unreadNotifications} não lidas)` : ''}`}
+                  className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                >
                   <FaBell size={22} className="text-gray-600 group-hover:text-cyan-500 transition-colors" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ">
+                    <span 
+                      className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform"
+                      aria-label={`${unreadNotifications} notificações não lidas`}
+                    >
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
                     </span>
                   )}
@@ -484,10 +545,17 @@ export default function Header() {
               )}
 
               {/* Carrinho */}
-              <Link to="/carrinho" className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group">
+              <Link 
+                to="/carrinho" 
+                aria-label={`Carrinho de compras${cartCount > 0 ? ` (${cartCount} itens)` : ' (vazio)'}`}
+                className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              >
                 <FaShoppingCart size={22} className="text-gray-600 group-hover:text-cyan-500 transition-colors" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                  <span 
+                    className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform"
+                    aria-label={`${cartCount} itens no carrinho`}
+                  >
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}
@@ -599,7 +667,12 @@ export default function Header() {
           />
           
           {/* Menu lateral */}
-          <nav className="fixed top-0 left-0 w-80 h-full bg-white z-[110] lg:hidden transform transition-transform duration-300 shadow-2xl border-r border-gray-200 overflow-y-auto">
+          <nav 
+            id="mobile-menu"
+            role="navigation"
+            aria-label="Menu de navegação móvel"
+            className="fixed top-0 left-0 w-80 h-full bg-white z-[110] lg:hidden transform transition-transform duration-300 shadow-2xl border-r border-gray-200 overflow-y-auto"
+          >
             <div className="p-6 pb-20">
               
               {/* Header do menu */}

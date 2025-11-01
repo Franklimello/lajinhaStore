@@ -21,6 +21,7 @@ export default function SorteioAnimation({ entries, onClose }) {
   const [showModal, setShowModal] = useState(false);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
+  const winnerSavedRef = useRef(false); // 🛡️ Proteção contra múltiplas chamadas
 
   // Anima a entrada do modal
   useEffect(() => {
@@ -31,6 +32,9 @@ export default function SorteioAnimation({ entries, onClose }) {
     if (!entries || entries.length === 0) {
       return;
     }
+
+    // 🛡️ Resetar flag ao iniciar novo sorteio
+    winnerSavedRef.current = false;
 
     // Seleciona um vencedor aleatório
     const winnerIndex = Math.floor(Math.random() * entries.length);
@@ -66,7 +70,11 @@ export default function SorteioAnimation({ entries, onClose }) {
             setIsSpinning(false);
             setWinner(selectedWinner);
             setShowConfetti(true);
-            handleSaveWinner(selectedWinner);
+            // 🛡️ Proteção: salvar apenas uma vez
+            if (!winnerSavedRef.current) {
+              winnerSavedRef.current = true;
+              handleSaveWinner(selectedWinner);
+            }
           }, 500);
         } else {
           // Atualiza o intervalo com a nova velocidade
@@ -87,16 +95,35 @@ export default function SorteioAnimation({ entries, onClose }) {
 
   // Função para salvar o vencedor no Firestore
   const handleSaveWinner = async (winnerData) => {
+    // 🛡️ Proteção extra: verificar se já foi salvo
+    if (winnerSavedRef.current) {
+      console.log('⚠️ Tentativa de salvar vencedor novamente - ignorando');
+      return;
+    }
+
     setSaving(true);
     try {
       const result = await saveWinner(winnerData);
       if (result.success) {
         console.log('✅ Vencedor salvo com sucesso!');
+        winnerSavedRef.current = true; // Marcar como salvo
       } else {
-        console.error('❌ Erro ao salvar vencedor:', result.message);
+        if (result.alreadyExists) {
+          console.log('ℹ️ Vencedor já existe no banco - ok, não há problema');
+        } else {
+          console.error('❌ Erro ao salvar vencedor:', result.message);
+          // Se não foi um erro de duplicata, permite tentar novamente
+          if (!result.loopDetected && !result.inProgress && !result.rateLimited) {
+            winnerSavedRef.current = false;
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Erro ao salvar vencedor:', error);
+      // Em caso de erro, permite tentar novamente após um tempo
+      setTimeout(() => {
+        winnerSavedRef.current = false;
+      }, 5000);
     } finally {
       setSaving(false);
     }

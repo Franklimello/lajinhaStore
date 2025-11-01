@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getOrderById, formatOrderDate } from "../../firebase/orders";
 import OrderStatusBadge from "../../components/OrderStatusBadge";
 import QRCode from "qrcode";
+import AlertModal from "../../components/AlertModal";
 
 export default function PedidoDetalhes() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function PedidoDetalhes() {
   const [pedido, setPedido] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
 
   useEffect(() => {
     if (id) {
@@ -65,10 +67,10 @@ export default function PedidoDetalhes() {
           width: 300
         });
         setQrCodeUrl(qrUrl);
-        alert("QR Code reenviado com sucesso!");
+        setAlert({ isOpen: true, message: "QR Code reenviado com sucesso!", type: "success" });
       } catch (error) {
         console.error("Erro ao reenviar QR code:", error);
-        alert("Erro ao reenviar QR code");
+        setAlert({ isOpen: true, message: "Erro ao reenviar QR code", type: "error" });
       }
     }
   };
@@ -155,26 +157,26 @@ export default function PedidoDetalhes() {
                 <div className="bg-white p-4 rounded-lg border border-green-200">
                   <p className="text-sm font-medium text-green-600 mb-1">Valor Total</p>
                   <p className="text-xl font-bold text-green-800">
-                    R$ {(pedido.valorTotal || pedido.total)?.toFixed(2) || "0,00"}
+                    R$ {Number(pedido.valorTotal || pedido.total || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-white p-4 rounded-lg border border-green-200">
                   <p className="text-sm font-medium text-green-600 mb-1">Valor Pago</p>
                   <p className="text-xl font-bold text-blue-800">
-                    R$ {(pedido.valorPago || 0)?.toFixed(2) || "0,00"}
+                    R$ {Number(pedido.valorPago || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-white p-4 rounded-lg border border-green-200">
                   <p className="text-sm font-medium text-green-600 mb-1">Troco</p>
-                  <p className={`text-xl font-bold ${(pedido.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    R$ {(pedido.troco || 0)?.toFixed(2) || "0,00"}
+                  <p className={`text-xl font-bold ${Number(pedido.troco || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    R$ {Number(pedido.troco || 0).toFixed(2)}
                   </p>
                 </div>
               </div>
-              {(pedido.troco || 0) > 0 && (
+              {Number(pedido.troco || 0) > 0 && (
                 <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-yellow-800 text-sm">
-                    ⚠️ <strong>Importante:</strong> O entregador terá troco de R$ {(pedido.troco || 0)?.toFixed(2)} disponível.
+                    ⚠️ <strong>Importante:</strong> O entregador terá troco de R$ {Number(pedido.troco || 0).toFixed(2)} disponível.
                   </p>
                 </div>
               )}
@@ -202,7 +204,7 @@ export default function PedidoDetalhes() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total do Pedido:</span>
                   <span className="font-semibold text-green-600">
-                    R$ {pedido.total?.toFixed(2) || "0,00"}
+                    R$ {Number(pedido.total || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -264,12 +266,12 @@ export default function PedidoDetalhes() {
                       Quantidade: {item.qty || 1}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Preço unitário: R$ {item.preco?.toFixed(2) || "0,00"}
+                      Preço unitário: R$ {Number(item.preco || 0).toFixed(2)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      R$ {((item.preco || 0) * (item.qty || 1)).toFixed(2)}
+                      R$ {(Number(item.preco || 0) * Number(item.qty || 1)).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -282,12 +284,21 @@ export default function PedidoDetalhes() {
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-900">Total do Pedido:</span>
               <span className="text-2xl font-bold text-green-600">
-                R$ {pedido.total?.toFixed(2) || "0,00"}
+                R$ {Number(pedido.total || 0).toFixed(2)}
               </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 }

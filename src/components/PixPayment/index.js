@@ -46,8 +46,8 @@ const PixPayment = () => {
   })();
 
   const PIX_KEY = appConfig.PIX_KEY;
-  const MERCHANT_NAME = 'Sua Loja';
-  const CITY = 'LAJINHA';
+  const MERCHANT_NAME = appConfig.PIX_RECEIVER_NAME || appConfig.APP.NAME;
+  const CITY = appConfig.PIX_CITY || 'CIDADE';
 
   // Cupom aplicado (do carrinho)
   const appliedCoupon = useMemo(() => {
@@ -126,6 +126,7 @@ const PixPayment = () => {
     if (!user) {
       showToast('Você precisa estar logado para fazer um pedido', 'error');
       navigate('/login');
+      setIsProcessing(false);
       return;
     }
 
@@ -140,25 +141,30 @@ const PixPayment = () => {
     if (!user.uid) {
       showToast('Erro de autenticação. Faça login novamente.', 'error');
       navigate('/login');
+      setIsProcessing(false);
       return;
     }
 
     if (!clientName.trim()) {
       setNameError('Nome é obrigatório para continuar');
+      setIsProcessing(false);
       return;
     }
     if (clientName.trim().length < 2) {
       setNameError('Nome deve ter pelo menos 2 caracteres');
+      setIsProcessing(false);
       return;
     }
     
     // Validação do telefone
     if (!clientPhone.trim()) {
       setPhoneError('Telefone é obrigatório para entrega');
+      setIsProcessing(false);
       return;
     }
     if (clientPhone.trim().length < 10) {
       setPhoneError('Telefone deve ter pelo menos 10 dígitos');
+      setIsProcessing(false);
       return;
     }
     setPhoneError('');
@@ -166,18 +172,22 @@ const PixPayment = () => {
     // Validação dos campos de endereço
     if (!clientRua.trim()) {
       setAddressError('Rua é obrigatória para entrega');
+      setIsProcessing(false);
       return;
     }
     if (!clientNumero.trim()) {
       setAddressError('Número é obrigatório para entrega');
+      setIsProcessing(false);
       return;
     }
     if (!clientBairro.trim()) {
       setAddressError('Bairro é obrigatório para entrega');
+      setIsProcessing(false);
       return;
     }
     if (!clientCidade.trim()) {
       setAddressError('Cidade é obrigatória para entrega');
+      setIsProcessing(false);
       return;
     }
     setAddressError('');
@@ -186,10 +196,12 @@ const PixPayment = () => {
     if (paymentMethod === 'dinheiro') {
       if (!valorPago || parseFloat(valorPago) <= 0) {
         setNameError('Valor pago é obrigatório para pagamento em dinheiro');
+        setIsProcessing(false);
         return;
       }
       if (parseFloat(valorPago) < calculateCartTotal()) {
         setNameError('Valor pago deve ser maior ou igual ao total do pedido');
+        setIsProcessing(false);
         return;
       }
     }
@@ -253,6 +265,9 @@ const PixPayment = () => {
         payload = pixPayload;
       }
 
+      // Buscar observações do localStorage
+      const cartObservacoes = localStorage.getItem('cartObservacoes') || '';
+
       // Salva pedido no Firestore usando o novo sistema
       const orderData = {
         userId: user.uid,
@@ -282,6 +297,7 @@ const PixPayment = () => {
         paymentMethod: paymentMethod,
         paymentReference: newOrderId,
         qrData: paymentMethod === 'pix' ? payload : null,
+        ...(cartObservacoes.trim() && { observacoes: cartObservacoes.trim() }), // Observações do pedido
         // Informações específicas para pagamento em dinheiro
         ...(paymentMethod === 'dinheiro' && {
           valorPago: parseFloat(valorPago),
@@ -301,10 +317,22 @@ const PixPayment = () => {
         }
       };
 
-      console.log('Dados do pedido:', orderData);
-      console.log('Usuário UID:', user.uid);
+      console.log('📦 Dados do pedido:', orderData);
       
+      // Limpar observações do localStorage após salvar o pedido
+      if (cartObservacoes.trim()) {
+        localStorage.removeItem('cartObservacoes');
+      }
+      
+      console.log('👤 Usuário UID:', user.uid);
+      console.log('🌐 Firebase config:', {
+        projectId: window.location.hostname,
+        isLocalhost: window.location.hostname === 'localhost' || window.location.hostname.includes('192.168')
+      });
+      
+      console.log('💾 Iniciando salvamento do pedido no Firestore...');
       const orderResult = await saveOrderToFirestore(orderData);
+      console.log('📋 Resultado do salvamento:', orderResult);
       
       // 🎉 INTEGRAÇÃO DO SISTEMA DE SORTEIO
       if (orderResult.success) {
@@ -361,12 +389,19 @@ const PixPayment = () => {
         }
         // Não redireciona, mantém na tela para o usuário ver o QR Code ou informações
       } else {
-        showToast('⚠️ Erro ao criar pedido: ' + orderResult.error, 'error');
+        console.error('❌ Falha ao salvar pedido:', orderResult);
+        showToast('⚠️ Erro ao criar pedido: ' + (orderResult.error || 'Erro desconhecido'), 'error');
+        setIsLoading(false);
+        setIsProcessing(false);
       }
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
+      console.error('Detalhes do erro:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       showToast('❌ Erro ao gerar QR Code. Tente novamente.', 'error');
-    } finally {
       setIsLoading(false);
       setIsProcessing(false);
     }
@@ -635,7 +670,8 @@ const PixPayment = () => {
         </div>
 
         {/* Campo de Valor Pago - Apenas para Dinheiro */}
-        {paymentMethod === 'dinheiro' && (
+        {/* Temporariamente desabilitado */}
+        {/* {paymentMethod === 'dinheiro' && (
           <div className="border rounded-lg p-4 mb-6 bg-green-50 border-green-200">
             <h3 className="font-semibold mb-3 text-green-800">💰 Valor do Pagamento</h3>
             <div className="space-y-4">
@@ -680,7 +716,7 @@ const PixPayment = () => {
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Botão Gerar QR Code */}
         {!qrCodeUrl && (
@@ -762,7 +798,8 @@ const PixPayment = () => {
         )}
 
         {/* Modal de Confirmação - Pagamento em Dinheiro */}
-        {orderId && paymentMethod === 'dinheiro' && (
+        {/* Temporariamente desabilitado */}
+        {/* {orderId && paymentMethod === 'dinheiro' && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
               <div className="mb-6">
@@ -787,7 +824,7 @@ const PixPayment = () => {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         <button
           onClick={() => navigate('/carrinho')}

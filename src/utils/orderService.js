@@ -15,18 +15,49 @@ import { db } from "../firebase/config";
 // Função para salvar um pedido no Firestore
 export const saveOrder = async (orderData) => {
   try {
+    console.log("💾 saveOrder: Iniciando salvamento...", {
+      userId: orderData.userId,
+      total: orderData.total,
+      itemsCount: orderData.items?.length || 0,
+      paymentMethod: orderData.paymentMethod
+    });
+
+    // Verifica se o db está definido
+    if (!db) {
+      console.error("❌ saveOrder: Firestore db não está inicializado");
+      return { success: false, error: "Firestore não está configurado" };
+    }
+
     const now = new Date();
-    const orderRef = await addDoc(collection(db, "pedidos"), {
+    const orderDataToSave = {
       ...orderData,
       createdAt: now,
       updatedAt: now,
       createdAtTimestamp: now.getTime() // Timestamp numérico para ordenação
+    };
+
+    console.log("💾 saveOrder: Dados preparados para salvar:", {
+      userId: orderDataToSave.userId,
+      total: orderDataToSave.total,
+      status: orderDataToSave.status || 'Aguardando Pagamento'
     });
+
+    const orderRef = await addDoc(collection(db, "pedidos"), orderDataToSave);
     
+    console.log("✅ saveOrder: Pedido salvo com sucesso! ID:", orderRef.id);
     return { success: true, orderId: orderRef.id };
   } catch (error) {
-    console.error("Erro ao salvar pedido:", error);
-    return { success: false, error: error.message };
+    console.error("❌ Erro ao salvar pedido:", error);
+    console.error("❌ Detalhes do erro:", {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
+    return { 
+      success: false, 
+      error: error.message || "Erro desconhecido ao salvar pedido",
+      code: error.code 
+    };
   }
 };
 

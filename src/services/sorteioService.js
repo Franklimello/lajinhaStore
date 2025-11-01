@@ -82,12 +82,28 @@ export const addSorteioData = async (order) => {
       };
     }
 
-    // REGRA PRINCIPAL: Apenas pedidos com 5 ou mais itens são elegíveis
-    if (totalItems < 5) {
-      console.log(`⚠️ Pedido #${orderNumber} não elegível para sorteio (${totalItems} itens - mínimo 5)`);
+    // 🎯 VERIFICAR REGRA CONFIGURADA (itens ou valor)
+    const config = await getSorteioConfig();
+    let isElegivel = false;
+    let motivo = '';
+
+    if (config.regraTipo === 'itens') {
+      isElegivel = totalItems >= config.regraValor;
+      motivo = isElegivel 
+        ? `Pedido elegível (${totalItems} itens >= ${config.regraValor})`
+        : `Pedido não elegível (${totalItems} itens < ${config.regraValor} mínimo)`;
+    } else if (config.regraTipo === 'valor') {
+      isElegivel = totalValue >= config.regraValor;
+      motivo = isElegivel
+        ? `Pedido elegível (R$ ${totalValue.toFixed(2)} >= R$ ${config.regraValor.toFixed(2)})`
+        : `Pedido não elegível (R$ ${totalValue.toFixed(2)} < R$ ${config.regraValor.toFixed(2)} mínimo)`;
+    }
+
+    if (!isElegivel) {
+      console.log(`⚠️ ${motivo} - Pedido #${orderNumber}`);
       return {
         success: false,
-        message: 'Pedido não elegível para sorteio. Mínimo de 5 itens necessários.',
+        message: `Pedido não elegível para sorteio. ${motivo.split(' - ')[0]}`,
         eligible: false
       };
     }
@@ -98,7 +114,8 @@ export const addSorteioData = async (order) => {
     console.log(`   👤 Cliente: ${clientName}`);
     console.log(`   📱 Telefone: ${clientPhone}`);
     console.log(`   💰 Valor: R$ ${totalValue}`);
-    console.log(`   ✅ Elegível: ${totalItems >= 5 ? 'SIM' : 'NÃO'}`);
+    console.log(`   ⚙️ Regra: ${config.regraTipo} >= ${config.regraValor}`);
+    console.log(`   ✅ Elegível: SIM`);
 
     // Salvar no Firestore
     const docRef = await addDoc(sorteioRef, {
@@ -136,6 +153,9 @@ export const addSorteioData = async (order) => {
  */
 export const getSorteioData = async () => {
   try {
+    // Buscar configuração atual da regra
+    const config = await getSorteioConfig();
+    
     const sorteioRef = collection(db, 'sorteio');
     const q = query(sorteioRef, orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
@@ -144,8 +164,15 @@ export const getSorteioData = async () => {
     querySnapshot.forEach((doc) => {
       const docData = doc.data();
       
-      // Filtro adicional: apenas pedidos com 5+ itens
-      if (docData.totalItems >= 5) {
+      // Aplicar filtro baseado na regra configurada
+      let isElegivel = false;
+      if (config.regraTipo === 'itens') {
+        isElegivel = docData.totalItems >= config.regraValor;
+      } else if (config.regraTipo === 'valor') {
+        isElegivel = docData.totalValue >= config.regraValor;
+      }
+      
+      if (isElegivel) {
         data.push({
           id: doc.id,
           ...docData,
@@ -155,7 +182,7 @@ export const getSorteioData = async () => {
       }
     });
 
-    console.log(`✅ ${data.length} pedidos elegíveis encontrados no sorteio`);
+    console.log(`✅ ${data.length} pedidos elegíveis encontrados no sorteio (regra: ${config.regraTipo} >= ${config.regraValor})`);
     return data;
   } catch (error) {
     console.error('❌ Erro ao buscar dados do sorteio:', error);
@@ -163,8 +190,14 @@ export const getSorteioData = async () => {
   }
 };
 
+// Cache para evitar múltiplas chamadas simultâneas
+let savingWinnerInProgress = false;
+let lastSavedWinner = null;
+let lastSaveTime = 0;
+
 /**
  * Salva o vencedor do sorteio
+ * 🛡️ PROTEÇÃO CONTRA LOOPS: Verifica duplicatas e previne múltiplas chamadas
  * 
  * @param {Object} winner - Dados do vencedor
  * @param {string} winner.clientName - Nome do cliente vencedor
@@ -172,10 +205,34 @@ export const getSorteioData = async () => {
  * @param {string} winner.orderNumber - Número do pedido vencedor
  * @param {number} winner.totalItems - Total de itens do pedido
  * @param {number} winner.totalValue - Valor total do pedido
- * @returns {Promise<Object>} - { success: boolean, message: string, id?: string }
+ * @returns {Promise<Object>} - { success: boolean, message: string, id?: string, alreadyExists?: boolean }
  */
 export const saveWinner = async (winner) => {
   try {
+    // 🛡️ PROTEÇÃO 1: Verificar se já está salvando
+    if (savingWinnerInProgress) {
+      console.log('⚠️ Tentativa de salvar vencedor enquanto outra operação está em andamento - ignorando');
+      return {
+        success: false,
+        message: 'Operação já em andamento',
+        alreadyExists: false,
+        inProgress: true
+      };
+    }
+
+    // 🛡️ PROTEÇÃO 2: Rate limiting - bloquear múltiplas chamadas em 5 segundos
+    const now = Date.now();
+    const timeSinceLastSave = now - lastSaveTime;
+    if (timeSinceLastSave < 5000 && lastSavedWinner?.orderNumber === winner?.orderNumber) {
+      console.log(`⚠️ Tentativa de salvar o mesmo vencedor muito rapidamente (${timeSinceLastSave}ms) - ignorando`);
+      return {
+        success: false,
+        message: 'Vencedor já foi salvo recentemente',
+        alreadyExists: true,
+        rateLimited: true
+      };
+    }
+
     if (!winner) {
       throw new Error('Dados do vencedor não fornecidos');
     }
@@ -186,8 +243,57 @@ export const saveWinner = async (winner) => {
       throw new Error('Dados do vencedor incompletos');
     }
 
-    // Salvar na coleção de vencedores
+    // 🛡️ PROTEÇÃO 3: Verificar se já existe vencedor com este orderNumber nos últimos 24h
     const winnersRef = collection(db, 'sorteio_vencedores');
+    const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 24);
+    
+    const existingQuery = query(
+      winnersRef,
+      where('orderNumber', '==', String(orderNumber)),
+      orderBy('createdAt', 'desc')
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+    
+    if (!existingSnapshot.empty) {
+      const recentWinner = existingSnapshot.docs[0].data();
+      const winnerDate = recentWinner.createdAt?.toDate?.() || new Date(recentWinner.createdAt);
+      const hoursAgo = (now - winnerDate.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursAgo < 24) {
+        console.log(`⚠️ Vencedor com pedido #${orderNumber} já foi salvo há ${hoursAgo.toFixed(1)} horas - evitando duplicata`);
+        return {
+          success: false,
+          message: `Este vencedor já foi salvo há ${hoursAgo.toFixed(1)} horas`,
+          alreadyExists: true,
+          existingId: existingSnapshot.docs[0].id
+        };
+      }
+    }
+
+    // 🛡️ PROTEÇÃO 4: Verificar se há muitos vencedores salvos recentemente (últimos 60 segundos)
+    const oneMinuteAgo = Timestamp.fromDate(new Date(now - 60000));
+    const recentQuery = query(
+      winnersRef,
+      where('createdAt', '>=', oneMinuteAgo),
+      orderBy('createdAt', 'desc')
+    );
+    const recentSnapshot = await getDocs(recentQuery);
+    
+    if (recentSnapshot.size > 3) {
+      console.log(`🚨 ALERTA: ${recentSnapshot.size} vencedores salvos nos últimos 60 segundos - possível loop detectado!`);
+      return {
+        success: false,
+        message: 'Sistema temporariamente pausado para evitar loop. Aguarde alguns segundos.',
+        alreadyExists: false,
+        loopDetected: true
+      };
+    }
+
+    // 🛡️ Marcar como em progresso
+    savingWinnerInProgress = true;
+
+    // Salvar na coleção de vencedores
     const docRef = await addDoc(winnersRef, {
       clientName: String(clientName),
       clientPhone: String(clientPhone),
@@ -196,6 +302,10 @@ export const saveWinner = async (winner) => {
       totalValue: Number(totalValue) || 0,
       createdAt: Timestamp.now() // Data/hora do sorteio
     });
+
+    // Atualizar cache
+    lastSavedWinner = { ...winner };
+    lastSaveTime = now;
 
     console.log(`🎉 Vencedor salvo com sucesso! Pedido #${orderNumber}`);
 
@@ -211,6 +321,48 @@ export const saveWinner = async (winner) => {
       message: `Erro ao salvar vencedor: ${error.message}`,
       error: error.message
     };
+  } finally {
+    // Sempre liberar o lock após 2 segundos (caso algo dê errado)
+    setTimeout(() => {
+      savingWinnerInProgress = false;
+    }, 2000);
+  }
+};
+
+/**
+ * Busca a configuração completa do sorteio
+ * @returns {Promise<Object>} - { ativa: boolean, regraTipo: 'itens'|'valor', regraValor: number }
+ */
+export const getSorteioConfig = async () => {
+  try {
+    const configRef = collection(db, 'sorteio_config');
+    const q = query(configRef);
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      // Configuração padrão
+      return {
+        ativa: true,
+        regraTipo: 'itens', // 'itens' ou 'valor'
+        regraValor: 5 // mínimo de 5 itens ou R$ 5,00
+      };
+    }
+    
+    const configDoc = querySnapshot.docs[0];
+    const data = configDoc.data();
+    
+    return {
+      ativa: data.ativa !== false,
+      regraTipo: data.regraTipo || 'itens',
+      regraValor: data.regraValor || 5
+    };
+  } catch (error) {
+    console.error('Erro ao buscar configuração do sorteio:', error);
+    return {
+      ativa: true,
+      regraTipo: 'itens',
+      regraValor: 5
+    };
   }
 };
 
@@ -220,20 +372,57 @@ export const saveWinner = async (winner) => {
  */
 export const isPromocaoAtiva = async () => {
   try {
+    const config = await getSorteioConfig();
+    return config.ativa;
+  } catch (error) {
+    console.error('Erro ao verificar status da promoção:', error);
+    return true; // Em caso de erro, permite continuar
+  }
+};
+
+/**
+ * Atualiza a configuração do sorteio
+ * @param {Object} config - { ativa?: boolean, regraTipo?: 'itens'|'valor', regraValor?: number }
+ * @returns {Promise<Object>}
+ */
+export const updateSorteioConfig = async (config) => {
+  try {
     const configRef = collection(db, 'sorteio_config');
     const q = query(configRef);
     const querySnapshot = await getDocs(q);
     
+    // Buscar config atual para preservar campos não informados
+    const currentConfig = await getSorteioConfig();
+    
+    const data = {
+      ...currentConfig,
+      ...config,
+      updatedAt: Timestamp.now()
+    };
+    
     if (querySnapshot.empty) {
-      // Se não existe config, considera ativa por padrão
-      return true;
+      // Cria novo documento
+      await addDoc(configRef, data);
+    } else {
+      // Atualiza documento existente
+      const docRef = querySnapshot.docs[0].ref;
+      await updateDoc(docRef, data);
     }
     
-    const configDoc = querySnapshot.docs[0];
-    return configDoc.data().ativa !== false; // true por padrão
+    console.log(`✅ Configuração do sorteio atualizada:`, data);
+    
+    return {
+      success: true,
+      message: 'Configuração atualizada com sucesso!',
+      config: data
+    };
   } catch (error) {
-    console.error('Erro ao verificar status da promoção:', error);
-    return true; // Em caso de erro, permite continuar
+    console.error('❌ Erro ao atualizar configuração:', error);
+    return {
+      success: false,
+      message: `Erro ao atualizar configuração: ${error.message}`,
+      error: error.message
+    };
   }
 };
 

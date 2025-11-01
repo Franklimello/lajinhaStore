@@ -191,7 +191,7 @@ export class NotificationService {
       });
 
       // Mostra notificação local apenas se o app estiver aberto
-      if (Notification.permission === 'granted' && !document.hidden) {
+      if ('Notification' in window && Notification.permission === 'granted' && !document.hidden) {
         this.showLocalNotification(title, body, data);
       }
 

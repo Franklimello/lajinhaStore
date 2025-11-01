@@ -7,7 +7,7 @@ import "swiper/css/pagination";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { db } from "../../firebase/config";
 import { collection, getDocs, query, where, orderBy, limit, startAfter } from "firebase/firestore";
-import { FaHeart, FaShoppingCart, FaStar, FaEye, FaPaw, FaSearch } from "react-icons/fa";
+import { FaHeart, FaShoppingCart, FaStar, FaEye, FaPaw, FaSearch, FaFilter, FaSort, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
 import CartAddAnimation from "../../components/CartAddAnimation";
@@ -32,6 +32,11 @@ const PetShop = memo(function PetShop({ searchTerm = "", isPreview = false }) {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [productClickCounts, setProductClickCounts] = useState({});
   const [animatingProducts, setAnimatingProducts] = useState({});
+  const [sortBy, setSortBy] = useState("titulo"); // titulo, preco-asc, preco-desc, desconto
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
+  const [showOnlyInStock, setShowOnlyInStock] = useState(false);
+  const [showOnlyDiscounted, setShowOnlyDiscounted] = useState(false);
 
   const fetchProducts = async (isLoadMore = false) => {
     try {
@@ -248,12 +253,74 @@ const PetShop = memo(function PetShop({ searchTerm = "", isPreview = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearchTerm, isPreview]); // Removido searchProducts e fetchProducts das dependências para evitar loops
 
+  // Função para ordenar produtos
+  const sortProducts = useCallback((products) => {
+    const sorted = [...products];
+    
+    switch (sortBy) {
+      case 'preco-asc':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.preco || a.price || 0);
+          const priceB = parseFloat(b.preco || b.price || 0);
+          return priceA - priceB;
+        });
+      case 'preco-desc':
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.preco || a.price || 0);
+          const priceB = parseFloat(b.preco || b.price || 0);
+          return priceB - priceA;
+        });
+      case 'desconto':
+        return sorted.sort((a, b) => {
+          const discountA = parseFloat(a.desconto || 0);
+          const discountB = parseFloat(b.desconto || 0);
+          return discountB - discountA;
+        });
+      case 'titulo':
+      default:
+        return sorted.sort((a, b) => {
+          const titleA = normalize((a.titulo || a.nome || "").toLowerCase());
+          const titleB = normalize((b.titulo || b.nome || "").toLowerCase());
+          return titleA.localeCompare(titleB, 'pt-BR');
+        });
+    }
+  }, [sortBy, normalize]);
+
+  // Função para filtrar produtos
+  const filterProducts = useCallback((products) => {
+    let filtered = [...products];
+    
+    // Filtro de estoque
+    if (showOnlyInStock) {
+      filtered = filtered.filter(p => !p.esgotado);
+    }
+    
+    // Filtro de desconto
+    if (showOnlyDiscounted) {
+      filtered = filtered.filter(p => p.desconto && parseFloat(p.desconto) > 0);
+    }
+    
+    // Filtro de preço
+    filtered = filtered.filter(p => {
+      const price = parseFloat(p.preco || p.price || 0);
+      return price >= priceRange.min && price <= priceRange.max;
+    });
+    
+    return filtered;
+  }, [showOnlyInStock, showOnlyDiscounted, priceRange]);
+
   useEffect(() => {
     // Usar termo local quando não for preview, senão usar searchTerm da home
     const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
-    const source = term
+    let source = term
       ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
       : allProducts;
+
+    // Aplicar filtros
+    source = filterProducts(source);
+    
+    // Aplicar ordenação
+    source = sortProducts(source);
 
     // Limitar a 10 produtos apenas quando for preview na home
     const productsToShow = isPreview ? source.slice(0, 10) : source;
@@ -264,7 +331,7 @@ const PetShop = memo(function PetShop({ searchTerm = "", isPreview = false }) {
       grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm, isPreview, localSearchTerm]);
+  }, [allProducts, searchTerm, isPreview, localSearchTerm, filterProducts, sortProducts]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
@@ -293,6 +360,115 @@ const PetShop = memo(function PetShop({ searchTerm = "", isPreview = false }) {
     <section className="min-h-screen w-full mt-10 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         
+        {/* Filtros e Ordenação - apenas quando não for preview */}
+        {!isPreview && (
+          <div className="w-full flex flex-col md:flex-row gap-4 mb-6">
+            {/* Botão de Filtros Mobile */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="md:hidden flex items-center justify-center gap-2 bg-white px-4 py-3 rounded-xl shadow-lg border-2 border-amber-200 hover:border-amber-400 transition-all"
+              aria-label={showFilters ? "Ocultar filtros" : "Mostrar filtros"}
+              aria-expanded={showFilters}
+            >
+              <FaFilter className="text-amber-600" />
+              <span className="font-semibold text-gray-700">Filtros</span>
+              {showFilters ? <FaChevronUp /> : <FaChevronDown />}
+            </button>
+
+            {/* Painel de Filtros */}
+            <div className={`${showFilters ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-4 w-full bg-white rounded-2xl shadow-lg border-2 border-amber-100 p-4`}>
+                {/* Filtro de Preço */}
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Faixa de Preço
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      value={priceRange.min}
+                      onChange={(e) => setPriceRange({ ...priceRange, min: parseFloat(e.target.value) || 0 })}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                      aria-label="Preço mínimo"
+                    />
+                    <span className="text-gray-500">até</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      value={priceRange.max}
+                      onChange={(e) => setPriceRange({ ...priceRange, max: parseFloat(e.target.value) || 1000 })}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                      aria-label="Preço máximo"
+                    />
+                  </div>
+                </div>
+
+                {/* Filtro de Estoque */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyInStock}
+                      onChange={(e) => setShowOnlyInStock(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                      aria-label="Mostrar apenas produtos em estoque"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Apenas em estoque</span>
+                  </label>
+                </div>
+
+                {/* Filtro de Desconto */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyDiscounted}
+                      onChange={(e) => setShowOnlyDiscounted(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                      aria-label="Mostrar apenas produtos com desconto"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Com desconto</span>
+                  </label>
+                </div>
+
+                {/* Botão Limpar Filtros */}
+                <button
+                  onClick={() => {
+                    setPriceRange({ min: 0, max: 1000 });
+                    setShowOnlyInStock(false);
+                    setShowOnlyDiscounted(false);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                  aria-label="Limpar todos os filtros"
+                >
+                  Limpar
+                </button>
+              </div>
+
+            {/* Ordenação */}
+            <div className="flex items-center gap-2 bg-white rounded-xl shadow-lg border-2 border-amber-100 p-2">
+              <FaSort className="text-amber-600" />
+              <label htmlFor="sort-select" className="text-sm font-semibold text-gray-700 sr-only">
+                Ordenar produtos por
+              </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-gray-700 font-medium"
+                aria-label="Ordenar produtos"
+              >
+                <option value="titulo">Nome A-Z</option>
+                <option value="preco-asc">Menor Preço</option>
+                <option value="preco-desc">Maior Preço</option>
+                <option value="desconto">Maior Desconto</option>
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* SearchBar MELHORADA - apenas quando não for preview */}
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">

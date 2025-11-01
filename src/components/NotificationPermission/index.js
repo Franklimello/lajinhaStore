@@ -4,13 +4,21 @@ import { NotificationService } from '../../services/notificationService';
 import { useAuth } from '../../context/AuthContext';
 
 const NotificationPermission = () => {
-  const [permission, setPermission] = useState(Notification.permission);
+  // Verificar se Notification está disponível (não está no mobile/Capacitor)
+  const getNotificationPermission = () => {
+    if ('Notification' in window) {
+      return Notification.permission;
+    }
+    return 'unsupported'; // Mobile não suporta Notification API do navegador
+  };
+
+  const [permission, setPermission] = useState(getNotificationPermission());
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
-    setPermission(Notification.permission);
+    setPermission(getNotificationPermission());
   }, []);
 
   const handleRequestPermission = async () => {
@@ -39,6 +47,11 @@ const NotificationPermission = () => {
 
     setLoading(false);
   };
+
+  // No mobile, Notification não está disponível
+  if (permission === 'unsupported') {
+    return null; // Não mostra nada no mobile (usar Capacitor Push Notifications)
+  }
 
   if (permission === 'granted') {
     return (

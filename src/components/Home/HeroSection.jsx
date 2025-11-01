@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaTruck, FaShieldAlt, FaHeart, FaClock, FaComments, FaWhatsapp } from 'react-icons/fa';
+import { appConfig } from '../../config/appConfig';
 
 const HeroSection = () => {
 
@@ -39,19 +40,19 @@ const HeroSection = () => {
               </div>
               <div className="flex gap-8 text-gray-900 mb-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-medium text-gray-600 mb-1">Segunda a Sábado</span>
-                  <span className="text-xl font-bold">8h às 19h</span>
+                  <span className="text-xs font-medium text-gray-600 mb-1">{appConfig.STORE_HOURS.WEEKDAYS_LABEL}</span>
+                  <span className="text-xl font-bold">{appConfig.STORE_HOURS.WEEKDAYS_TIME}</span>
                 </div>
                 <div className="w-px bg-gray-300"></div>
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-medium text-gray-600 mb-1">Domingo</span>
-                  <span className="text-xl font-bold">8h às 11h</span>
+                  <span className="text-xs font-medium text-gray-600 mb-1">{appConfig.STORE_HOURS.SUNDAY_LABEL}</span>
+                  <span className="text-xl font-bold">{appConfig.STORE_HOURS.SUNDAY_TIME}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-gray-200 w-full justify-center">
                 <FaTruck className="text-cyan-600" />
                 <span className="text-sm font-semibold text-gray-900">Entrega:</span>
-                <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
+                <span className="text-sm font-bold text-cyan-600">{appConfig.STORE_HOURS.DELIVERY_TIME}</span>
               </div>
             </div>
           </div>
@@ -135,23 +136,23 @@ const HeroSection = () => {
             <div className="space-y-3 mb-4">
               <div className="bg-white px-4 py-3 rounded-xl border border-gray-200">
                 <p className="text-gray-900 font-medium text-sm">
-                  <span className="text-gray-600">Segunda a Sábado</span>
+                  <span className="text-gray-600">{appConfig.STORE_HOURS.WEEKDAYS_LABEL}</span>
                   <br />
-                  <span className="text-lg font-bold">8h às 19h</span>
+                  <span className="text-lg font-bold">{appConfig.STORE_HOURS.WEEKDAYS_TIME}</span>
                 </p>
               </div>
               <div className="bg-white px-4 py-3 rounded-xl border border-gray-200">
                 <p className="text-gray-900 font-medium text-sm">
-                  <span className="text-gray-600">Domingo</span>
+                  <span className="text-gray-600">{appConfig.STORE_HOURS.SUNDAY_LABEL}</span>
                   <br />
-                  <span className="text-lg font-bold">8h às 11h</span>
+                  <span className="text-lg font-bold">{appConfig.STORE_HOURS.SUNDAY_TIME}</span>
                 </p>
               </div>
             </div>
             <div className="flex items-center justify-center gap-2 pt-3 border-t border-gray-200">
               <FaTruck className="text-cyan-600" />
               <span className="text-sm font-semibold text-gray-900">Entrega:</span>
-              <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
+              <span className="text-sm font-bold text-cyan-600">{appConfig.STORE_HOURS.DELIVERY_TIME}</span>
             </div>
 
             {/* Chat and WhatsApp Buttons Mobile - CORRIGIDO */}
@@ -189,7 +190,7 @@ const HeroSection = () => {
                 <FaTruck className="text-xl text-cyan-600" />
                 <h3 className="text-sm font-semibold text-gray-900">Entrega Rápida</h3>
               </div>
-              <p className="text-gray-700 font-bold text-base">30 a 60 minutos</p>
+              <p className="text-gray-700 font-bold text-base">{appConfig.STORE_HOURS.DELIVERY_TIME}</p>
               <p className="text-gray-600 text-xs mt-1">Frete: R$ 5,00</p>
             </div>
           </div>

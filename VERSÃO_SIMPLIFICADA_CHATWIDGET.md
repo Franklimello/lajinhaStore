@@ -166,3 +166,7 @@ A versão simplificada do ChatWidget foi criada para resolver problemas de clica
 
 
 
+
+
+
+

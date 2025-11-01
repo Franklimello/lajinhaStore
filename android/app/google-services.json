@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "821962501479",
+    "project_id": "compreaqui-324df",
+    "storage_bucket": "compreaqui-324df.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821962501479:android:748b9c4e1af60604a913c2",
+        "android_client_info": {
+          "package_name": "com.supermercado.lajinha"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "821962501479-1g9fuhodmkc1eimsqnvneohj7tapuhiu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.supermercado.lajinha",
+            "certificate_hash": "260f049fed4c8428b0ee6f02ece71872fa7d6b42"
+          }
+        },
+        {
+          "client_id": "821962501479-62l3rrcc0vk9suhnvip7lqfslg4v8po2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZaRY3q2swORAJaeV7yoHtGCdHz3XVjow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "821962501479-62l3rrcc0vk9suhnvip7lqfslg4v8po2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

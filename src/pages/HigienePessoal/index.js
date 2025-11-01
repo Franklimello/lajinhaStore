@@ -11,6 +11,8 @@ import { FaHeart, FaShoppingCart, FaStar, FaEye, FaSpa, FaSearch } from "react-i
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
 import CartAddAnimation from "../../components/CartAddAnimation";
+import FilterBar from "../../components/FilterBar";
+import { useProductFilters } from "../../hooks/useProductFilters";
 
 // ✅ CONSTANTES para otimização
 const CACHE_KEY = "products_higiene_pessoal";
@@ -171,6 +173,20 @@ const HigienePessoal = memo(function HigienePessoal({ searchTerm = "", isPreview
       .trim();
   }, []);
 
+  // Hook de filtros e ordenação
+  const {
+    sortBy,
+    priceRange,
+    showOnlyInStock,
+    showOnlyDiscounted,
+    setSortBy,
+    setPriceRange,
+    setShowOnlyInStock,
+    setShowOnlyDiscounted,
+    clearFilters,
+    filteredAndSortedProducts: filteredProducts
+  } = useProductFilters(allProducts, normalize);
+
   // ✅ Função MELHORADA: Buscar produtos por termo com normalização
   const searchProducts = useCallback(async (searchTerm) => {
     try {
@@ -265,11 +281,12 @@ const HigienePessoal = memo(function HigienePessoal({ searchTerm = "", isPreview
   }, [localSearchTerm, isPreview]); // Removido searchProducts e fetchProducts das dependências para evitar loops
 
   useEffect(() => {
-    // Usar termo local quando não for preview, senão usar searchTerm da home
+    // Processar produtos para exibição (carrosséis)
+    // Usar produtos filtrados e ordenados do hook
     const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
-    const source = term
-      ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
-      : allProducts;
+    let source = term
+      ? filteredProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
+      : filteredProducts;
 
     // Limitar a 10 produtos apenas quando for preview na home
     const productsToShow = isPreview ? source.slice(0, 10) : source;
@@ -280,7 +297,7 @@ const HigienePessoal = memo(function HigienePessoal({ searchTerm = "", isPreview
       grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm, isPreview, localSearchTerm]);
+  }, [filteredProducts, searchTerm, isPreview, localSearchTerm]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
@@ -309,6 +326,21 @@ const HigienePessoal = memo(function HigienePessoal({ searchTerm = "", isPreview
     <section className="min-h-screen mt-10 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         
+        {/* Filtros e Ordenação - apenas quando não for preview */}
+        {!isPreview && (
+          <FilterBar
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            showOnlyInStock={showOnlyInStock}
+            setShowOnlyInStock={setShowOnlyInStock}
+            showOnlyDiscounted={showOnlyDiscounted}
+            setShowOnlyDiscounted={setShowOnlyDiscounted}
+            themeColor="green"
+          />
+        )}
+
         {/* SearchBar MELHORADA - apenas quando não for preview */}
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">

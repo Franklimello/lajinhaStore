@@ -6,17 +6,15 @@ import { useStoreStatus } from "../../context/StoreStatusContext";
 import FormAnuncio from "../../components/FormAnuncio"
 import EditProductModal from "../../components/EditProductModal";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
-import { useAddDocument } from "../../hooks/useAddDocument";
 import { useDeleteDocument } from "../../hooks/useDeleteDocument";
 import { useUpdateDocument } from "../../hooks/useUpdateDocument";
-import { storage } from "../../firebase/config";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import ConfirmModal from "../../components/ConfirmModal";
+import AlertModal from "../../components/AlertModal";
 
 export default function Painel() {
   const { documents: produtos } = useGetDocuments("produtos");
   const { deleteDocument } = useDeleteDocument("produtos");
   const { updateDocument } = useUpdateDocument("produtos");
-  const { updateDocument: updateCupom } = useUpdateDocument("cupons");
   const { user } = useAuth();
   const { isClosed, toggleStoreStatus, loading: storeLoading } = useStoreStatus();
   const navigate = useNavigate();
@@ -40,30 +38,13 @@ export default function Painel() {
   const [ordenacao, setOrdenacao] = useState("criadoEm");
   const [direcaoOrdenacao, setDirecaoOrdenacao] = useState("desc");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  
+  // Estados para modais
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [deleteConfirm, setDeleteConfirm] = useState({ type: null, id: null, callback: null }); // type: 'anuncio' | 'cupom' | 'produto'
   const [itensPorPagina] = useState(10);
 
-  // Gestão de cupons
-  const { documents: cupons, loading: cuponsLoading, error: cuponsError } = useGetDocuments("cupons", { realTime: true });
-  const { addDocument: addCupom, response: addCupomResponse } = useAddDocument("cupons");
-  const { deleteDocument: deleteCupom } = useDeleteDocument("cupons");
-  const [cupomForm, setCupomForm] = useState({ codigo: "", tipo: "percentual", valor: "", minSubtotal: 0 });
-  const [cupomMsg, setCupomMsg] = useState("");
-  const [editCupomId, setEditCupomId] = useState(null);
-  const [cupomEditForm, setCupomEditForm] = useState({ codigo: "", tipo: "percentual", valor: "", minSubtotal: 0, ativo: true });
-
-  // Anúncios (letreiro)
-  const { documents: anuncios } = useGetDocuments("anuncios", { realTime: true });
-  const { addDocument: addAnuncio, response: addAnuncioResp } = useAddDocument("anuncios");
-  const { deleteDocument: deleteAnuncio } = useDeleteDocument("anuncios");
-  const { updateDocument: updateAnuncio } = useUpdateDocument("anuncios");
-  const [anuncioForm, setAnuncioForm] = useState({ texto: "", imagemUrl: "", rota: "", localizacao: "marquee", ativo: true, file: null, bgColor: "#F1F5F9", textColor: "#111827", speedSeconds: 8 });
-  const [anuncioMsg, setAnuncioMsg] = useState("");
-  const [editAnuncioId, setEditAnuncioId] = useState(null);
-  const [anuncioEditForm, setAnuncioEditForm] = useState({ texto: "", rota: "", ativo: true, bgColor: "#F1F5F9", textColor: "#111827", file: null });
-  
-  // Estados para colapsar/expandir seções
-  const [anunciosCollapsed, setAnunciosCollapsed] = useState(false);
-  const [cuponsCollapsed, setCuponsCollapsed] = useState(false);
 
   const handleEditar = (produto) => {
     setEditandoId(produto.id);
@@ -105,7 +86,7 @@ export default function Painel() {
       navigate('/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      alert('Erro ao sair. Tente novamente.');
+      setAlert({ isOpen: true, message: 'Erro ao sair. Tente novamente.', type: "error" });
     }
   };
 
@@ -114,14 +95,20 @@ export default function Painel() {
       ? "Deseja ABRIR a loja? Os clientes poderão realizar compras normalmente."
       : "Deseja FECHAR a loja? Os clientes verão um aviso ao acessar o site.";
     
-    if (window.confirm(confirmMessage)) {
-      const result = await toggleStoreStatus();
-      if (result.success) {
-        alert(isClosed ? "✅ Loja ABERTA com sucesso!" : "🔒 Loja FECHADA com sucesso!");
-      } else {
-        alert("❌ Erro ao alterar status da loja: " + result.error);
+    setConfirmModal({
+      isOpen: true,
+      title: isClosed ? "Abrir Loja" : "Fechar Loja",
+      message: confirmMessage,
+      onConfirm: async () => {
+        const result = await toggleStoreStatus();
+        if (result.success) {
+          setAlert({ isOpen: true, message: isClosed ? "Loja ABERTA com sucesso!" : "Loja FECHADA com sucesso!", type: "success" });
+        } else {
+          setAlert({ isOpen: true, message: "Erro ao alterar status da loja: " + result.error, type: "error" });
+        }
+        setConfirmModal({ isOpen: false });
       }
-    }
+    });
   };
 
   // Lista completa de categorias disponíveis
@@ -237,6 +224,16 @@ export default function Painel() {
             </div>
           )}
           
+          {/* Botão Promoções */}
+          <button
+            onClick={() => navigate('/promocoes')}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all shadow-md hover:shadow-lg w-full sm:w-auto"
+            title="Gerenciar Anúncios e Cupons"
+          >
+            <FaImage className="text-lg" />
+            <span>Promoções</span>
+          </button>
+
           {/* Botão Sorteio */}
           <button
             onClick={() => navigate('/sorteio')}
@@ -277,669 +274,20 @@ export default function Painel() {
 
       <FormAnuncio/>
 
-      {/* Gestão de Anúncios (Letreiro) */}
-      <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-800">Letreiro de Anúncios</h2>
-              <button
-                onClick={() => setAnunciosCollapsed(!anunciosCollapsed)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label={anunciosCollapsed ? "Expandir" : "Colapsar"}
-                title={anunciosCollapsed ? "Expandir seção" : "Colapsar seção"}
-              >
-                {anunciosCollapsed ? (
-                  <FaChevronDown className="text-gray-600" />
-                ) : (
-                  <FaChevronUp className="text-gray-600" />
-                )}
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Cadastre pequenos anúncios com imagem, texto e rota clicável.</p>
+      {/* Link para Promoções */}
+      <div className="mt-6 bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-lg shadow-sm border-2 border-orange-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">📢 Anúncios e Cupons</h2>
+            <p className="text-gray-600 text-sm">Gerencie anúncios em marquee e cupons de desconto em uma página dedicada</p>
           </div>
-          <div className="text-xs text-gray-600">Anúncios: {Array.isArray(anuncios) ? anuncios.length : 0}</div>
+          <button
+            onClick={() => navigate('/promocoes')}
+            className="px-6 py-3 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition-colors shadow-md hover:shadow-lg"
+          >
+            Gerenciar Promoções
+          </button>
         </div>
-
-        {!anunciosCollapsed && (
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Texto</label>
-            <input
-              type="text"
-              value={anuncioForm.texto}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, texto: e.target.value })}
-              placeholder="Ex.: Frete R$5 em toda a cidade"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Imagem (arquivo)</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, file: e.target.files?.[0] || null })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-            <p className="text-xs text-gray-500 mt-1">Opcional: selecione uma imagem pequena (icônico).</p>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Localização</label>
-            <select
-              value={anuncioForm.localizacao}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, localizacao: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="marquee">Marquee (topo, rolagem horizontal)</option>
-              <option value="motoboy">Banner Motoboy City</option>
-              <option value="custom">Custom (adicione keyword no texto)</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">Escolha onde o anúncio aparecerá na home</p>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Rota (link interno ou externo)</label>
-            <input
-              type="text"
-              value={anuncioForm.rota}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, rota: e.target.value })}
-              placeholder="/ofertas, /detalhes/123 ou https://exemplo.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-            <p className="text-xs text-gray-500 mt-1">Use / para rotas internas ou https:// para links externos</p>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Cor de fundo</label>
-            <input
-              type="color"
-              value={anuncioForm.bgColor}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, bgColor: e.target.value })}
-              className="w-full h-[38px] px-2 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Cor do texto</label>
-            <input
-              type="color"
-              value={anuncioForm.textColor}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, textColor: e.target.value })}
-              className="w-full h-[38px] px-2 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Velocidade (s)</label>
-            <input
-              type="number"
-              min="4"
-              max="120"
-              step="1"
-              value={anuncioForm.speedSeconds}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, speedSeconds: Number(e.target.value || 8) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
-            <select
-              value={anuncioForm.ativo ? 'ativo' : 'inativo'}
-              onChange={(e) => setAnuncioForm({ ...anuncioForm, ativo: e.target.value === 'ativo' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-            </select>
-          </div>
-          <div>
-            <button
-              onClick={async () => {
-                setAnuncioMsg("");
-                const texto = (anuncioForm.texto || "").trim();
-                const rota = (anuncioForm.rota || "").trim() || "/";
-                try {
-                  if (!texto && !anuncioForm.file) { setAnuncioMsg("Informe texto ou selecione uma imagem."); return; }
-
-                  let imagemUrl = "";
-                  if (anuncioForm.file) {
-                    // upload para Firebase Storage
-                    const path = `anuncios/${Date.now()}-${anuncioForm.file.name}`;
-                    const ref = storageRef(storage, path);
-                    const blob = anuncioForm.file;
-                    await uploadBytes(ref, blob, { contentType: blob.type });
-                    imagemUrl = await getDownloadURL(ref);
-                  }
-
-                  await addAnuncio({ texto, imagemUrl, rota, localizacao: anuncioForm.localizacao, ativo: !!anuncioForm.ativo, bgColor: anuncioForm.bgColor, textColor: anuncioForm.textColor, speedSeconds: Number(anuncioForm.speedSeconds) || 8 });
-                  setAnuncioForm({ texto: "", imagemUrl: "", rota: "", localizacao: "marquee", ativo: true, file: null, bgColor: "#F1F5F9", textColor: "#111827", speedSeconds: 8 });
-                  setAnuncioMsg("✅ Anúncio criado.");
-                } catch (e) {
-                  setAnuncioMsg("❌ Erro ao criar anúncio.");
-                }
-              }}
-              disabled={addAnuncioResp.loading}
-              className="w-full md:w-auto px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 text-sm"
-            >
-              {addAnuncioResp.loading ? 'Salvando...' : 'Criar anúncio'}
-            </button>
-          </div>
-        </div>
-        )}
-
-        {anuncioMsg && (
-          <div className="mt-3 text-sm text-gray-700">{anuncioMsg}</div>
-        )}
-
-        {!anunciosCollapsed && (
-          <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-600">
-                <th className="py-2 pr-4">Imagem</th>
-                <th className="py-2 pr-4">Texto</th>
-                <th className="py-2 pr-4">Rota</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Cores</th>
-                <th className="py-2 pr-4">Velocidade</th>
-                <th className="py-2 pr-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(anuncios || []).map((a) => (
-                <tr key={a.id} className="border-t align-top">
-                  <td className="py-2 pr-4">
-                    {editAnuncioId === a.id ? (
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setAnuncioEditForm({ ...anuncioEditForm, file: e.target.files?.[0] || null })}
-                        className="text-xs"
-                      />
-                    ) : (
-                      a.imagemUrl ? (
-                        <img src={a.imagemUrl} alt={a.texto || 'Anúncio'} className="w-8 h-8 object-contain rounded" />
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )
-                    )}
-                  </td>
-                  <td className="py-2 pr-4 max-w-xs">
-                    {editAnuncioId === a.id ? (
-                      <input
-                        type="text"
-                        value={anuncioEditForm.texto}
-                        onChange={(e) => setAnuncioEditForm({ ...anuncioEditForm, texto: e.target.value })}
-                        className="w-full px-2 py-1 border rounded text-sm"
-                      />
-                    ) : (
-                      <span className="truncate inline-block max-w-[220px]">{a.texto || <span className="text-gray-400">—</span>}</span>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editAnuncioId === a.id ? (
-                      <input
-                        type="text"
-                        value={anuncioEditForm.rota}
-                        onChange={(e) => setAnuncioEditForm({ ...anuncioEditForm, rota: e.target.value })}
-                        className="w-40 px-2 py-1 border rounded text-sm"
-                        placeholder="/ofertas ou https://..."
-                      />
-                    ) : (
-                      a.rota || '/'
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editAnuncioId === a.id ? (
-                      <label className="inline-flex items-center gap-2 select-none">
-                        <input
-                          type="checkbox"
-                          checked={!!anuncioEditForm.ativo}
-                          onChange={(e) => setAnuncioEditForm({ ...anuncioEditForm, ativo: e.target.checked })}
-                          className="w-4 h-4"
-                        />
-                        <span className={`text-xs font-semibold ${anuncioEditForm.ativo ? 'text-green-700' : 'text-gray-500'}`}>
-                          {anuncioEditForm.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </label>
-                    ) : (
-                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={a.ativo !== false}
-                          onChange={async (e) => { try { await updateAnuncio(a.id, { ativo: e.target.checked }); } catch {} }}
-                          className="w-4 h-4"
-                        />
-                        <span className={`text-xs font-semibold ${a.ativo !== false ? 'text-green-700' : 'text-gray-500'}`}>
-                          {a.ativo !== false ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </label>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editAnuncioId === a.id ? (
-                      <div className="flex items-center gap-2">
-                        <input type="color" value={anuncioEditForm.bgColor} onChange={(e)=>setAnuncioEditForm({...anuncioEditForm,bgColor:e.target.value})} />
-                        <input type="color" value={anuncioEditForm.textColor} onChange={(e)=>setAnuncioEditForm({...anuncioEditForm,textColor:e.target.value})} />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600">BG</span>
-                        <span className="inline-block w-5 h-5 rounded" style={{backgroundColor: a.bgColor || '#F1F5F9'}}></span>
-                        <span className="text-xs text-gray-600">TXT</span>
-                        <span className="inline-block w-5 h-5 rounded border" style={{backgroundColor: a.textColor || '#111827'}}></span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editAnuncioId === a.id ? (
-                      <input
-                        type="number"
-                        min="4"
-                        max="120"
-                        step="1"
-                        value={anuncioEditForm.speedSeconds ?? a.speedSeconds ?? 8}
-                        onChange={(e)=>setAnuncioEditForm({...anuncioEditForm, speedSeconds: Number(e.target.value || 8) })}
-                        className="w-24 px-2 py-1 border rounded text-sm"
-                      />
-                    ) : (
-                      <span className="text-sm text-gray-700">{a.speedSeconds || 8}s</span>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4 space-x-2 whitespace-nowrap">
-                    {editAnuncioId === a.id ? (
-                      <>
-                        <button
-                          onClick={async () => {
-                            setAnuncioMsg("");
-                            try {
-                              let imagemUrl = a.imagemUrl || "";
-                              if (anuncioEditForm.file) {
-                                const path = `anuncios/${Date.now()}-${anuncioEditForm.file.name}`;
-                                const ref = storageRef(storage, path);
-                                await uploadBytes(ref, anuncioEditForm.file, { contentType: anuncioEditForm.file.type });
-                                imagemUrl = await getDownloadURL(ref);
-                              }
-                              await updateAnuncio(a.id, {
-                                texto: anuncioEditForm.texto,
-                                rota: anuncioEditForm.rota || "/",
-                                ativo: !!anuncioEditForm.ativo,
-                                bgColor: anuncioEditForm.bgColor,
-                                textColor: anuncioEditForm.textColor,
-                                speedSeconds: Number(anuncioEditForm.speedSeconds ?? a.speedSeconds ?? 8),
-                                imagemUrl,
-                              });
-                              setEditAnuncioId(null);
-                              setAnuncioMsg('✅ Anúncio atualizado.');
-                            } catch (e) {
-                              setAnuncioMsg('❌ Erro ao atualizar anúncio.');
-                            }
-                          }}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                        >
-                          Salvar
-                        </button>
-                        <button
-                          onClick={() => setEditAnuncioId(null)}
-                          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={async () => {
-                            try { await updateAnuncio(a.id, { ativo: false }); } catch {}
-                          }}
-                          disabled={a.ativo === false}
-                          className={`px-3 py-1 rounded text-sm ${a.ativo === false ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}
-                        >
-                          Desativar
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditAnuncioId(a.id);
-                            setAnuncioEditForm({
-                              texto: a.texto || "",
-                              rota: a.rota || "/",
-                              ativo: a.ativo !== false,
-                              bgColor: a.bgColor || "#F1F5F9",
-                              textColor: a.textColor || "#111827",
-                              speedSeconds: a.speedSeconds || 8,
-                              file: null,
-                            });
-                          }}
-                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => { if (window.confirm('Excluir este anúncio?')) deleteAnuncio(a.id); }}
-                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                        >
-                          Excluir
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {(!anuncios || anuncios.length === 0) && (
-                <tr>
-                  <td colSpan="5" className="py-4 text-gray-500">Nenhum anúncio cadastrado</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        )}
-      </div>
-
-      {/* Gestão de Cupons */}
-      <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-800">Cupons de Promoção</h2>
-              <button
-                onClick={() => setCuponsCollapsed(!cuponsCollapsed)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label={cuponsCollapsed ? "Expandir" : "Colapsar"}
-                title={cuponsCollapsed ? "Expandir seção" : "Colapsar seção"}
-              >
-                {cuponsCollapsed ? (
-                  <FaChevronDown className="text-gray-600" />
-                ) : (
-                  <FaChevronUp className="text-gray-600" />
-                )}
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Crie cupons com desconto em porcentagem ou valor fixo.</p>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="text-xs text-gray-600">
-              {cuponsLoading ? 'Carregando cupons…' : `Cupons: ${Array.isArray(cupons) ? cupons.length : 0}`}
-              {cuponsError && <span className="text-red-600 ml-2">Erro ao carregar</span>}
-            </div>
-            <button
-              onClick={async () => {
-                if (!cupons || cupons.length === 0) { setCupomMsg('Não há cupons para desativar.'); return; }
-                if (!window.confirm('Deseja desativar todos os cupons?')) return;
-                try {
-                  const ativos = cupons.filter(c => c.ativo !== false);
-                  if (ativos.length === 0) { setCupomMsg('Todos os cupons já estão inativos.'); return; }
-                  await Promise.all(ativos.map(c => updateCupom(c.id, { ativo: false })));
-                  setCupomMsg('✅ Todos os cupons foram desativados.');
-                } catch (e) {
-                  setCupomMsg('❌ Erro ao desativar cupons.');
-                }
-              }}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg text-sm font-semibold hover:bg-gray-800"
-            >
-              Desativar todos
-            </button>
-          </div>
-        </div>
-
-        {!cuponsCollapsed && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Código do cupom</label>
-            <input
-              type="text"
-              value={cupomForm.codigo}
-              onChange={(e) => setCupomForm({ ...cupomForm, codigo: e.target.value })}
-              placeholder="Ex.: MEUCUPOM10"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm uppercase"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Tipo de desconto</label>
-            <select
-              value={cupomForm.tipo}
-              onChange={(e) => setCupomForm({ ...cupomForm, tipo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="percentual">Porcentagem (%)</option>
-              <option value="fixo">Valor fixo (R$)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Mínimo do pedido</label>
-            <select
-              value={String(cupomForm.minSubtotal)}
-              onChange={(e) => setCupomForm({ ...cupomForm, minSubtotal: Number(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="0">Sem mínimo</option>
-              <option value="50">R$ 50,00</option>
-              <option value="100">R$ 100,00</option>
-              <option value="150">R$ 150,00</option>
-              <option value="200">R$ 200,00</option>
-              <option value="250">R$ 250,00</option>
-              <option value="300">R$ 300,00</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Valor</label>
-            <input
-              type="number"
-              step="0.01"
-              value={cupomForm.valor}
-              onChange={(e) => setCupomForm({ ...cupomForm, valor: e.target.value })}
-              placeholder={cupomForm.tipo === 'percentual' ? 'Ex.: 10 (para 10%)' : 'Ex.: 5 (para R$ 5,00)'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-          <div>
-            <button
-              onClick={async () => {
-                setCupomMsg("");
-                const codigo = (cupomForm.codigo || "").trim().toUpperCase();
-                const tipo = cupomForm.tipo === 'fixo' ? 'fixo' : 'percentual';
-                const valorNum = parseFloat(cupomForm.valor);
-                const minSubtotal = Number(cupomForm.minSubtotal) || 0;
-                if (!codigo) { setCupomMsg("Informe o código do cupom."); return; }
-                if (!(valorNum > 0)) { setCupomMsg("Informe um valor de desconto válido."); return; }
-                if (tipo === 'percentual' && valorNum > 100) { setCupomMsg("Porcentagem máxima é 100%."); return; }
-                try {
-                  await addCupom({ codigo, tipo, valor: valorNum, minSubtotal, ativo: true });
-                  setCupomForm({ codigo: "", tipo: "percentual", valor: "", minSubtotal: 0 });
-                  setCupomMsg("✅ Cupom criado com sucesso.");
-                } catch (e) {
-                  setCupomMsg("❌ Erro ao criar cupom: " + (e?.message || ''));
-                }
-              }}
-              disabled={addCupomResponse.loading}
-              className="w-full md:w-auto px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 text-sm"
-            >
-              {addCupomResponse.loading ? 'Salvando...' : 'Criar cupom'}
-            </button>
-          </div>
-        </div>
-        )}
-
-        {cupomMsg && (
-          <div className="mt-3 text-sm text-gray-700">{cupomMsg}</div>
-        )}
-
-        {!cuponsCollapsed && (
-          <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-600">
-                <th className="py-2 pr-4">Código</th>
-                <th className="py-2 pr-4">Tipo</th>
-                <th className="py-2 pr-4">Valor</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Mínimo pedido</th>
-                <th className="py-2 pr-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(cupons || []).map((c) => (
-                <tr key={c.id} className="border-t align-top">
-                  <td className="py-2 pr-4 font-semibold">
-                    {editCupomId === c.id ? (
-                      <input
-                        type="text"
-                        value={cupomEditForm.codigo}
-                        onChange={(e) => setCupomEditForm({ ...cupomEditForm, codigo: e.target.value })}
-                        className="w-36 px-2 py-1 border rounded uppercase text-sm"
-                      />
-                    ) : (
-                      c.codigo
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editCupomId === c.id ? (
-                      <select
-                        value={cupomEditForm.tipo}
-                        onChange={(e) => setCupomEditForm({ ...cupomEditForm, tipo: e.target.value })}
-                        className="px-2 py-1 border rounded text-sm"
-                      >
-                        <option value="percentual">Percentual (%)</option>
-                        <option value="fixo">Fixo (R$)</option>
-                      </select>
-                    ) : (
-                      c.tipo === 'fixo' ? 'Fixo (R$)' : 'Percentual (%)'
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editCupomId === c.id ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={cupomEditForm.valor}
-                        onChange={(e) => setCupomEditForm({ ...cupomEditForm, valor: e.target.value })}
-                        className="w-28 px-2 py-1 border rounded text-sm"
-                      />
-                    ) : (
-                      c.tipo === 'fixo' ? `R$ ${Number(c.valor || 0).toFixed(2)}` : `${Number(c.valor || 0)}%`
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editCupomId === c.id ? (
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!cupomEditForm.ativo}
-                          onChange={(e) => setCupomEditForm({ ...cupomEditForm, ativo: e.target.checked })}
-                          className="w-4 h-4"
-                        />
-                        <span className={`text-xs font-semibold ${cupomEditForm.ativo ? 'text-green-700' : 'text-gray-500'}`}>
-                          {cupomEditForm.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </label>
-                    ) : (
-                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={!!c.ativo}
-                          onChange={async (e) => {
-                            try {
-                              await updateCupom(c.id, { ativo: e.target.checked });
-                            } catch (err) {
-                              alert('Erro ao atualizar status do cupom');
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className={`text-xs font-semibold ${c.ativo ? 'text-green-700' : 'text-gray-500'}`}>
-                          {c.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </label>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {editCupomId === c.id ? (
-                      <select
-                        value={String(cupomEditForm.minSubtotal)}
-                        onChange={(e) => setCupomEditForm({ ...cupomEditForm, minSubtotal: Number(e.target.value) })}
-                        className="px-2 py-1 border rounded text-sm"
-                      >
-                        <option value="0">Sem mínimo</option>
-                        <option value="50">R$ 50,00</option>
-                        <option value="100">R$ 100,00</option>
-                        <option value="150">R$ 150,00</option>
-                        <option value="200">R$ 200,00</option>
-                        <option value="250">R$ 250,00</option>
-                        <option value="300">R$ 300,00</option>
-                      </select>
-                    ) : (
-                      Number(c.minSubtotal || 0) > 0 ? `R$ ${Number(c.minSubtotal).toFixed(2)}` : 'Sem mínimo'
-                    )}
-                  </td>
-                  <td className="py-2 pr-4 space-x-2 whitespace-nowrap">
-                    {editCupomId === c.id ? (
-                      <>
-                        <button
-                          onClick={async () => {
-                            setCupomMsg("");
-                            const codigo = (cupomEditForm.codigo || "").trim().toUpperCase();
-                            const tipo = cupomEditForm.tipo === 'fixo' ? 'fixo' : 'percentual';
-                            const valorNum = parseFloat(cupomEditForm.valor);
-                            const minSubtotal = Number(cupomEditForm.minSubtotal) || 0;
-                            if (!codigo) { setCupomMsg("Informe o código do cupom."); return; }
-                            if (!(valorNum > 0)) { setCupomMsg("Informe um valor de desconto válido."); return; }
-                            if (tipo === 'percentual' && valorNum > 100) { setCupomMsg("Porcentagem máxima é 100%."); return; }
-                            try {
-                              await updateCupom(c.id, { codigo, tipo, valor: valorNum, minSubtotal, ativo: !!cupomEditForm.ativo });
-                              setEditCupomId(null);
-                              setCupomMsg('✅ Cupom atualizado.');
-                            } catch (e) {
-                              setCupomMsg('❌ Erro ao atualizar cupom.');
-                            }
-                          }}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                        >
-                          Salvar
-                        </button>
-                        <button
-                          onClick={() => setEditCupomId(null)}
-                          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditCupomId(c.id);
-                            setCupomEditForm({
-                              codigo: c.codigo || "",
-                              tipo: c.tipo === 'fixo' ? 'fixo' : 'percentual',
-                              valor: String(c.valor ?? ''),
-                              minSubtotal: Number(c.minSubtotal || 0),
-                              ativo: c.ativo !== false,
-                            });
-                          }}
-                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Excluir este cupom?')) {
-                              deleteCupom(c.id);
-                            }
-                          }}
-                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                        >
-                          Excluir
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {(!cupons || cupons.length === 0) && !cuponsLoading && (
-                <tr>
-                  <td colSpan="6" className="py-4 text-gray-500">Nenhum cupom cadastrado</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        )}
       </div>
 
       {/* Barra de busca e filtros - Responsiva */}
@@ -972,29 +320,28 @@ export default function Painel() {
           </div>
 
           {/* Ordenação */}
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <select
               value={ordenacao}
-              onChange={(e) => setOrdenacao(e.target.value)}
+              onChange={(e) => handleFiltroChange(() => setOrdenacao(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
               <option value="criadoEm">Data de criação</option>
-              <option value="titulo">Título</option>
+              <option value="titulo">Nome (A-Z)</option>
               <option value="preco">Preço</option>
-              <option value="categoria">Categoria</option>
             </select>
           </div>
 
           {/* Direção da ordenação */}
-          <div>
-            <button
-              onClick={() => setDirecaoOrdenacao(direcaoOrdenacao === "asc" ? "desc" : "asc")}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 text-sm"
+          <div className="sm:col-span-2 lg:col-span-1">
+            <select
+              value={direcaoOrdenacao}
+              onChange={(e) => handleFiltroChange(() => setDirecaoOrdenacao(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
-              <FaSort />
-              <span className="hidden sm:inline">{direcaoOrdenacao === "asc" ? "Crescente" : "Decrescente"}</span>
-              <span className="sm:hidden">{direcaoOrdenacao === "asc" ? "↑" : "↓"}</span>
-            </button>
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
           </div>
         </div>
 
@@ -1142,11 +489,7 @@ export default function Painel() {
                     <span className="hidden sm:inline">Editar</span>
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-                        deleteDocument(produto.id);
-                      }
-                    }}
+                    onClick={() => setDeleteConfirm({ type: 'produto', id: produto.id, callback: () => deleteDocument(produto.id) })}
                     className="bg-red-600 text-white p-2 hover:bg-red-700 rounded"
                     title="Excluir produto"
                   >
@@ -1212,6 +555,43 @@ export default function Painel() {
         onClose={handleFecharModal}
         onSuccess={handleSucessoEdicao}
       />
+
+      {/* Modais */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : alert.type === "warning" ? "Atenção" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={() => {
+          if (confirmModal.onConfirm) confirmModal.onConfirm();
+          setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+        }}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant="warning"
+      />
+
+      {deleteConfirm.type && (
+        <ConfirmModal
+          isOpen={!!deleteConfirm.type}
+          onClose={() => setDeleteConfirm({ type: null, id: null, callback: null })}
+          onConfirm={() => {
+            if (deleteConfirm.callback) deleteConfirm.callback();
+            setDeleteConfirm({ type: null, id: null, callback: null });
+          }}
+          title={deleteConfirm.type === 'anuncio' ? "Excluir Anúncio" : deleteConfirm.type === 'cupom' ? "Excluir Cupom" : "Excluir Produto"}
+          message={deleteConfirm.type === 'anuncio' ? "Excluir este anúncio?" : deleteConfirm.type === 'cupom' ? "Excluir este cupom?" : "Tem certeza que deseja excluir este produto?"}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+        />
+      )}
     </div>
   );
 }

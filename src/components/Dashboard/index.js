@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaChartBar, FaShoppingCart, FaMoneyBillWave, FaCalendarAlt, FaArrowUp, FaArrowDown, FaTrophy, FaClock, FaPercentage, FaSync } from 'react-icons/fa';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -8,26 +10,112 @@ const Dashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   useEffect(() => {
-    loadOrders();
-    const interval = setInterval(() => {
-      loadOrders();
-      setLastUpdate(new Date());
-    }, 30000); // Atualiza a cada 30 segundos
+    console.log('👂 [Dashboard] Configurando listener de pedidos...');
     
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadOrders = () => {
+    let isMounted = true;
+    let unsubscribe = null;
+    
     try {
-      const savedOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
-      setOrders(savedOrders);
+      // Query dos pedidos do Firestore
+      const q = query(
+        collection(db, 'pedidos'),
+        orderBy('createdAt', 'desc')
+      );
+
+      // Listener em tempo real com tratamento de erro robusto
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!isMounted) return; // Prevenir atualizações se componente foi desmontado
+        
+        const ordersData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          
+          // Normalizar data - Firestore usa Timestamp
+          let createdAt = '';
+          if (data.createdAt?.toDate) {
+            createdAt = data.createdAt.toDate().toISOString();
+          } else if (data.createdAtTimestamp) {
+            createdAt = new Date(data.createdAtTimestamp).toISOString();
+          } else if (data.createdAt) {
+            createdAt = typeof data.createdAt === 'string' ? data.createdAt : new Date(data.createdAt).toISOString();
+          }
+
+          // Normalizar itens
+          const normalizedItems = Array.isArray(data.items)
+            ? data.items.map((item) => ({
+                ...item,
+                titulo: item.titulo ?? item.nome ?? item.title ?? "",
+                qty: item.qty ?? item.quantidade ?? item.quantity ?? 1,
+                preco: item.preco ?? item.precoUnitario ?? item.price ?? 0,
+              }))
+            : [];
+
+          // Normalizar total
+          const total = data.total ?? data.totalValue ?? data.valorTotal ?? 0;
+
+          // Normalizar status
+          const status = data.status ?? 'pending';
+
+          return {
+            id: doc.id,
+            ...data,
+            createdAt,
+            items: normalizedItems,
+            total: typeof total === 'number' ? total : parseFloat(total) || 0,
+            status
+          };
+        });
+
+        setOrders(ordersData);
+        setLoading(false);
+        setLastUpdate(new Date());
+        
+        console.log('✅ [Dashboard] Pedidos atualizados:', ordersData.length);
+      }, (error) => {
+        if (!isMounted) return;
+        
+        console.error('❌ [Dashboard] Erro ao escutar pedidos:', error);
+        
+        // Ignorar erros internos do Firestore durante desenvolvimento (hot-reload)
+        if (error?.message?.includes('INTERNAL ASSERTION') || 
+            error?.message?.includes('Unexpected state') ||
+            error?.code === 'ca9' || 
+            error?.code === 'b815') {
+          console.warn('⚠️ [Dashboard] Erro interno do Firestore ignorado (provavelmente hot-reload)');
+          return;
+        }
+        
+        setLoading(false);
+        
+        // Fallback para localStorage se Firestore falhar
+        try {
+          const savedOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
+          if (savedOrders.length > 0) {
+            console.log('📦 [Dashboard] Usando fallback do localStorage');
+            setOrders(savedOrders);
+          }
+        } catch (err) {
+          console.error('❌ [Dashboard] Erro ao carregar fallback:', err);
+          setOrders([]);
+        }
+      });
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
-      setOrders([]);
-    } finally {
+      console.error('❌ [Dashboard] Erro ao configurar listener:', error);
       setLoading(false);
     }
-  };
+
+    return () => {
+      console.log('🧹 [Dashboard] Removendo listener de pedidos');
+      isMounted = false;
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (err) {
+          console.warn('⚠️ [Dashboard] Erro ao remover listener (ignorado):', err);
+        }
+        unsubscribe = null;
+      }
+    };
+  }, []);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -44,19 +132,29 @@ const Dashboard = () => {
     const days = parseInt(timeRange);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setHours(0, 0, 0, 0);
     
-    return orders.filter(order => new Date(order.createdAt) >= cutoffDate);
+    return orders.filter(order => {
+      if (!order.createdAt) return false;
+      const orderDate = new Date(order.createdAt);
+      orderDate.setHours(0, 0, 0, 0);
+      return orderDate >= cutoffDate;
+    });
   };
 
   const getPreviousPeriodOrders = () => {
     const days = parseInt(timeRange);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days * 2);
+    cutoffDate.setHours(0, 0, 0, 0);
     const endDate = new Date();
     endDate.setDate(endDate.getDate() - days);
+    endDate.setHours(0, 0, 0, 0);
     
     return orders.filter(order => {
+      if (!order.createdAt) return false;
       const orderDate = new Date(order.createdAt);
+      orderDate.setHours(0, 0, 0, 0);
       return orderDate >= cutoffDate && orderDate < endDate;
     });
   };
@@ -105,10 +203,11 @@ const Dashboard = () => {
     }
     
     filteredOrders.forEach(order => {
+      if (!order.createdAt) return;
       const dateStr = order.createdAt.split('T')[0];
       if (dailyData[dateStr]) {
         dailyData[dateStr].orders += 1;
-        dailyData[dateStr].revenue += order.total;
+        dailyData[dateStr].revenue += order.total || 0;
       }
     });
     
@@ -131,16 +230,21 @@ const Dashboard = () => {
     const productData = {};
     
     filteredOrders.forEach(order => {
+      if (!order.items || !Array.isArray(order.items)) return;
       order.items.forEach(item => {
-        const key = item.titulo;
+        const key = item.titulo || item.nome || item.title || 'Produto sem nome';
+        const qty = item.qty || item.quantidade || item.quantity || 1;
+        const preco = parseFloat(item.preco || item.precoUnitario || item.price || 0);
+        const revenue = preco * qty;
+        
         if (productData[key]) {
-          productData[key].qty += item.qty;
-          productData[key].revenue += parseFloat(item.preco) * item.qty;
+          productData[key].qty += qty;
+          productData[key].revenue += revenue;
         } else {
           productData[key] = {
-            name: item.titulo,
-            qty: item.qty,
-            revenue: parseFloat(item.preco) * item.qty
+            name: key,
+            qty: qty,
+            revenue: revenue
           };
         }
       });
@@ -155,7 +259,10 @@ const Dashboard = () => {
     const hourlyData = Array(24).fill(0).map((_, i) => ({ hour: i, orders: 0 }));
     
     filteredOrders.forEach(order => {
-      const hour = new Date(order.createdAt).getHours();
+      if (!order.createdAt) return;
+      const orderDate = new Date(order.createdAt);
+      if (isNaN(orderDate.getTime())) return;
+      const hour = orderDate.getHours();
       hourlyData[hour].orders += 1;
     });
     
@@ -194,8 +301,9 @@ const Dashboard = () => {
             </div>
             <button
               onClick={() => {
-                loadOrders();
                 setLastUpdate(new Date());
+                // O listener já atualiza automaticamente, mas força re-render
+                window.location.reload();
               }}
               className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all text-gray-700 font-medium"
             >

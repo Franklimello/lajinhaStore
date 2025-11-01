@@ -12,6 +12,8 @@ import { FaHeart, FaShoppingCart, FaStar, FaEye, FaCookie, FaSearch } from "reac
 import { ShopContext } from "../../context/ShopContext";
 import { CartContext } from "../../context/CartContext";
 import CartAddAnimation from "../../components/CartAddAnimation";
+import FilterBar from "../../components/FilterBar";
+import { useProductFilters } from "../../hooks/useProductFilters";
 
 // ✅ CONSTANTES para otimização
 const CACHE_KEY = "products_salgados_joazinho";
@@ -151,6 +153,20 @@ const SalgadosDoJoazinho = memo(function SalgadosDoJoazinho({ searchTerm = "", i
       .trim();
   }, []);
 
+  // Hook de filtros e ordenação
+  const {
+    sortBy,
+    priceRange,
+    showOnlyInStock,
+    showOnlyDiscounted,
+    setSortBy,
+    setPriceRange,
+    setShowOnlyInStock,
+    setShowOnlyDiscounted,
+    clearFilters,
+    filteredAndSortedProducts: filteredProducts
+  } = useProductFilters(allProducts, normalize);
+
   // ✅ Função: Buscar produtos por termo
   const searchProducts = useCallback(async (searchTerm) => {
     try {
@@ -240,10 +256,12 @@ const SalgadosDoJoazinho = memo(function SalgadosDoJoazinho({ searchTerm = "", i
   }, [localSearchTerm, isPreview]);
 
   useEffect(() => {
-    const term = isPreview ? searchTerm.trim().toLowerCase() : "";
-    const source = term
-      ? allProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
-      : allProducts;
+    // Processar produtos para exibição (carrosséis)
+    // Usar produtos filtrados e ordenados do hook
+    const term = isPreview ? searchTerm.trim().toLowerCase() : localSearchTerm.trim().toLowerCase();
+    let source = term
+      ? filteredProducts.filter(p => (p.titulo || "").toLowerCase().includes(term))
+      : filteredProducts;
 
     const productsToShow = isPreview ? source.slice(0, 10) : source;
     
@@ -253,7 +271,7 @@ const SalgadosDoJoazinho = memo(function SalgadosDoJoazinho({ searchTerm = "", i
       grouped.push(productsToShow.slice(i, i + chunkSize));
     }
     setCarousels(grouped);
-  }, [allProducts, searchTerm, isPreview]);
+  }, [filteredProducts, searchTerm, isPreview, localSearchTerm]);
 
   const isFavorited = (productId) => favorites.some(fav => fav.id === productId);
 
@@ -282,6 +300,21 @@ const SalgadosDoJoazinho = memo(function SalgadosDoJoazinho({ searchTerm = "", i
     <section className="min-h-screen mt-10 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         
+        {/* Filtros e Ordenação - apenas quando não for preview */}
+        {!isPreview && (
+          <FilterBar
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            showOnlyInStock={showOnlyInStock}
+            setShowOnlyInStock={setShowOnlyInStock}
+            showOnlyDiscounted={showOnlyDiscounted}
+            setShowOnlyDiscounted={setShowOnlyDiscounted}
+            themeColor="amber"
+          />
+        )}
+
         {/* SearchBar - apenas quando não for preview */}
         {!isPreview && (
           <div className="w-full flex justify-center py-8 mb-8">

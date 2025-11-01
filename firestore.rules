@@ -80,12 +80,20 @@ service cloud.firestore {
                        request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
     }
     
-    // Regras para sorteio - apenas admins
+    // Regras para sorteio
     match /sorteio/{sorteioId} {
-      // Apenas administradores podem ler/escrever
-      allow read, write: if request.auth != null && 
-                            (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
-                             request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+      // ✅ CORREÇÃO: Qualquer usuário autenticado pode criar entrada (quando faz pedido com 5+ itens)
+      allow create: if request.auth != null;
+      
+      // Apenas administradores podem ler todos os participantes (para fazer o sorteio)
+      allow read: if request.auth != null && 
+                     (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                      request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
+      
+      // Apenas administradores podem atualizar/deletar
+      allow update, delete: if request.auth != null && 
+                               (request.auth.uid == "ZG5D6IrTRTZl5SDoEctLAtr4WkE2" ||
+                                request.auth.uid == "6VbaNslrhQhXcyussPj53YhLiYj2");
     }
     
     // Regras para vencedores do sorteio - apenas admins

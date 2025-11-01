@@ -20,7 +20,7 @@ const ChatWidget = memo(() => {
   const handleWhatsAppClick = useCallback(() => {
     console.log('🔗 Tentando abrir WhatsApp...');
     const phoneNumber = appConfig.CONTACT.WHATSAPP;
-    const message = 'Olá! Gostaria de fazer um pedido pelo Supermercado Online Lajinha.';
+    const message = `Olá! Gostaria de fazer um pedido pelo ${appConfig.APP.NAME}.`;
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     
     console.log('📱 URL WhatsApp:', whatsappUrl);
@@ -67,7 +67,8 @@ const ChatWidget = memo(() => {
           e.preventDefault();
           e.stopPropagation();
           console.log('🖱️ Botão clicado!');
-          alert('Botão clicado! Abrindo WhatsApp...');
+          // WhatsApp será aberto no link abaixo
+          console.log('Abrindo WhatsApp...');
           handleWhatsAppClick();
         }}
         onKeyDown={handleKeyDown}

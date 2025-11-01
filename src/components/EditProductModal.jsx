@@ -3,6 +3,7 @@ import { FaTimes, FaImage, FaTrash, FaSave, FaSpinner } from 'react-icons/fa';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
+import AlertModal from './AlertModal';
 
 /**
  * Modal de Edição de Produto com Substituição de Imagem
@@ -20,6 +21,7 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
   
   const [formData, setFormData] = useState({
     titulo: '',
@@ -151,13 +153,13 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
     if (file) {
       // Valida o tipo de arquivo
       if (!file.type.startsWith('image/')) {
-        alert('❌ Por favor, selecione apenas arquivos de imagem!');
+        setAlert({ isOpen: true, message: 'Por favor, selecione apenas arquivos de imagem!', type: "error" });
         return;
       }
       
       // Valida o tamanho (máx 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('❌ A imagem deve ter no máximo 5MB!');
+        setAlert({ isOpen: true, message: 'A imagem deve ter no máximo 5MB!', type: "error" });
         return;
       }
       
@@ -185,12 +187,12 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
     
     // Validações
     if (!formData.titulo.trim()) {
-      alert('❌ O título é obrigatório!');
+      setAlert({ isOpen: true, message: 'O título é obrigatório!', type: "warning" });
       return;
     }
     
     if (!formData.preco || parseFloat(formData.preco) <= 0) {
-      alert('❌ O preço deve ser maior que zero!');
+      setAlert({ isOpen: true, message: 'O preço deve ser maior que zero!', type: "warning" });
       return;
     }
     
@@ -252,17 +254,19 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
       console.log('🔄 Cache de produtos limpo - produto atualizado aparecerá na próxima busca');
       
       // 5. Mostra mensagem de sucesso
-      alert('✅ Produto atualizado com sucesso!');
+      setAlert({ isOpen: true, message: 'Produto atualizado com sucesso!', type: "success" });
       
       // 6. Chama callback de sucesso e fecha o modal
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      }, 1500);
       
     } catch (error) {
       console.error('❌ Erro ao atualizar produto:', error);
-      alert(`❌ Erro ao atualizar produto: ${error.message}`);
+      setAlert({ isOpen: true, message: `Erro ao atualizar produto: ${error.message}`, type: "error" });
     } finally {
       setLoading(false);
     }
@@ -492,6 +496,15 @@ export default function EditProductModal({ produto, isOpen, onClose, onSuccess }
           </div>
         </form>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : alert.type === "warning" ? "Atenção" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 }

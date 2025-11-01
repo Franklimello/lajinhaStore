@@ -4,11 +4,15 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import { FaBell, FaCheck, FaTrash } from 'react-icons/fa';
 import firestoreMonitor from '../../services/firestoreMonitor';
+import ConfirmModal from '../ConfirmModal';
+import AlertModal from '../AlertModal';
 
 const NotificationsList = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
 
   // ✅ LISTENER EM TEMPO REAL (onSnapshot)
   // Para notificações, tempo real é importante!
@@ -106,10 +110,12 @@ const NotificationsList = () => {
   };
 
   const deleteAllNotifications = async () => {
-    if (!window.confirm('Tem certeza que deseja apagar TODAS as notificações? Esta ação não pode ser desfeita.')) {
-      return;
-    }
+    setDeleteConfirm(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    setDeleteConfirm(false);
+    
     try {
       if (notifications.length === 0) {
         console.log('ℹ️ Nenhuma notificação para apagar');
@@ -130,9 +136,10 @@ const NotificationsList = () => {
       
       // ❌ NÃO precisa buscar novamente - o listener faz isso automaticamente
       console.log('✅ Todas as notificações foram apagadas');
+      setAlert({ isOpen: true, message: 'Todas as notificações foram apagadas com sucesso!', type: "success" });
     } catch (error) {
       console.error('❌ Erro ao apagar notificações:', error);
-      alert('Erro ao apagar notificações. Tente novamente.');
+      setAlert({ isOpen: true, message: 'Erro ao apagar notificações. Tente novamente.', type: "error" });
     }
   };
 
@@ -269,6 +276,26 @@ const NotificationsList = () => {
           </div>
         </div>
       )}
+
+      {/* Modais */}
+      <ConfirmModal
+        isOpen={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Apagar Todas as Notificações"
+        message="Tem certeza que deseja apagar TODAS as notificações? Esta ação não pode ser desfeita."
+        confirmText="Apagar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 };

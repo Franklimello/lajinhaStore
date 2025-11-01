@@ -7,6 +7,8 @@ import { FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 const AdminNotificationCleaner = () => {
   const [loading, setLoading] = useState(false);
   const [notificationsCount, setNotificationsCount] = useState(0);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
   const { isAdmin } = useAdmin();
 
   if (!isAdmin) {
@@ -22,13 +24,12 @@ const AdminNotificationCleaner = () => {
     }
   };
 
-  const deleteAllNotifications = async () => {
-    if (!window.confirm(
-      `⚠️ ATENÇÃO! Você está prestes a apagar TODAS as notificações de TODOS os usuários (${notificationsCount} notificações).\n\nEsta ação é IRREVERSÍVEL!\n\nTem certeza que deseja continuar?`
-    )) {
-      return;
-    }
+  const deleteAllNotifications = () => {
+    setDeleteConfirm(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    setDeleteConfirm(false);
     setLoading(true);
 
     try {

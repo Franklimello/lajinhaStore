@@ -55,17 +55,25 @@ export default function Register({ onRegisterSuccess }) {
       const result = await loginWithGoogle();
       
       if (result.success) {
+        // Se está redirecionando (mobile), não fazer nada - a página será redirecionada
+        if (result.redirecting) {
+          console.log("📱 Redirecionando para login Google...");
+          // Não fazer setLoading(false) aqui - a página será redirecionada
+          return;
+        }
+        
         if (onRegisterSuccess) {
           onRegisterSuccess();
         } else {
           navigate("/");
         }
+        setLoading(false);
       } else {
         setError("Erro ao fazer login com Google: " + result.error);
+        setLoading(false);
       }
     } catch (err) {
       setError("Erro ao fazer login com Google. Tente novamente.");
-    } finally {
       setLoading(false);
     }
   };

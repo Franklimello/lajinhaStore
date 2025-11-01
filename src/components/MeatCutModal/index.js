@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { FaCut, FaTimes } from "react-icons/fa";
+import AlertModal from "../AlertModal";
 
 export default function MeatCutModal({ isOpen, onClose, onConfirm, productName }) {
   const [cutType, setCutType] = useState("");
   const [customCut, setCustomCut] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
 
   const predefinedCuts = [
     "Moído",
@@ -19,7 +21,7 @@ export default function MeatCutModal({ isOpen, onClose, onConfirm, productName }
     const finalCut = cutType === "Outro" ? customCut : cutType;
     
     if (!finalCut.trim()) {
-      alert("Por favor, selecione ou digite como deseja o corte");
+      setShowAlert(true);
       return;
     }
 
@@ -117,6 +119,15 @@ export default function MeatCutModal({ isOpen, onClose, onConfirm, productName }
           </button>
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        title="Atenção"
+        message="Por favor, selecione ou digite como deseja o corte"
+        type="warning"
+      />
     </div>
   );
 }

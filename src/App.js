@@ -19,6 +19,7 @@ import { StoreStatusProvider } from "./context/StoreStatusContext";
 import { ProductsProvider } from "./context/ProductsContext";
 import { NotificationService } from "./services/notificationService";
 import ChatWindow from "./components/Chat/ChatWindow";
+import ServiceWorkerUpdate from "./components/ServiceWorkerUpdate";
 
 // Lazy loading para melhor performance
 const Painel = lazy(() => import("./pages/Painel"));
@@ -60,8 +61,11 @@ const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 // Lazy loading para páginas finais
 const Contato = lazy(() => import("./pages/Contato"));
 const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const FirestoreTest = lazy(() => import("./components/FirestoreTest"));
 const SorteioPage = lazy(() => import("./pages/SorteioPage"));
+const Promocoes = lazy(() => import("./pages/Promocoes"));
+const Setup = lazy(() => import("./pages/Setup"));
 // Lazy loading para componentes de debug
 const FirestoreDiagnostic = lazy(() => import("./components/FirestoreDiagnostic"));
 const FirestoreRulesValidator = lazy(() => import("./components/FirestoreRulesValidator"));
@@ -72,14 +76,14 @@ const FirestorePermissionsTest = lazy(() => import("./components/FirestorePermis
 // Componente Layout que lida com a navegação e o layout principal
 function Layout({ children }) {
   const location = useLocation();
-  // esconde Header e Footer nas páginas de login e cadastro
-  const hideChrome = location.pathname === "/login" || location.pathname === "/register"; 
+  // esconde Header e Footer nas páginas de login, cadastro e setup
+  const hideChrome = location.pathname === "/login" || location.pathname === "/register" || location.pathname === "/setup"; 
 
   return (
     <section className="flex flex-col min-h-screen">
       <WebViewBanner />
       {!hideChrome && <Header />}
-      <main className="flex-1 overflow-auto p-4 bg-gray-50">{children}</main>
+      <main id="main-content" className="flex-1 overflow-auto p-4 bg-gray-50" role="main">{children}</main>
     </section>
   );
 }
@@ -113,6 +117,7 @@ function AppContent() {
           <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/setup" element={<Setup />} />
           <Route path="/categorias" element={<Categorias />} />
           <Route path="/hortifruti" element={<Hortifruti />} />
           <Route path="/acougue" element={<Acougue />} />
@@ -133,6 +138,7 @@ function AppContent() {
           <Route path="/ofertas" element={<Ofertas />} />
           <Route path="/favoritos" element={<Favoritos />} />
           <Route path="/contato" element={<Contato />} />
+          <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
           
           <Route path="/detalhes/:id" element={<Detalhes />} />
           <Route
@@ -188,6 +194,14 @@ function AppContent() {
             element={
               <AdminRoute>
                 <SorteioPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/promocoes"
+            element={
+              <AdminRoute>
+                <Promocoes />
               </AdminRoute>
             }
           />
@@ -247,6 +261,9 @@ function AppContent() {
       
       {/* Chat de suporte em tempo real */}
       <ChatWindow />
+      
+      {/* Modal de atualização do Service Worker */}
+      <ServiceWorkerUpdate />
       
       {/* Debug de autenticação - apenas em desenvolvimento */}
       {/* <AuthDebug /> */}

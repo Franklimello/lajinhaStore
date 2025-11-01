@@ -48,12 +48,26 @@ console.log("📦 Storage Bucket:", firebaseConfig.storageBucket);
 
 // Enable offline persistence to leverage IndexedDB and reduce network reads
 // If multiple tabs are open, this may fail with a persistence error; ignore gracefully
+// IMPORTANTE: Apenas uma instância pode usar persistência por vez
+let persistenceEnabled = false;
 try {
-  enableIndexedDbPersistence(db);
-  console.log("✅ Persistência IndexedDB habilitada");
+  enableIndexedDbPersistence(db)
+    .then(() => {
+      persistenceEnabled = true;
+      console.log("✅ Persistência IndexedDB habilitada");
+    })
+    .catch((error) => {
+      // Erros esperados: failed-precondition (múltiplas abas) ou unimplemented
+      if (error.code === 'failed-precondition') {
+        console.warn("⚠️ Persistência IndexedDB: Múltiplas abas abertas (esperado)");
+      } else if (error.code === 'unimplemented') {
+        console.warn("⚠️ Persistência IndexedDB não implementada neste ambiente");
+      } else {
+        console.warn("⚠️ Persistência IndexedDB não disponível:", error.message);
+      }
+    });
 } catch (e) {
-  // ignore persistence errors (e.g., failed-precondition / unimplemented)
-  console.warn("⚠️ Persistência IndexedDB não disponível:", e.message);
+  console.warn("⚠️ Erro ao tentar habilitar persistência:", e.message);
 }
 
 export { app, db, storage, messaging, analytics };

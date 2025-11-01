@@ -69,11 +69,11 @@ const ImageMigration = () => {
   const handleRestoreProduct = async (productId) => {
     try {
       await restoreOriginalImages(productId);
-      alert('URLs originais restauradas com sucesso!');
+      // Usar toast ou feedback visual ao invés de alert
       await loadInitialData();
     } catch (error) {
       console.error('Erro ao restaurar:', error);
-      alert('Erro ao restaurar URLs originais: ' + error.message);
+      // Usar toast ou feedback visual ao invés de alert
     }
   };
 

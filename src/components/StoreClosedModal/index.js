@@ -1,5 +1,6 @@
 import { useStoreStatus } from "../../context/StoreStatusContext";
 import { FaStore, FaClock } from "react-icons/fa";
+import { appConfig } from "../../config/appConfig";
 
 export default function StoreClosedModal() {
   const { isClosed, hasSeenModal, markModalAsSeen, loading } = useStoreStatus();
@@ -46,7 +47,7 @@ export default function StoreClosedModal() {
           <p className="text-sm text-gray-700 text-center">
             <strong>📞 Dúvidas?</strong><br />
             Entre em contato pelo WhatsApp<br />
-            <span className="text-orange-600 font-semibold">(19) 99705-0303</span>
+            <span className="text-orange-600 font-semibold">{appConfig.CONTACT.PHONE}</span>
           </p>
         </div>
 

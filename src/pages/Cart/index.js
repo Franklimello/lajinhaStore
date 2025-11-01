@@ -1,20 +1,32 @@
 import React, { useContext, useState, useCallback, useMemo } from "react";
 import { CartContext } from "../../context/CartContext";
-import { FaTrash, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus, FaTruck } from "react-icons/fa";
+import { FaTrash, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus, FaTruck, FaBroom } from "react-icons/fa";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Login from "../Login";
 import Register from "../Register";
 import { useGetDocuments } from "../../hooks/useGetDocuments";
+import ConfirmModal from "../../components/ConfirmModal";
+import { appConfig } from "../../config/appConfig";
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity } = useContext(CartContext);
+  const { cart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext);
   const { user } = useAuth();
   const navigate = useNavigate();
   
   const [paymentMethod, setPaymentMethod] = useState('pix'); // 'pix' ou 'dinheiro'
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showClearCartModal, setShowClearCartModal] = useState(false);
+  const [observacoes, setObservacoes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cartObservacoes');
+      return saved || '';
+    } catch (_) {
+      return '';
+    }
+  });
 
   // Cupom de desconto
   const { documents: cupons } = useGetDocuments("cupons", { realTime: true });
@@ -129,19 +141,19 @@ export default function Cart() {
         </div>
         <div className="p-4 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-gray-700 font-medium">Segunda a Sábado:</span>
-            <span className="text-blue-600 font-bold text-lg">08:00 - 19:00</span>
+            <span className="text-gray-700 font-medium">{appConfig.STORE_HOURS.WEEKDAYS_LABEL}:</span>
+            <span className="text-blue-600 font-bold text-lg">{appConfig.STORE_HOURS.WEEKDAYS_TIME_FORMATTED}</span>
           </div>
           <div className="border-t border-gray-200"></div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-700 font-medium">Domingo:</span>
-            <span className="text-purple-600 font-bold text-lg">08:00 - 11:00</span>
+            <span className="text-gray-700 font-medium">{appConfig.STORE_HOURS.SUNDAY_LABEL}:</span>
+            <span className="text-purple-600 font-bold text-lg">{appConfig.STORE_HOURS.SUNDAY_TIME_FORMATTED}</span>
           </div>
           <div className="border-t border-gray-200 pt-3 mt-3">
             <div className="flex items-center justify-center gap-2">
               <FaTruck className="text-cyan-600" />
               <span className="text-sm font-semibold text-gray-900">Entrega:</span>
-              <span className="text-sm font-bold text-cyan-600">30 a 60 minutos</span>
+              <span className="text-sm font-bold text-cyan-600">{appConfig.STORE_HOURS.DELIVERY_TIME}</span>
             </div>
           </div>
         </div>
@@ -186,11 +198,20 @@ export default function Cart() {
           <div className="space-y-4">
             {/* Lista de produtos */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
                   <FaShoppingCart className="text-blue-600" />
                   Itens no Carrinho
                 </h2>
+                <button
+                  onClick={() => setShowClearCartModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-semibold text-sm"
+                  title="Limpar todo o carrinho"
+                  aria-label="Limpar todo o carrinho"
+                >
+                  <FaBroom />
+                  <span className="hidden sm:inline">Limpar Carrinho</span>
+                </button>
               </div>
               
               <div className="divide-y divide-gray-100">
@@ -253,11 +274,11 @@ export default function Cart() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                removeFromCart(item.id);
+                                setDeleteConfirm(item);
                               }}
-                              className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
+                              className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                               title="Remover item"
-                              aria-label="Remover item do carrinho"
+                              aria-label={`Remover ${item.titulo || item.nome} do carrinho`}
                             >
                               <FaTrash className="pointer-events-none" />
                             </button>
@@ -267,6 +288,36 @@ export default function Cart() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Campo de Observações */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                📝 Observações do Pedido
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Alguma observação especial? Informe aqui e nosso time terá ciência ao preparar seu pedido.
+              </p>
+              <textarea
+                value={observacoes}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setObservacoes(value);
+                  localStorage.setItem('cartObservacoes', value);
+                }}
+                placeholder="Ex: Entregar antes das 18h, produto deve estar bem embalado, etc..."
+                rows={4}
+                maxLength={500}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+              />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-gray-500">
+                  Opcional - Máximo 500 caracteres
+                </span>
+                <span className={`text-xs ${observacoes.length >= 450 ? 'text-red-600' : 'text-gray-500'}`}>
+                  {observacoes.length}/500
+                </span>
               </div>
             </div>
 
@@ -411,7 +462,8 @@ export default function Cart() {
                     </div>
                   </label>
                   
-                  <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:bg-green-50">
+                  {/* Opção de Dinheiro Temporariamente Desabilitada */}
+                  {/* <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:bg-green-50">
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -427,7 +479,7 @@ export default function Cart() {
                         <div className="text-sm text-gray-600">Pagamento na entrega</div>
                       </div>
                     </div>
-                  </label>
+                  </label> */}
                 </div>
               </div>
 
@@ -539,6 +591,42 @@ export default function Cart() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Remoção */}
+      {deleteConfirm && (
+        <ConfirmModal
+          isOpen={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={() => {
+            removeFromCart(deleteConfirm.id);
+            setDeleteConfirm(null);
+          }}
+          title="Remover Item"
+          message={`Deseja remover "${deleteConfirm.titulo || deleteConfirm.nome}" do carrinho?`}
+          confirmText="Remover"
+          cancelText="Cancelar"
+          variant="warning"
+        />
+      )}
+
+      {/* Modal de Confirmação de Limpar Carrinho */}
+      <ConfirmModal
+        isOpen={showClearCartModal}
+        onClose={() => setShowClearCartModal(false)}
+        onConfirm={() => {
+          clearCart();
+          setAppliedCoupon(null);
+          localStorage.removeItem('appliedCoupon');
+          setObservacoes('');
+          localStorage.removeItem('cartObservacoes');
+          setShowClearCartModal(false);
+        }}
+        title="Limpar Carrinho"
+        message={`Tem certeza que deseja remover todos os ${cart.length} item(ns) do carrinho? Esta ação não pode ser desfeita.`}
+        confirmText="Limpar Tudo"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 }

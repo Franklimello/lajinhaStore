@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { initializeNotifications, checkNotificationsCollection, clearTestNotifications } from '../../utils/initNotifications';
 import { FaCog, FaCheck, FaTrash, FaInfoCircle } from 'react-icons/fa';
+import ConfirmModal from '../ConfirmModal';
 
 const NotificationInitializer = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
   const [collectionInfo, setCollectionInfo] = useState(null);
+  const [clearConfirm, setClearConfirm] = useState(false);
 
   const handleInitialize = async () => {
     setLoading(true);
@@ -46,11 +48,12 @@ const NotificationInitializer = () => {
     }
   };
 
-  const handleClear = async () => {
-    if (!window.confirm('Tem certeza que deseja limpar TODAS as notificações? Esta ação não pode ser desfeita.')) {
-      return;
-    }
+  const handleClear = () => {
+    setClearConfirm(true);
+  };
 
+  const handleConfirmClear = async () => {
+    setClearConfirm(false);
     setLoading(true);
     setResult('');
 
@@ -146,6 +149,18 @@ const NotificationInitializer = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação */}
+      <ConfirmModal
+        isOpen={clearConfirm}
+        onClose={() => setClearConfirm(false)}
+        onConfirm={handleConfirmClear}
+        title="Limpar Todas as Notificações"
+        message="Tem certeza que deseja limpar TODAS as notificações? Esta ação não pode ser desfeita."
+        confirmText="Limpar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

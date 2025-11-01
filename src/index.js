@@ -29,11 +29,8 @@ if ('serviceWorker' in navigator) {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('✨ Nova versão disponível! Recarregue a página para atualizar.');
               
-              // Opcional: notificar usuário sobre atualização
-              if (window.confirm('Nova versão disponível! Deseja atualizar agora?')) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
+              // Atualização será gerenciada pelo componente ServiceWorkerUpdate no App.js
+              console.log('Nova versão disponível! O usuário será notificado.');
             }
           });
         });

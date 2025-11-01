@@ -3,6 +3,9 @@ import { useAdmin } from "../../hooks/useAdmin";
 import { getAllOrders, updateOrderStatus, deleteOrder } from "../../firebase/orders";
 import OrderStatusBadge from "../../components/OrderStatusBadge";
 import { formatOrderDate } from "../../firebase/orders";
+import AlertModal from "../../components/AlertModal";
+import ConfirmModal from "../../components/ConfirmModal";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function AdminOrders() {
   const { isAdmin } = useAdmin();
@@ -12,6 +15,7 @@ export default function AdminOrders() {
   const [updating, setUpdating] = useState({});
   const [deleting, setDeleting] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
   // Estado para controlar itens separados (marcados) - persistido no localStorage
   const [itemsSeparados, setItemsSeparados] = useState(() => {
     const saved = localStorage.getItem('itemsSeparados');
@@ -59,12 +63,12 @@ export default function AdminOrders() {
             ? { ...pedido, status: newStatus }
             : pedido
         ));
-        alert("Status atualizado com sucesso!");
+        setAlert({ isOpen: true, message: "Status atualizado com sucesso!", type: "success" });
       } else {
-        alert("Erro ao atualizar status: " + result.error);
+        setAlert({ isOpen: true, message: "Erro ao atualizar status: " + result.error, type: "error" });
       }
     } catch (error) {
-      alert("Erro ao atualizar status");
+      setAlert({ isOpen: true, message: "Erro ao atualizar status", type: "error" });
     } finally {
       setUpdating(prev => ({ ...prev, [orderId]: false }));
     }
@@ -79,14 +83,14 @@ export default function AdminOrders() {
       if (result.success) {
         // Remove o pedido da lista local
         setPedidos(prev => prev.filter(pedido => pedido.id !== orderId));
-        alert("Pedido excluído com sucesso!");
+        setAlert({ isOpen: true, message: "Pedido excluído com sucesso!", type: "success" });
         setShowDeleteConfirm(null);
       } else {
-        alert("Erro ao excluir pedido: " + result.error);
+        setAlert({ isOpen: true, message: "Erro ao excluir pedido: " + result.error, type: "error" });
       }
     } catch (error) {
       console.error("Erro ao excluir pedido:", error);
-      alert("Erro ao excluir pedido: " + error.message);
+      setAlert({ isOpen: true, message: "Erro ao excluir pedido: " + error.message, type: "error" });
     } finally {
       setDeleting(prev => ({ ...prev, [orderId]: false }));
     }
@@ -113,6 +117,51 @@ export default function AdminOrders() {
   const isItemSeparado = (pedidoId, itemIndex) => {
     const key = `${pedidoId}-${itemIndex}`;
     return itemsSeparados[key] || false;
+  };
+
+  // Função para formatar número de telefone para WhatsApp
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return null;
+    
+    // Remove todos os caracteres não numéricos
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // Se já começa com 55, retorna direto
+    if (cleaned.startsWith('55')) {
+      return cleaned;
+    }
+    
+    // Se tem 10 ou 11 dígitos (formato brasileiro), adiciona 55
+    if (cleaned.length === 10 || cleaned.length === 11) {
+      // Remove o zero inicial se tiver (formato antigo: 01999999999)
+      if (cleaned.length === 11 && cleaned[0] === '0') {
+        cleaned = cleaned.substring(1);
+      }
+      return '55' + cleaned;
+    }
+    
+    // Se não reconhece o formato, tenta retornar limpo
+    return cleaned.length > 0 ? cleaned : null;
+  };
+
+  // Função para gerar link do WhatsApp
+  const getWhatsAppLink = (phone, pedido) => {
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    if (!formattedPhone) return null;
+    
+    // Mensagem padrão com informações do pedido
+    const pedidoNumero = pedido.id ? `#${pedido.id.slice(-8).toUpperCase()}` : '';
+    const valorTotal = pedido.total ? `R$ ${pedido.total.toFixed(2)}` : '';
+    
+    let message = 'Olá! Estou entrando em contato sobre seu pedido.';
+    if (pedidoNumero) {
+      message += `\n\nPedido: ${pedidoNumero}`;
+    }
+    if (valorTotal) {
+      message += `\nValor: ${valorTotal}`;
+    }
+    
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
   if (!isAdmin) {
@@ -199,7 +248,21 @@ export default function AdminOrders() {
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Telefone:</span>
-                      <span className="ml-2">{pedido.endereco?.telefone || "N/A"}</span>
+                      <div className="ml-2 flex items-center gap-2">
+                        <span>{pedido.endereco?.telefone || "N/A"}</span>
+                        {pedido.endereco?.telefone && formatPhoneForWhatsApp(pedido.endereco.telefone) && (
+                          <a
+                            href={getWhatsAppLink(pedido.endereco.telefone, pedido)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md"
+                            title={`Conversar com ${pedido.endereco?.nome || 'cliente'} no WhatsApp`}
+                          >
+                            <FaWhatsapp className="text-base" />
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Endereço:</span>
@@ -371,6 +434,20 @@ export default function AdminOrders() {
                   </div>
                   )}
 
+                  {/* Observações do pedido */}
+                  {pedido.observacoes && pedido.observacoes.trim() && (
+                    <div className="mb-5">
+                      <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-4">
+                        <h5 className="font-semibold text-gray-800 flex items-center gap-2 text-base mb-2">
+                          📝 Observações do Cliente
+                        </h5>
+                        <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                          {pedido.observacoes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Controles de Status */}
                   <div className="border-t pt-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -427,45 +504,29 @@ export default function AdminOrders() {
       </div>
 
       {/* Modal de Confirmação de Exclusão */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Confirmar Exclusão</h3>
-                <p className="text-sm text-gray-500">Esta ação não pode ser desfeita.</p>
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-gray-700">
-                Tem certeza que deseja excluir este pedido? Todos os dados relacionados serão permanentemente removidos.
-              </p>
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteOrder(showDeleteConfirm)}
-                disabled={deleting[showDeleteConfirm]}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleting[showDeleteConfirm] ? "Excluindo..." : "Excluir"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={() => {
+          if (showDeleteConfirm) {
+            handleDeleteOrder(showDeleteConfirm);
+          }
+        }}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o pedido #${showDeleteConfirm ? showDeleteConfirm.slice(-8).toUpperCase() : ''}? Todos os dados relacionados serão permanentemente removidos. Esta ação não pode ser desfeita.`}
+        confirmText={deleting[showDeleteConfirm] ? "Excluindo..." : "Excluir"}
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+        title={alert.type === "success" ? "Sucesso" : alert.type === "error" ? "Erro" : "Aviso"}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 }

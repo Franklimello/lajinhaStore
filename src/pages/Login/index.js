@@ -46,20 +46,28 @@ export default function Login({ onLoginSuccess }) {
       console.log("🔐 Resultado do login:", result);
       
       if (result.success) {
+        // Se está redirecionando (mobile), não fazer nada - a página será redirecionada
+        if (result.redirecting) {
+          console.log("📱 Redirecionando para login Google...");
+          // Não fazer setLoading(false) aqui - a página será redirecionada
+          return;
+        }
+        
         console.log("✅ Login com Google bem-sucedido!");
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
           navigate("/");
         }
+        setLoading(false);
       } else {
         console.error("❌ Erro no login com Google:", result.error);
         setErro("Erro ao fazer login com Google: " + result.error);
+        setLoading(false);
       }
     } catch (err) {
       console.error("❌ Erro no login com Google:", err);
       setErro("Erro ao fazer login com Google. Tente novamente.");
-    } finally {
       setLoading(false);
     }
   };

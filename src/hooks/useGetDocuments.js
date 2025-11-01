@@ -42,6 +42,14 @@ export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist 
         },
         (error) => {
           if (!cancelledRef.current) {
+            // Ignorar erros internos do Firestore durante desenvolvimento (hot-reload)
+            if (error?.message?.includes('INTERNAL ASSERTION') || 
+                error?.message?.includes('Unexpected state') ||
+                error?.code === 'ca9' || 
+                error?.code === 'b815') {
+              console.warn('⚠️ [useGetDocuments] Erro interno do Firestore ignorado:', docCollection);
+              return;
+            }
             console.error(error);
             setError(error.message);
             setLoading(false);
@@ -51,7 +59,11 @@ export const useGetDocuments = (docCollection, { ttlMs = 5 * 60 * 1000, persist 
 
       return () => {
         cancelledRef.current = true;
-        unsubscribe();
+        try {
+          unsubscribe();
+        } catch (err) {
+          console.warn('⚠️ [useGetDocuments] Erro ao remover listener (ignorado):', err);
+        }
       };
     } else {
       (async () => {

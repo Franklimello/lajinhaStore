@@ -1,12 +1,17 @@
 import React from 'react';
 import { FaComments, FaWhatsapp } from 'react-icons/fa';
+import { appConfig } from '../../config/appConfig';
 
 const SimpleButtons = () => {
+  const whatsappNumber = appConfig.CONTACT.WHATSAPP;
+  const whatsappMessage = encodeURIComponent(`Olá! Gostaria de fazer um pedido pelo ${appConfig.APP.NAME}.`);
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+
   return (
     <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
       {/* Botão Fale Conosco */}
       <a
-        href="https://wa.me/5519997050303?text=Olá! Gostaria de fazer um pedido pelo Supermercado Online Lajinha."
+        href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -37,7 +42,7 @@ const SimpleButtons = () => {
       
       {/* Botão WhatsApp */}
       <a
-        href="https://wa.me/5519997050303"
+        href={`https://wa.me/${whatsappNumber}`}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -70,6 +75,10 @@ const SimpleButtons = () => {
 };
 
 export default SimpleButtons;
+
+
+
+
 
 
 

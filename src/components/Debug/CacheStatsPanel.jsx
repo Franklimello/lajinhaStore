@@ -22,15 +22,22 @@ export default function CacheStatsPanel() {
     };
   }, []);
 
-  const handleClearCache = async () => {
-    if (window.confirm('Deseja limpar todo o cache de imagens?')) {
-      await imageCacheManager.clearCache();
-    }
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [alert, setAlert] = useState({ isOpen: false, message: "", type: "info" });
+
+  const handleClearCache = () => {
+    setClearConfirm(true);
+  };
+
+  const handleConfirmClear = async () => {
+    setClearConfirm(false);
+    await imageCacheManager.clearCache();
+    setAlert({ isOpen: true, message: 'Cache de imagens limpo com sucesso!', type: "success" });
   };
 
   const handleClearExpired = async () => {
     await imageCacheManager.clearExpiredCache();
-    alert('Cache expirado removido!');
+    setAlert({ isOpen: true, message: 'Cache expirado removido!', type: "success" });
   };
 
   const handleUpdateStats = async () => {
